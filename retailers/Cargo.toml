@@ -1,0 +1,18 @@
+[package]
+name = "retailers"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "retailers"
+path = "./src/lib.rs"
+doctest = false
+test = false
+doc = false
+
+[dependencies]
+crawler.workspace = true
+tokio = { workspace = true, features = ["full"] }
+serde_json.workspace = true
+scraper.workspace = true
+tracing.workspace = true

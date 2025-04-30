@@ -1,0 +1,17 @@
+[package]
+name = "entrypoint"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "entrypoint"
+path = "./src/main.rs"
+doctest = false
+test = false
+doc = false
+
+[dependencies]
+retailers.workspace = true
+tokio = { workspace = true, features = ["full"] }
+tracing.workspace = true
+tracing-subscriber.workspace = true
