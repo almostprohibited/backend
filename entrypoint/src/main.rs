@@ -1,4 +1,7 @@
-use retailers::{reliable_gun::ReliableGun, traits::Retailer};
+use crawler::results::firearm::FirearmResult;
+use retailers::{
+    italian_sporting_goods::ItalianSportingGoods, reliable_gun::ReliableGun, traits::Retailer,
+};
 use tracing::{info, level_filters::LevelFilter};
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
@@ -18,10 +21,21 @@ async fn main() {
     tracing::subscriber::set_global_default(subscriber.finish())
         .expect("Failed to create log subscription");
 
-    let reliable_gun = ReliableGun::new().unwrap();
-    let result = reliable_gun.get_firearms().await;
+    let retailers: Vec<Box<dyn Retailer>> = vec![
+        Box::new(ReliableGun::new()),
+        Box::new(ItalianSportingGoods::new()),
+    ];
 
-    for firearm in result {
+    let mut firearms: Vec<FirearmResult> = Vec::new();
+
+    // let reliable_gun = ItalianSportingGoods::new();
+    // let result = reliable_gun.get_firearms().await;
+
+    for retailer in retailers {
+        firearms.append(&mut retailer.get_firearms().await);
+    }
+
+    for firearm in firearms {
         info!("{:?}", firearm);
     }
 }
