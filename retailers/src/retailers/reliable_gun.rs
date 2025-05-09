@@ -3,10 +3,6 @@ use std::time::Duration;
 use async_trait::async_trait;
 use crawler::{
     request::Request,
-    results::{
-        constants::{ActionType, AmmunitionType, FirearmClass, FirearmType},
-        firearm::{FirearmPrice, FirearmResult},
-    },
     traits::{Crawler, HttpMethod},
     unprotected::UnprotectedCrawler,
 };
@@ -15,7 +11,13 @@ use serde_json::Value;
 use tokio::time::sleep;
 use tracing::{debug, trace};
 
-use crate::traits::{Retailer, SearchParams};
+use crate::{
+    results::{
+        constants::{ActionType, AmmunitionType, FirearmClass, FirearmType},
+        firearm::{FirearmPrice, FirearmResult},
+    },
+    traits::{Retailer, SearchParams},
+};
 
 /// looks like a single gun with swappable barrels
 // 410 - https://www.reliablegun.com/combo-guns (non restricted centerfire?)

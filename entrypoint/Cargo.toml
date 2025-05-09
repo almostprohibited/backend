@@ -4,8 +4,15 @@ version = "0.1.0"
 edition = "2024"
 
 [[bin]]
-name = "entrypoint"
-path = "./src/main.rs"
+name = "indexer"
+path = "./src/indexer/main.rs"
+doctest = false
+test = false
+doc = false
+
+[[bin]]
+name = "api"
+path = "./src/api/main.rs"
 doctest = false
 test = false
 doc = false
@@ -13,6 +20,7 @@ doc = false
 [dependencies]
 retailers.workspace = true
 crawler.workspace = true
+mongodb_connector.workspace = true
 
 tokio = { workspace = true, features = ["full"] }
 tracing.workspace = true

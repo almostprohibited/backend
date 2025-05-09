@@ -1,16 +1,21 @@
+use std::time::{SystemTime, UNIX_EPOCH};
+
+use serde::{Deserialize, Serialize};
+
 use super::constants::{ActionType, AmmunitionType, FirearmClass, FirearmType};
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Deserialize, Serialize)]
 pub struct FirearmPrice {
     pub regular_price: u32,
     pub sale_price: Option<u32>,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Deserialize, Serialize)]
 pub struct FirearmResult {
     pub name: String,
     pub link: String,
     pub price: FirearmPrice,
+    pub query_time: u64,
     pub description: Option<String>,
     pub action_type: Option<ActionType>,
     pub ammo_type: Option<AmmunitionType>,
@@ -20,10 +25,16 @@ pub struct FirearmResult {
 
 impl FirearmResult {
     pub fn new(name: impl Into<String>, link: impl Into<String>, price: FirearmPrice) -> Self {
+        let time = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+
         Self {
             name: name.into(),
             link: link.into(),
             price,
+            query_time: time,
             ..Default::default()
         }
     }

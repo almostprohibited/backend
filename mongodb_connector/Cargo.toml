@@ -1,0 +1,16 @@
+[package]
+name = "mongodb_connector"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "mongodb_connector"
+path = "./src/lib.rs"
+doctest = false
+test = false
+doc = false
+
+[dependencies]
+mongodb.workspace = true
+retailers.workspace = true
+tokio = { workspace = true, features = ["full"] }

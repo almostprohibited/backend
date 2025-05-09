@@ -1,4 +1,6 @@
-#[derive(Debug, Copy, Clone)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Copy, Clone, Deserialize, Serialize)]
 pub enum ActionType {
     SemiAuto,
     LeverAction,
@@ -10,20 +12,20 @@ pub enum ActionType {
     SingleShot,
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Deserialize, Serialize)]
 pub enum AmmunitionType {
     CenterFire,
     Rimfire,
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Deserialize, Serialize)]
 pub enum FirearmClass {
     NonRestricted,
     Restricted,
     Prohibited,
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Deserialize, Serialize)]
 pub enum FirearmType {
     Rifle,
     Shotgun,

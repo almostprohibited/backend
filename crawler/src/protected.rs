@@ -20,7 +20,7 @@ impl ProtectedCrawler {
     fn create_browser() -> Result<Browser, Box<dyn Error>> {
         let fetcher_opts = FetcherOptions::default()
             .with_allow_download(true)
-            .with_install_dir(Some("/home/lucas/project-carbon/chrome"));
+            .with_install_dir(Some("./chrome"));
 
         let launch_opts = LaunchOptionsBuilder::default()
             .fetcher_options(fetcher_opts)

@@ -7,20 +7,18 @@
 use std::time::Duration;
 
 use async_trait::async_trait;
-use crawler::{
-    request::RequestBuilder,
-    results::{
-        constants::{ActionType, AmmunitionType, FirearmClass, FirearmType},
-        firearm::{FirearmPrice, FirearmResult},
-    },
-    traits::Crawler,
-    unprotected::UnprotectedCrawler,
-};
+use crawler::{request::RequestBuilder, traits::Crawler, unprotected::UnprotectedCrawler};
 use scraper::{ElementRef, Html, Selector};
 use tokio::time::sleep;
 use tracing::{debug, trace};
 
-use crate::traits::{Retailer, SearchParams};
+use crate::{
+    results::{
+        constants::{ActionType, AmmunitionType, FirearmClass, FirearmType},
+        firearm::{FirearmPrice, FirearmResult},
+    },
+    traits::{Retailer, SearchParams},
+};
 
 const URL: &str =
     "https://www.italiansportinggoods.com/firearms/{catagory}.html?product_list_limit=25?p={page}";

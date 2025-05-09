@@ -1,5 +1,6 @@
 use async_trait::async_trait;
-use crawler::results::{
+
+use crate::results::{
     constants::{ActionType, AmmunitionType, FirearmClass, FirearmType},
     firearm::FirearmResult,
 };

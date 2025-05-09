@@ -36,6 +36,8 @@ impl Crawler for UnprotectedCrawler {
             }
         }
 
+        request_builder = request_builder.header("User-Agent", " Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36");
+
         info!("Sending request to {}", request.url);
 
         let sent_request = request_builder.send().await?;
