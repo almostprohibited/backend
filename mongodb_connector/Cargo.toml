@@ -14,3 +14,4 @@ doc = false
 mongodb.workspace = true
 retailers.workspace = true
 tokio = { workspace = true, features = ["full"] }
+tracing.workspace = true

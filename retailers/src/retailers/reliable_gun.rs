@@ -13,10 +13,11 @@ use tracing::{debug, trace};
 
 use crate::{
     results::{
-        constants::{ActionType, AmmunitionType, FirearmClass, FirearmType},
+        constants::{ActionType, AmmunitionType, FirearmClass, FirearmType, RetailerName},
         firearm::{FirearmPrice, FirearmResult},
     },
     traits::{Retailer, SearchParams},
+    utils::price_to_cents,
 };
 
 /// looks like a single gun with swappable barrels
@@ -24,6 +25,7 @@ use crate::{
 /// Rifle & Scope Combo
 // 1052 https://www.reliablegun.com/rifle-scope-combo
 
+const CRAWL_DELAY_SECS: u64 = 10; // https://www.reliablegun.com/robots.txt
 const FILTER_STRING: &str = "{\"categoryId\":\"{catagory_id}\",\"manufacturerId\":\"0\",\"vendorId\":\"0\",\"pageNumber\":\"{page_number}\",\"orderby\":\"0\",\"viewmode\":\"grid\",\"pagesize\":\"12\",\"queryString\":\"\",\"shouldNotStartFromFirstPage\":true,\"keyword\":\"\",\"searchCategoryId\":\"0\",\"searchManufacturerId\":\"0\",\"searchVendorId\":\"0\",\"priceFrom\":\"\",\"priceTo\":\"\",\"includeSubcategories\":\"False\",\"searchInProductDescriptions\":\"False\",\"advancedSearch\":\"False\",\"isOnSearchPage\":\"False\"}";
 const BASE_URL: &str = "https://www.reliablegun.com";
 const HEADERS: [(&str, &str); 5] = [
@@ -40,109 +42,109 @@ const SEARCH_PARAMS: [SearchParams; 15] = [
     // centerfire
     SearchParams {
         lookup: "420", // https://www.reliablegun.com/semi-auto-rifles-2
-        action_type: ActionType::SemiAuto,
-        ammo_type: AmmunitionType::CenterFire,
-        firearm_class: FirearmClass::NonRestricted,
-        firearm_type: FirearmType::Rifle,
+        action_type: Some(ActionType::SemiAuto),
+        ammo_type: Some(AmmunitionType::CenterFire),
+        firearm_class: Some(FirearmClass::NonRestricted),
+        firearm_type: Some(FirearmType::Rifle),
     },
     SearchParams {
         lookup: "412", // https://www.reliablegun.com/lever-action-rifles
-        action_type: ActionType::LeverAction,
-        ammo_type: AmmunitionType::CenterFire,
-        firearm_class: FirearmClass::NonRestricted,
-        firearm_type: FirearmType::Rifle,
+        action_type: Some(ActionType::LeverAction),
+        ammo_type: Some(AmmunitionType::CenterFire),
+        firearm_class: Some(FirearmClass::NonRestricted),
+        firearm_type: Some(FirearmType::Rifle),
     },
     SearchParams {
         lookup: "408", // https://www.reliablegun.com/break-action-rifles
-        action_type: ActionType::BreakAction,
-        ammo_type: AmmunitionType::CenterFire,
-        firearm_class: FirearmClass::NonRestricted,
-        firearm_type: FirearmType::Rifle,
+        action_type: Some(ActionType::BreakAction),
+        ammo_type: Some(AmmunitionType::CenterFire),
+        firearm_class: Some(FirearmClass::NonRestricted),
+        firearm_type: Some(FirearmType::Rifle),
     },
     SearchParams {
         lookup: "406", // https://www.reliablegun.com/bolt-action-rifles-2
-        action_type: ActionType::BoltAction,
-        ammo_type: AmmunitionType::CenterFire,
-        firearm_class: FirearmClass::NonRestricted,
-        firearm_type: FirearmType::Rifle,
+        action_type: Some(ActionType::BoltAction),
+        ammo_type: Some(AmmunitionType::CenterFire),
+        firearm_class: Some(FirearmClass::NonRestricted),
+        firearm_type: Some(FirearmType::Rifle),
     },
     SearchParams {
         lookup: "414", // https://www.reliablegun.com/over-under-shotguns
-        action_type: ActionType::OverUnder,
-        ammo_type: AmmunitionType::CenterFire,
-        firearm_class: FirearmClass::NonRestricted,
-        firearm_type: FirearmType::Shotgun,
+        action_type: Some(ActionType::OverUnder),
+        ammo_type: Some(AmmunitionType::CenterFire),
+        firearm_class: Some(FirearmClass::NonRestricted),
+        firearm_type: Some(FirearmType::Shotgun),
     },
     SearchParams {
         lookup: "418", // https://www.reliablegun.com/pump-action-shotguns
-        action_type: ActionType::PumpAction,
-        ammo_type: AmmunitionType::CenterFire,
-        firearm_class: FirearmClass::NonRestricted,
-        firearm_type: FirearmType::Shotgun,
+        action_type: Some(ActionType::PumpAction),
+        ammo_type: Some(AmmunitionType::CenterFire),
+        firearm_class: Some(FirearmClass::NonRestricted),
+        firearm_type: Some(FirearmType::Shotgun),
     },
     SearchParams {
         lookup: "422", // https://www.reliablegun.com/semi-auto-shotguns
-        action_type: ActionType::SemiAuto,
-        ammo_type: AmmunitionType::CenterFire,
-        firearm_class: FirearmClass::NonRestricted,
-        firearm_type: FirearmType::Shotgun,
+        action_type: Some(ActionType::SemiAuto),
+        ammo_type: Some(AmmunitionType::CenterFire),
+        firearm_class: Some(FirearmClass::NonRestricted),
+        firearm_type: Some(FirearmType::Shotgun),
     },
     SearchParams {
         lookup: "424", // https://www.reliablegun.com/side-by-side-shotguns
-        action_type: ActionType::SideBySide,
-        ammo_type: AmmunitionType::CenterFire,
-        firearm_class: FirearmClass::NonRestricted,
-        firearm_type: FirearmType::Shotgun,
+        action_type: Some(ActionType::SideBySide),
+        ammo_type: Some(AmmunitionType::CenterFire),
+        firearm_class: Some(FirearmClass::NonRestricted),
+        firearm_type: Some(FirearmType::Shotgun),
     },
     SearchParams {
         lookup: "446", // https://www.reliablegun.com/bolt-shotguns
-        action_type: ActionType::BoltAction,
-        ammo_type: AmmunitionType::CenterFire,
-        firearm_class: FirearmClass::NonRestricted,
-        firearm_type: FirearmType::Shotgun,
+        action_type: Some(ActionType::BoltAction),
+        ammo_type: Some(AmmunitionType::CenterFire),
+        firearm_class: Some(FirearmClass::NonRestricted),
+        firearm_type: Some(FirearmType::Shotgun),
     },
     SearchParams {
         lookup: "448", // https://www.reliablegun.com/single-shot-shotgun
-        action_type: ActionType::SingleShot,
-        ammo_type: AmmunitionType::CenterFire,
-        firearm_class: FirearmClass::NonRestricted,
-        firearm_type: FirearmType::Shotgun,
+        action_type: Some(ActionType::SingleShot),
+        ammo_type: Some(AmmunitionType::CenterFire),
+        firearm_class: Some(FirearmClass::NonRestricted),
+        firearm_type: Some(FirearmType::Shotgun),
     },
     // rimfire
     SearchParams {
         lookup: "426", // https://www.reliablegun.com/bolt-action-rifles
-        action_type: ActionType::BoltAction,
-        ammo_type: AmmunitionType::Rimfire,
-        firearm_class: FirearmClass::NonRestricted,
-        firearm_type: FirearmType::Rifle,
+        action_type: Some(ActionType::BoltAction),
+        ammo_type: Some(AmmunitionType::Rimfire),
+        firearm_class: Some(FirearmClass::NonRestricted),
+        firearm_type: Some(FirearmType::Rifle),
     },
     SearchParams {
         lookup: "428", // https://www.reliablegun.com/lever-action-rifles-2
-        action_type: ActionType::LeverAction,
-        ammo_type: AmmunitionType::Rimfire,
-        firearm_class: FirearmClass::NonRestricted,
-        firearm_type: FirearmType::Rifle,
+        action_type: Some(ActionType::LeverAction),
+        ammo_type: Some(AmmunitionType::Rimfire),
+        firearm_class: Some(FirearmClass::NonRestricted),
+        firearm_type: Some(FirearmType::Rifle),
     },
     SearchParams {
         lookup: "425", // https://www.reliablegun.com/break-action-rifles-2
-        action_type: ActionType::BreakAction,
-        ammo_type: AmmunitionType::Rimfire,
-        firearm_class: FirearmClass::NonRestricted,
-        firearm_type: FirearmType::Rifle,
+        action_type: Some(ActionType::BreakAction),
+        ammo_type: Some(AmmunitionType::Rimfire),
+        firearm_class: Some(FirearmClass::NonRestricted),
+        firearm_type: Some(FirearmType::Rifle),
     },
     SearchParams {
         lookup: "432", // https://www.reliablegun.com/semi-auto-rifles
-        action_type: ActionType::SemiAuto,
-        ammo_type: AmmunitionType::Rimfire,
-        firearm_class: FirearmClass::NonRestricted,
-        firearm_type: FirearmType::Rifle,
+        action_type: Some(ActionType::SemiAuto),
+        ammo_type: Some(AmmunitionType::Rimfire),
+        firearm_class: Some(FirearmClass::NonRestricted),
+        firearm_type: Some(FirearmType::Rifle),
     },
     SearchParams {
         lookup: "430", // https://www.reliablegun.com/pump-rifles-2
-        action_type: ActionType::PumpAction,
-        ammo_type: AmmunitionType::Rimfire,
-        firearm_class: FirearmClass::NonRestricted,
-        firearm_type: FirearmType::Rifle,
+        action_type: Some(ActionType::PumpAction),
+        ammo_type: Some(AmmunitionType::Rimfire),
+        firearm_class: Some(FirearmClass::NonRestricted),
+        firearm_type: Some(FirearmType::Rifle),
     },
 ];
 
@@ -165,31 +167,11 @@ impl ReliableGun {
         }
     }
 
-    fn parse_cost(price: String) -> u32 {
-        let mut trimmed_price = price.clone();
-
-        if price.starts_with("$") {
-            trimmed_price.remove(0);
-        }
-
-        trimmed_price = trimmed_price.replace(",", "");
-
-        match trimmed_price.split_once(".") {
-            Some((dollars, cents)) => {
-                let parsed_dollars = dollars.parse::<u32>().unwrap();
-                let parsed_cents = cents.parse::<u32>().unwrap();
-
-                parsed_dollars * 100 + parsed_cents
-            }
-            None => 0,
-        }
-    }
-
     fn find_prices(element: ElementRef) -> FirearmPrice {
         let actual_selector = Selector::parse("span.actual-price").unwrap();
         let old_selector = Selector::parse("span.old-price").unwrap();
 
-        let actual_price = Self::parse_cost(
+        let actual_price = price_to_cents(
             element
                 .select(&actual_selector)
                 .next()
@@ -208,7 +190,7 @@ impl ReliableGun {
                 .to_string();
 
             FirearmPrice {
-                regular_price: Self::parse_cost(old_price),
+                regular_price: price_to_cents(old_price),
                 sale_price: Some(actual_price),
             }
         } else {
@@ -273,6 +255,7 @@ impl ReliableGun {
 
         let description_selector = Selector::parse("div.description").unwrap();
         let url_selector = Selector::parse("h2.product-title > a").unwrap();
+        let img_selector = Selector::parse("img.product-overview-img").unwrap();
 
         for element in fragment.select(&Selector::parse("div.product-item").unwrap()) {
             let description = element
@@ -288,14 +271,27 @@ impl ReliableGun {
             let url_href = url_element.attr("href").unwrap();
             let name = url_element.text().collect::<String>().trim().to_string();
 
+            let image_url = element
+                .select(&img_selector)
+                .next()
+                .unwrap()
+                .attr("src")
+                .unwrap();
+
             let price = Self::find_prices(element);
 
-            let mut firearm = FirearmResult::new(name, format!("{}{}", BASE_URL, url_href), price);
+            let mut firearm = FirearmResult::new(
+                name,
+                format!("{}{}", BASE_URL, url_href),
+                price,
+                RetailerName::ReliableGun,
+            );
+            firearm.thumbnail_link = Some(image_url.to_string());
             firearm.description = Some(description);
-            firearm.action_type = Some(parameters.action_type);
-            firearm.ammo_type = Some(parameters.ammo_type);
-            firearm.firearm_class = Some(parameters.firearm_class);
-            firearm.firearm_type = Some(parameters.firearm_type);
+            firearm.action_type = parameters.action_type;
+            firearm.ammo_type = parameters.ammo_type;
+            firearm.firearm_class = parameters.firearm_class;
+            firearm.firearm_type = parameters.firearm_type;
 
             result.push(firearm);
         }
@@ -340,7 +336,7 @@ impl Retailer for ReliableGun {
 
             if let Some(page_num) = Self::get_max_page_num(html) {
                 for i in 2..page_num {
-                    sleep(Duration::from_secs(1)).await;
+                    sleep(Duration::from_secs(CRAWL_DELAY_SECS)).await;
 
                     let response = self.send_request(i.to_string().as_str(), &parameters).await;
                     let html = response.as_str();

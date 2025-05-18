@@ -26,6 +26,10 @@ impl Crawler for UnprotectedCrawler {
             HttpMethod::POST => client.post(request.url.clone()),
         };
 
+        // set user agent here in case passed in request
+        // object overrides it
+        request_builder = request_builder.header("User-Agent", " Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36");
+
         if let Some(body) = request.body {
             request_builder = request_builder.json(&body);
         }
@@ -35,8 +39,6 @@ impl Crawler for UnprotectedCrawler {
                 request_builder = request_builder.header(key, value);
             }
         }
-
-        request_builder = request_builder.header("User-Agent", " Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36");
 
         info!("Sending request to {}", request.url);
 

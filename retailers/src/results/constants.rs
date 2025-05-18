@@ -1,6 +1,21 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Copy, Clone, Deserialize, Serialize)]
+pub enum RetailerName {
+    ReliableGun,
+    LeverArms,
+    ItalianSportingGoods,
+    InternationalShootingSupplies,
+    _Unused,
+}
+
+impl Default for RetailerName {
+    fn default() -> Self {
+        Self::_Unused
+    }
+}
+
+#[derive(Debug, Copy, Clone, Deserialize, Serialize)]
 pub enum ActionType {
     SemiAuto,
     LeverAction,

@@ -2,7 +2,10 @@ use std::sync::Arc;
 
 use mongodb_connector::connector::MongoDBConnector;
 use retailers::{
-    retailers::{italian_sporting_goods::ItalianSportingGoods, reliable_gun::ReliableGun},
+    retailers::{
+        italian_sporting_goods::ItalianSportingGoods, lever_arms::LeverArms,
+        reliable_gun::ReliableGun,
+    },
     traits::Retailer,
 };
 use tokio::task::JoinHandle;
@@ -27,7 +30,12 @@ async fn main() {
 
     let retailers: Vec<Box<dyn Retailer + Send>> = vec![
         Box::new(ReliableGun::new()),
-        Box::new(ItalianSportingGoods::new()),
+        // disable ISG, they appear to have ArsenalForce specified in https://www.italiansportinggoods.com/robots.txt
+        //Box::new(ItalianSportingGoods::new()),
+        Box::new(LeverArms::new()),
+        // disable ISS, they appear to have ArsenalForce specified in https://internationalshootingsupplies.com/robots.txt
+        // note: crawler not defined yet
+        //Box::new(InternationalShootingSupplies::new()),
     ];
 
     let mut handles: Vec<JoinHandle<()>> = Vec::new();

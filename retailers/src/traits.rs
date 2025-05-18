@@ -12,8 +12,8 @@ pub trait Retailer {
 
 pub(crate) struct SearchParams<'a> {
     pub(crate) lookup: &'a str,
-    pub(crate) action_type: ActionType,
-    pub(crate) ammo_type: AmmunitionType,
-    pub(crate) firearm_class: FirearmClass,
-    pub(crate) firearm_type: FirearmType,
+    pub(crate) action_type: Option<ActionType>,
+    pub(crate) ammo_type: Option<AmmunitionType>,
+    pub(crate) firearm_class: Option<FirearmClass>,
+    pub(crate) firearm_type: Option<FirearmType>,
 }

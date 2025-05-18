@@ -14,10 +14,11 @@ use tracing::{debug, trace};
 
 use crate::{
     results::{
-        constants::{ActionType, AmmunitionType, FirearmClass, FirearmType},
+        constants::{ActionType, AmmunitionType, FirearmClass, FirearmType, RetailerName},
         firearm::{FirearmPrice, FirearmResult},
     },
     traits::{Retailer, SearchParams},
+    utils::price_to_cents,
 };
 
 const URL: &str =
@@ -26,117 +27,117 @@ const SEARCH_PARAMS: [SearchParams; 16] = [
     // centerfire rifle
     SearchParams {
         lookup: "centerfire-rifles/bolt-action", // https://www.italiansportinggoods.com/firearms/centerfire-rifles/bolt-action.html
-        action_type: ActionType::BoltAction,
-        ammo_type: AmmunitionType::CenterFire,
-        firearm_class: FirearmClass::NonRestricted,
-        firearm_type: FirearmType::Rifle,
+        action_type: Some(ActionType::BoltAction),
+        ammo_type: Some(AmmunitionType::CenterFire),
+        firearm_class: Some(FirearmClass::NonRestricted),
+        firearm_type: Some(FirearmType::Rifle),
     },
     SearchParams {
         lookup: "centerfire-rifles/lever-action", // https://www.italiansportinggoods.com/firearms/centerfire-rifles/lever-action.html
-        action_type: ActionType::LeverAction,
-        ammo_type: AmmunitionType::CenterFire,
-        firearm_class: FirearmClass::NonRestricted,
-        firearm_type: FirearmType::Rifle,
+        action_type: Some(ActionType::LeverAction),
+        ammo_type: Some(AmmunitionType::CenterFire),
+        firearm_class: Some(FirearmClass::NonRestricted),
+        firearm_type: Some(FirearmType::Rifle),
     },
     SearchParams {
         lookup: "centerfire-rifles/pump-action", // https://www.italiansportinggoods.com/firearms/centerfire-rifles/pump-action.html
-        action_type: ActionType::PumpAction,
-        ammo_type: AmmunitionType::CenterFire,
-        firearm_class: FirearmClass::NonRestricted,
-        firearm_type: FirearmType::Rifle,
+        action_type: Some(ActionType::PumpAction),
+        ammo_type: Some(AmmunitionType::CenterFire),
+        firearm_class: Some(FirearmClass::NonRestricted),
+        firearm_type: Some(FirearmType::Rifle),
     },
     SearchParams {
         lookup: "centerfire-rifles/semi-automatic", // https://www.italiansportinggoods.com/firearms/centerfire-rifles/semi-automatic.html
-        action_type: ActionType::SemiAuto,
-        ammo_type: AmmunitionType::CenterFire,
-        firearm_class: FirearmClass::NonRestricted,
-        firearm_type: FirearmType::Rifle,
+        action_type: Some(ActionType::SemiAuto),
+        ammo_type: Some(AmmunitionType::CenterFire),
+        firearm_class: Some(FirearmClass::NonRestricted),
+        firearm_type: Some(FirearmType::Rifle),
     },
     SearchParams {
         lookup: "centerfire-rifles/break", // https://www.italiansportinggoods.com/firearms/centerfire-rifles/break.html
-        action_type: ActionType::BreakAction,
-        ammo_type: AmmunitionType::CenterFire,
-        firearm_class: FirearmClass::NonRestricted,
-        firearm_type: FirearmType::Rifle,
+        action_type: Some(ActionType::BreakAction),
+        ammo_type: Some(AmmunitionType::CenterFire),
+        firearm_class: Some(FirearmClass::NonRestricted),
+        firearm_type: Some(FirearmType::Rifle),
     },
     SearchParams {
         lookup: "centerfire-rifles/over-under", // https://www.italiansportinggoods.com/firearms/centerfire-rifles/over-under.html
-        action_type: ActionType::OverUnder,
-        ammo_type: AmmunitionType::CenterFire,
-        firearm_class: FirearmClass::NonRestricted,
-        firearm_type: FirearmType::Rifle,
+        action_type: Some(ActionType::OverUnder),
+        ammo_type: Some(AmmunitionType::CenterFire),
+        firearm_class: Some(FirearmClass::NonRestricted),
+        firearm_type: Some(FirearmType::Rifle),
     },
     // rimfire
     SearchParams {
         lookup: "rimfire-rifles/bolt-action", // https://www.italiansportinggoods.com/firearms/rimfire-rifles/bolt-action.html
-        action_type: ActionType::BoltAction,
-        ammo_type: AmmunitionType::Rimfire,
-        firearm_class: FirearmClass::NonRestricted,
-        firearm_type: FirearmType::Rifle,
+        action_type: Some(ActionType::BoltAction),
+        ammo_type: Some(AmmunitionType::Rimfire),
+        firearm_class: Some(FirearmClass::NonRestricted),
+        firearm_type: Some(FirearmType::Rifle),
     },
     SearchParams {
         lookup: "rimfire-rifles/lever-action", // https://www.italiansportinggoods.com/firearms/rimfire-rifles/lever-action.html
-        action_type: ActionType::LeverAction,
-        ammo_type: AmmunitionType::Rimfire,
-        firearm_class: FirearmClass::NonRestricted,
-        firearm_type: FirearmType::Rifle,
+        action_type: Some(ActionType::LeverAction),
+        ammo_type: Some(AmmunitionType::Rimfire),
+        firearm_class: Some(FirearmClass::NonRestricted),
+        firearm_type: Some(FirearmType::Rifle),
     },
     SearchParams {
         lookup: "rimfire-rifles/semi-auto", // https://www.italiansportinggoods.com/firearms/rimfire-rifles/semi-auto.html
-        action_type: ActionType::SemiAuto,
-        ammo_type: AmmunitionType::Rimfire,
-        firearm_class: FirearmClass::NonRestricted,
-        firearm_type: FirearmType::Rifle,
+        action_type: Some(ActionType::SemiAuto),
+        ammo_type: Some(AmmunitionType::Rimfire),
+        firearm_class: Some(FirearmClass::NonRestricted),
+        firearm_type: Some(FirearmType::Rifle),
     },
     SearchParams {
         lookup: "rimfire-rifles/revolver", // https://www.italiansportinggoods.com/firearms/rimfire-rifles/revolver.html
-        action_type: ActionType::SemiAuto,
-        ammo_type: AmmunitionType::Rimfire,
-        firearm_class: FirearmClass::NonRestricted,
-        firearm_type: FirearmType::Rifle,
+        action_type: Some(ActionType::SemiAuto),
+        ammo_type: Some(AmmunitionType::Rimfire),
+        firearm_class: Some(FirearmClass::NonRestricted),
+        firearm_type: Some(FirearmType::Rifle),
     },
     // shotguns
     SearchParams {
         lookup: "shotguns/lever", // https://www.italiansportinggoods.com/firearms/shotguns/lever.html
-        action_type: ActionType::LeverAction,
-        ammo_type: AmmunitionType::CenterFire,
-        firearm_class: FirearmClass::NonRestricted,
-        firearm_type: FirearmType::Shotgun,
+        action_type: Some(ActionType::LeverAction),
+        ammo_type: Some(AmmunitionType::CenterFire),
+        firearm_class: Some(FirearmClass::NonRestricted),
+        firearm_type: Some(FirearmType::Shotgun),
     },
     SearchParams {
         lookup: "shotguns/over-and-under", // https://www.italiansportinggoods.com/firearms/shotguns/over-and-under.html
-        action_type: ActionType::OverUnder,
-        ammo_type: AmmunitionType::CenterFire,
-        firearm_class: FirearmClass::NonRestricted,
-        firearm_type: FirearmType::Shotgun,
+        action_type: Some(ActionType::OverUnder),
+        ammo_type: Some(AmmunitionType::CenterFire),
+        firearm_class: Some(FirearmClass::NonRestricted),
+        firearm_type: Some(FirearmType::Shotgun),
     },
     SearchParams {
         lookup: "shotguns/side-by-side", // https://www.italiansportinggoods.com/firearms/shotguns/side-by-side.html
-        action_type: ActionType::SideBySide,
-        ammo_type: AmmunitionType::CenterFire,
-        firearm_class: FirearmClass::NonRestricted,
-        firearm_type: FirearmType::Shotgun,
+        action_type: Some(ActionType::SideBySide),
+        ammo_type: Some(AmmunitionType::CenterFire),
+        firearm_class: Some(FirearmClass::NonRestricted),
+        firearm_type: Some(FirearmType::Shotgun),
     },
     SearchParams {
         lookup: "shotguns/pump-action", // https://www.italiansportinggoods.com/firearms/shotguns/pump-action.html
-        action_type: ActionType::PumpAction,
-        ammo_type: AmmunitionType::CenterFire,
-        firearm_class: FirearmClass::NonRestricted,
-        firearm_type: FirearmType::Shotgun,
+        action_type: Some(ActionType::PumpAction),
+        ammo_type: Some(AmmunitionType::CenterFire),
+        firearm_class: Some(FirearmClass::NonRestricted),
+        firearm_type: Some(FirearmType::Shotgun),
     },
     SearchParams {
         lookup: "shotguns/semi-automatic", // https://www.italiansportinggoods.com/firearms/shotguns/semi-automatic.html
-        action_type: ActionType::SemiAuto,
-        ammo_type: AmmunitionType::CenterFire,
-        firearm_class: FirearmClass::NonRestricted,
-        firearm_type: FirearmType::Shotgun,
+        action_type: Some(ActionType::SemiAuto),
+        ammo_type: Some(AmmunitionType::CenterFire),
+        firearm_class: Some(FirearmClass::NonRestricted),
+        firearm_type: Some(FirearmType::Shotgun),
     },
     SearchParams {
         lookup: "shotguns/single-shot", // https://www.italiansportinggoods.com/firearms/shotguns/single-shot.html
-        action_type: ActionType::SingleShot,
-        ammo_type: AmmunitionType::CenterFire,
-        firearm_class: FirearmClass::NonRestricted,
-        firearm_type: FirearmType::Shotgun,
+        action_type: Some(ActionType::SingleShot),
+        ammo_type: Some(AmmunitionType::CenterFire),
+        firearm_class: Some(FirearmClass::NonRestricted),
+        firearm_type: Some(FirearmType::Shotgun),
     },
 ];
 
@@ -169,27 +170,12 @@ impl ItalianSportingGoods {
         }
     }
 
-    fn parse_cost(price: String) -> u32 {
-        let mut mutable_price = price.clone();
-        mutable_price = mutable_price.replace(",", "");
-
-        match mutable_price.split_once(".") {
-            Some((dollars, cents)) => {
-                let parsed_dollars = dollars.parse::<u32>().unwrap();
-                let parsed_cents = cents.parse::<u32>().unwrap();
-
-                parsed_dollars * 100 + parsed_cents
-            }
-            None => 0,
-        }
-    }
-
     fn parse_prices(element: ElementRef) -> FirearmPrice {
         let final_price =
             Selector::parse("span.price-wrapper[data-price-type=finalPrice]").unwrap();
         let old_price = Selector::parse("span.price-wrapper[data-price-type=oldPrice]").unwrap();
 
-        let final_price = Self::parse_cost(
+        let final_price = price_to_cents(
             element
                 .select(&final_price)
                 .next()
@@ -206,7 +192,7 @@ impl ItalianSportingGoods {
                 .to_string();
 
             FirearmPrice {
-                regular_price: Self::parse_cost(old_price),
+                regular_price: price_to_cents(old_price),
                 sale_price: Some(final_price),
             }
         } else {
@@ -235,11 +221,12 @@ impl ItalianSportingGoods {
 
                 let prices = Self::parse_prices(element);
 
-                let mut new_firearm = FirearmResult::new(name, link, prices);
-                new_firearm.action_type = Some(parameters.action_type);
-                new_firearm.ammo_type = Some(parameters.ammo_type);
-                new_firearm.firearm_class = Some(parameters.firearm_class);
-                new_firearm.firearm_type = Some(parameters.firearm_type);
+                let mut new_firearm =
+                    FirearmResult::new(name, link, prices, RetailerName::ItalianSportingGoods);
+                new_firearm.action_type = parameters.action_type;
+                new_firearm.ammo_type = parameters.ammo_type;
+                new_firearm.firearm_class = parameters.firearm_class;
+                new_firearm.firearm_type = parameters.firearm_type;
 
                 firearms.push(new_firearm);
             }
