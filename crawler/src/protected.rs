@@ -1,15 +1,15 @@
-use std::{error::Error, sync::Arc};
+use std::sync::Arc;
 
 use headless_chrome::{Browser, FetcherOptions, LaunchOptionsBuilder, Tab};
 
-use crate::{request::Request, traits::Crawler};
+use crate::{errors::CrawlerError, request::Request, traits::Crawler};
 
 pub struct ProtectedCrawler {
     browser: Arc<Browser>,
 }
 
 impl ProtectedCrawler {
-    pub fn new() -> Result<Self, Box<dyn Error>> {
+    pub fn new() -> Result<Self, CrawlerError> {
         let browser = Self::create_browser()?;
 
         Ok(Self {
@@ -17,7 +17,7 @@ impl ProtectedCrawler {
         })
     }
 
-    fn create_browser() -> Result<Browser, Box<dyn Error>> {
+    fn create_browser() -> Result<Browser, CrawlerError> {
         let fetcher_opts = FetcherOptions::default()
             .with_allow_download(true)
             .with_install_dir(Some("./chrome"));
@@ -31,7 +31,7 @@ impl ProtectedCrawler {
         Ok(browser?)
     }
 
-    fn make_request(&self, url: &str) -> Result<Arc<Tab>, Box<dyn Error>> {
+    fn make_request(&self, url: &str) -> Result<Arc<Tab>, CrawlerError> {
         let tab = self.browser.new_tab()?;
         tab.navigate_to(url)?;
 
@@ -40,8 +40,13 @@ impl ProtectedCrawler {
 }
 
 impl Crawler for ProtectedCrawler {
-    async fn make_web_request(&self, request: Request) -> Result<String, Box<dyn Error>> {
-        let result = self.make_request(&request.url).unwrap().get_content();
+    async fn make_web_request(&self, request: Request) -> Result<String, CrawlerError> {
+        let result = self
+            .make_request(&request.url)
+            .unwrap()
+            .wait_for_element("body")
+            .unwrap()
+            .get_content();
 
         Ok(result?)
     }

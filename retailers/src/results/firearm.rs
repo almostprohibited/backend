@@ -34,7 +34,7 @@ impl FirearmResult {
     ) -> Self {
         let time = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .unwrap()
+            .unwrap() // this should not fail since the current time is always > UNIX_EPOCH
             .as_secs();
 
         Self {

@@ -11,9 +11,10 @@ test = false
 doc = false
 
 [dependencies]
-headless_chrome = {git = "https://github.com/rust-headless-chrome/rust-headless-chrome", features = ["fetch"]}
-reqwest = { workspace = true, features = ["json"] }
+#headless_chrome = {git = "https://github.com/rust-headless-chrome/rust-headless-chrome", features = ["fetch"]}
+reqwest = { workspace = true, features = ["json", "gzip", "http2"] }
 #serde.workspace = true
 serde_json.workspace = true
 tokio = { workspace = true, features = ["full"] }
 tracing.workspace = true
+thiserror.workspace = true

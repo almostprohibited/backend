@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use async_trait::async_trait;
 use crawler::{
     request::Request,
@@ -8,7 +6,7 @@ use crawler::{
 };
 use scraper::{ElementRef, Html, Selector};
 use serde_json::Value;
-use tokio::time::sleep;
+use tokio::time::{Duration, sleep};
 use tracing::{debug, trace};
 
 use crate::{

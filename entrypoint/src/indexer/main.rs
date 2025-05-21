@@ -3,13 +3,17 @@ use std::sync::Arc;
 use mongodb_connector::connector::MongoDBConnector;
 use retailers::{
     retailers::{
-        italian_sporting_goods::ItalianSportingGoods, lever_arms::LeverArms,
-        reliable_gun::ReliableGun,
+        // al_flahertys::AlFlahertys, bullseye_north::BullseyeNorth, canadas_gun_shop::CanadasGunShop,
+        // canadas_gun_store::CanadasGunStore, lever_arms::LeverArms, reliable_gun::ReliableGun,
+        al_flahertys::AlFlahertys,
+        bullseye_north::BullseyeNorth,
+        canadas_gun_shop::CanadasGunShop,
+        canadas_gun_store::CanadasGunStore,
     },
     traits::Retailer,
 };
 use tokio::task::JoinHandle;
-use tracing::{debug, info, level_filters::LevelFilter};
+use tracing::{debug, level_filters::LevelFilter};
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
 #[tokio::main]
@@ -28,15 +32,28 @@ async fn main() {
     tracing::subscriber::set_global_default(subscriber.finish())
         .expect("Failed to create log subscription");
 
-    let retailers: Vec<Box<dyn Retailer + Send>> = vec![
-        Box::new(ReliableGun::new()),
-        // disable ISG, they appear to have ArsenalForce specified in https://www.italiansportinggoods.com/robots.txt
-        //Box::new(ItalianSportingGoods::new()),
-        Box::new(LeverArms::new()),
-        // disable ISS, they appear to have ArsenalForce specified in https://internationalshootingsupplies.com/robots.txt
-        // note: crawler not defined yet
-        //Box::new(InternationalShootingSupplies::new()),
-    ];
+    // let retailers: Vec<Box<dyn Retailer + Send>> = vec![
+    //     // disabled, they don't seem to be able to implement Cloudflare properly
+    //     // and instead have a jank recaptcha that doesn't work half the time
+    //     // note: unimplemented
+    //     // Box::new(ArmsEast::new()),
+    //     Box::new(AlFlahertys::new()),
+    //     Box::new(BullseyeNorth::new()),
+    // contains a bug where the price can be a range -> "$123.00 - $456.00"
+    //     Box::new(CanadasGunShop::new()),
+    //     Box::new(CanadasGunStore::new()),
+    //     Box::new(ReliableGun::new()),
+    //     // disable ISG, they appear to have ArsenalForce specified in https://www.italiansportinggoods.com/robots.txt
+    //     // TODO: talk to them instead of just crawling anyways
+    //     //Box::new(ItalianSportingGoods::new()),
+    //     Box::new(LeverArms::new()),
+    //     // disable ISS, they appear to have ArsenalForce specified in https://internationalshootingsupplies.com/robots.txt
+    //     // TODO: talk to them instead of just crawling anyways
+    //     // note: unimplemented
+    //     //Box::new(InternationalShootingSupplies::new()),
+    // ];
+
+    let retailers: Vec<Box<dyn Retailer + Send + Sync>> = vec![Box::new(CanadasGunStore::new())];
 
     let mut handles: Vec<JoinHandle<()>> = Vec::new();
 
@@ -48,7 +65,7 @@ async fn main() {
         handles.push(tokio::spawn(async move {
             let firearms = retailer.get_firearms().await;
             debug!("{:?}", firearms);
-            db.insert_many_firearms(firearms).await;
+            db.insert_many_firearms(firearms.unwrap()).await;
         }));
     }
 

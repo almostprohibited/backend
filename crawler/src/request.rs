@@ -2,6 +2,7 @@ use serde_json::Value;
 
 use crate::traits::HttpMethod;
 
+#[derive(Debug)]
 pub struct Request {
     pub(crate) method: HttpMethod,
     pub(crate) url: String,

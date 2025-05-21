@@ -4,12 +4,10 @@
 // https://www.italiansportinggoods.com/firearms/shotguns.html
 // shotgun
 
-use std::time::Duration;
-
 use async_trait::async_trait;
 use crawler::{request::RequestBuilder, traits::Crawler, unprotected::UnprotectedCrawler};
 use scraper::{ElementRef, Html, Selector};
-use tokio::time::sleep;
+use tokio::time::{Duration, sleep};
 use tracing::{debug, trace};
 
 use crate::{

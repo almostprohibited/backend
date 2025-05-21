@@ -6,6 +6,10 @@ pub enum RetailerName {
     LeverArms,
     ItalianSportingGoods,
     InternationalShootingSupplies,
+    AlFlahertys,
+    BullseyeNorth,
+    CanadasGunShop,
+    CanadasGunStore,
     _Unused,
 }
 
@@ -25,6 +29,8 @@ pub enum ActionType {
     PumpAction,
     SideBySide,
     SingleShot,
+    Revolver,
+    StraightPull,
 }
 
 #[derive(Debug, Copy, Clone, Deserialize, Serialize)]

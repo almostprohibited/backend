@@ -1,7 +1,6 @@
-use std::error::Error;
+use crate::{errors::CrawlerError, request::Request};
 
-use crate::request::Request;
-
+#[derive(Debug)]
 pub enum HttpMethod {
     GET,
     POST,
@@ -11,5 +10,5 @@ pub trait Crawler {
     fn make_web_request(
         &self,
         request: Request,
-    ) -> impl Future<Output = Result<String, Box<dyn Error>>> + Send;
+    ) -> impl Future<Output = Result<String, CrawlerError>> + Send;
 }

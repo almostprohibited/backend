@@ -1,12 +1,19 @@
-use std::error::Error;
+use std::{error::Error, str::FromStr, time::Duration};
 
-use reqwest::ClientBuilder;
-use tracing::info;
+use reqwest::{
+    ClientBuilder,
+    header::{HeaderMap, HeaderName, HeaderValue},
+};
+use tracing::{debug, info};
 
 use crate::{
+    errors::CrawlerError,
     request::Request,
     traits::{Crawler, HttpMethod},
 };
+
+// TODO: change to "bot friendly" user agent
+const USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36";
 
 #[derive(Copy, Clone)]
 pub struct UnprotectedCrawler {}
@@ -18,31 +25,42 @@ impl UnprotectedCrawler {
 }
 
 impl Crawler for UnprotectedCrawler {
-    async fn make_web_request(&self, request: Request) -> Result<String, Box<dyn Error>> {
-        let client = ClientBuilder::new().build()?;
+    async fn make_web_request(&self, request: Request) -> Result<String, CrawlerError> {
+        let client = ClientBuilder::new()
+            .gzip(true)
+            .http1_ignore_invalid_headers_in_responses(true)
+            .timeout(Duration::from_secs(10))
+            .user_agent(USER_AGENT)
+            .https_only(true)
+            .connection_verbose(true)
+            .build()?;
 
         let mut request_builder = match request.method {
             HttpMethod::GET => client.get(request.url.clone()),
             HttpMethod::POST => client.post(request.url.clone()),
         };
 
-        // set user agent here in case passed in request
-        // object overrides it
-        request_builder = request_builder.header("User-Agent", " Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36");
-
         if let Some(body) = request.body {
             request_builder = request_builder.json(&body);
         }
 
         if let Some(headers) = request.headers {
+            let mut header_map = HeaderMap::new();
+
             for (key, value) in headers.iter() {
-                request_builder = request_builder.header(key, value);
+                header_map.append(HeaderName::from_str(key)?, HeaderValue::from_str(value)?);
             }
+
+            request_builder = request_builder.headers(header_map);
         }
 
         info!("Sending request to {}", request.url);
+        debug!("{:?}", request_builder);
+        debug!("{:?}", client);
 
         let sent_request = request_builder.send().await?;
+
+        debug!("{:?}", sent_request);
 
         Ok(sent_request.text().await?)
     }
