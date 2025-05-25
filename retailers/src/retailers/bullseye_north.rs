@@ -4,7 +4,7 @@ use crawler::{
     unprotected::UnprotectedCrawler,
 };
 use scraper::{ElementRef, Html, Selector};
-use tracing::error;
+use tracing::warn;
 
 use crate::{
     errors::RetailerError,
@@ -13,11 +13,14 @@ use crate::{
         firearm::{FirearmPrice, FirearmResult},
     },
     traits::{Retailer, SearchParams},
-    utils::{element_to_text, price_to_cents},
+    utils::{
+        conversions::{price_to_cents, string_to_u64},
+        html::{element_extract_attr, element_to_text, extract_element_from_element},
+    },
 };
 
 const PAGE_COOLDOWN: u64 = 5;
-const PAGE_LIMIT: u8 = 36;
+const PAGE_LIMIT: u64 = 36;
 const URL: &str = "https://www.bullseyenorth.com/{category}/perpage/{page_limit}/page/{page}";
 
 pub struct BullseyeNorth {
@@ -42,38 +45,30 @@ impl BullseyeNorth {
             <strong class="salePrice">$1,304.99</strong>
         </span> */
 
-        let price_element_selector = Selector::parse("span.pricing").unwrap();
-        let price_element = product_element
-            .select(&price_element_selector)
-            .next()
-            .unwrap();
-
-        let sale_selector = Selector::parse("strong.salePrice").unwrap();
-        let normal_selector = Selector::parse("strong.itemPrice").unwrap();
-        let normal_if_sale_selector = Selector::parse("strong.listPrice > span").unwrap();
+        let price_element = extract_element_from_element(product_element, "span.pricing".into())?;
 
         let mut price = FirearmPrice {
             regular_price: 0,
             sale_price: None,
         };
 
-        match price_element.select(&sale_selector).next() {
-            Some(sale_element) => {
-                let normal_price_string = element_to_text(
-                    price_element
-                        .select(&normal_if_sale_selector)
-                        .next()
-                        .unwrap(),
-                );
-                price.regular_price = price_to_cents(normal_price_string)?;
+        match extract_element_from_element(price_element, "strong.salePrice".into()) {
+            Ok(sale_element) => {
+                let normal_price_element =
+                    extract_element_from_element(price_element, "strong.listPrice > span".into())?;
 
+                let normal_price = element_to_text(normal_price_element);
+
+                price.regular_price = price_to_cents(normal_price)?;
                 price.sale_price = Some(price_to_cents(element_to_text(sale_element))?);
             }
-            None => {
-                let normal_price_string =
-                    element_to_text(price_element.select(&normal_selector).next().unwrap());
+            Err(_) => {
+                let normal_price_element =
+                    extract_element_from_element(price_element, "strong.itemPrice".into())?;
 
-                price.regular_price = price_to_cents(normal_price_string)?;
+                let normal_price = element_to_text(normal_price_element);
+
+                price.regular_price = price_to_cents(normal_price)?;
             }
         };
 
@@ -111,29 +106,16 @@ impl Retailer for BullseyeNorth {
         let product_selector = Selector::parse("a.product").unwrap();
 
         for product in html.select(&product_selector) {
-            let name_selector = Selector::parse("span.name").unwrap();
-            let image_selector = Selector::parse("span.image > img").unwrap();
+            let name_element = extract_element_from_element(product, "span.name".into())?;
+            let image_element = extract_element_from_element(product, "span.image > img".into())?;
 
-            let Some(url) = product.attr("href") else {
-                error!("Product link is missing href");
-                return Err(RetailerError::HtmlElementMissingAttribute(
-                    "href".into(),
-                    product.html(),
-                ));
-            };
+            let url = element_extract_attr(product, "href".into())?;
+            let name = element_to_text(name_element);
+            let image = element_extract_attr(image_element, "src".into())?;
 
-            let name = element_to_text(product.select(&name_selector).next().unwrap());
-            let image = product
-                .select(&image_selector)
-                .next()
-                .unwrap()
-                .attr("src")
-                .unwrap();
+            let price = Self::get_price(product)?;
 
-            let price = Self::get_price(product);
-
-            let mut new_firearm =
-                FirearmResult::new(name, url, price?, RetailerName::BullseyeNorth);
+            let mut new_firearm = FirearmResult::new(name, url, price, RetailerName::BullseyeNorth);
             new_firearm.thumbnail_link = Some(image.to_string());
             new_firearm.action_type = search_param.action_type;
             new_firearm.ammo_type = search_param.ammo_type;
@@ -141,7 +123,6 @@ impl Retailer for BullseyeNorth {
             new_firearm.firearm_type = search_param.firearm_type;
 
             firearms.push(new_firearm);
-            break;
         }
 
         Ok(firearms)
@@ -242,16 +223,20 @@ impl Retailer for BullseyeNorth {
 
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {
         let html = Html::parse_document(response);
-        let max_page_selector = Selector::parse("p.paginTotals").unwrap();
 
-        let max_pages = html
-            .select(&max_page_selector)
-            .next()
-            .unwrap()
-            .attr("data-max-pages")
-            .unwrap();
+        let Ok(max_pages_el) =
+            extract_element_from_element(html.root_element(), "p.paginTotals".into())
+        else {
+            warn!("Page missing total, probably no products in category");
 
-        Ok(max_pages.parse::<u64>().unwrap())
+            return Ok(0);
+        };
+
+        let max_page_count = element_extract_attr(max_pages_el, "data-max-pages".into())?;
+
+        let item_as_int = string_to_u64(max_page_count)?;
+
+        Ok((item_as_int / PAGE_LIMIT).into())
     }
 
     fn get_crawler(&self) -> UnprotectedCrawler {

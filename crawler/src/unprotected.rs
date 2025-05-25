@@ -12,6 +12,7 @@ use crate::{
     traits::{Crawler, HttpMethod},
 };
 
+const PAGE_TIMEOUT_SECONDS: u64 = 30;
 // TODO: change to "bot friendly" user agent
 const USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36";
 
@@ -29,7 +30,7 @@ impl Crawler for UnprotectedCrawler {
         let client = ClientBuilder::new()
             .gzip(true)
             .http1_ignore_invalid_headers_in_responses(true)
-            .timeout(Duration::from_secs(10))
+            .timeout(Duration::from_secs(PAGE_TIMEOUT_SECONDS))
             .user_agent(USER_AGENT)
             .https_only(true)
             .connection_verbose(true)
@@ -40,8 +41,12 @@ impl Crawler for UnprotectedCrawler {
             HttpMethod::POST => client.post(request.url.clone()),
         };
 
+        if let Some(json) = request.json {
+            request_builder = request_builder.json(&json);
+        }
+
         if let Some(body) = request.body {
-            request_builder = request_builder.json(&body);
+            request_builder = request_builder.body(body);
         }
 
         if let Some(headers) = request.headers {

@@ -17,6 +17,13 @@ doctest = false
 test = false
 doc = false
 
+[lib]
+name = "utils"
+path = "./src/utils/lib.rs"
+doctest = false
+test = false
+doc = false
+
 [dependencies]
 retailers.workspace = true
 crawler.workspace = true
@@ -28,3 +35,4 @@ tracing-subscriber.workspace = true
 axum.workspace = true
 tower-http = { workspace = true, features = ["cors"] }
 tower.workspace = true
+serenity.workspace = true

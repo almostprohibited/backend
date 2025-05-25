@@ -6,7 +6,8 @@ use crate::traits::HttpMethod;
 pub struct Request {
     pub(crate) method: HttpMethod,
     pub(crate) url: String,
-    pub(crate) body: Option<Value>,
+    pub(crate) json: Option<Value>,
+    pub(crate) body: Option<String>,
     pub(crate) headers: Option<Vec<(String, String)>>,
     pub(crate) cookie: Option<String>,
 }
@@ -24,6 +25,7 @@ impl Request {
         Request {
             method: HttpMethod::GET,
             url: Default::default(),
+            json: None,
             body: None,
             headers: None,
             cookie: None,
@@ -50,7 +52,13 @@ impl RequestBuilder {
         self
     }
 
-    pub fn set_json_body(mut self, body: Value) -> Self {
+    pub fn set_json_body(mut self, json: Value) -> Self {
+        self.request.json = Some(json);
+
+        self
+    }
+
+    pub fn set_body(mut self, body: String) -> Self {
         self.request.body = Some(body);
 
         self

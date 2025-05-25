@@ -3,7 +3,7 @@ use crawler::{
     request::{Request, RequestBuilder},
     unprotected::UnprotectedCrawler,
 };
-use scraper::{ElementRef, Html, Selector};
+use scraper::{Html, Selector};
 use tracing::debug;
 
 use crate::{
@@ -13,7 +13,10 @@ use crate::{
         firearm::{FirearmPrice, FirearmResult},
     },
     traits::{Retailer, SearchParams},
-    utils::{element_to_text, price_to_cents},
+    utils::{
+        conversions::price_to_cents,
+        html::{element_extract_attr, element_to_text, extract_element_from_element},
+    },
 };
 
 const PAGE_COOLDOWN: u64 = 10;
@@ -78,37 +81,30 @@ impl Retailer for CanadasGunStore {
         let product_selector = Selector::parse("div.product_body").unwrap();
 
         for product in html.select(&product_selector) {
-            let in_stock_selector = Selector::parse("span.product_status").unwrap();
-            let stock_element = product.select(&in_stock_selector).next().unwrap();
+            let stock_element =
+                extract_element_from_element(product, "span.product_status".into())?;
 
             if element_to_text(stock_element) != "In Stock" {
                 debug!("Skipping out of stock item");
                 continue;
             }
 
-            let name_link_selector = Selector::parse("h4.store_product_name > a").unwrap();
-            let image_selector = Selector::parse("img.product_image").unwrap();
-            let price_selector = Selector::parse("div.product_price").unwrap();
+            let name_link_element =
+                extract_element_from_element(product, "h4.store_product_name > a".into())?;
 
-            let name_link_element: ElementRef<'_> =
-                product.select(&name_link_selector).next().unwrap();
+            let image_element = extract_element_from_element(product, "img.product_image".into())?;
+
+            let price_element = extract_element_from_element(product, "div.product_price".into())?;
 
             let url = format!(
                 "https://www.canadasgunstore.ca{}",
-                name_link_element.attr("href").unwrap()
+                element_extract_attr(name_link_element, "href".into())?
             );
 
             let name = element_to_text(name_link_element);
-            let image = product
-                .select(&image_selector)
-                .next()
-                .unwrap()
-                .attr("src")
-                .unwrap();
+            let image = element_extract_attr(image_element, "src".into())?;
 
-            let price = price_to_cents(element_to_text(
-                product.select(&price_selector).next().unwrap(),
-            ))?;
+            let price = price_to_cents(element_to_text(price_element))?;
 
             let firearm_price = FirearmPrice {
                 regular_price: price,

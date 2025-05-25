@@ -14,7 +14,10 @@ use crate::{
         firearm::{FirearmPrice, FirearmResult},
     },
     traits::{Retailer, SearchParams},
-    utils::price_to_cents,
+    utils::{
+        conversions::price_to_cents,
+        json::{json_get_array, json_get_object},
+    },
 };
 
 const PAGE_COOLDOWN: u64 = 10;
@@ -35,25 +38,13 @@ impl AlFlahertys {
     }
 
     fn get_result(api_response: &String) -> Result<Value, RetailerError> {
-        let Ok(json) = serde_json::from_str::<Value>(api_response.as_str()) else {
-            error!("Failed to serialize API response");
-            return Err(RetailerError::InvalidRequestBody(api_response.to_string()));
-        };
+        let json = serde_json::from_str::<Value>(api_response.as_str())?;
 
         // we can't deserialize this properly in Rust since
         // either Al Flahertys, or Klevu, has a mix of different cases and formats for their keys
         // and they also just exclude keys if they are optional in the response
-        let Some(result_array_obj) = json.get("queryResults") else {
-            error!("Failed to extract queryResults from response\n{}", json);
-            return Err(RetailerError::ApiResponseMissingKey("queryResults".into()));
-        };
-
-        let Some(result_array) = result_array_obj.as_array() else {
-            error!("queryResults is not an array\n{}", json);
-            return Err(RetailerError::ApiResponseInvalidShape(
-                "queryResults is not an array".into(),
-            ));
-        };
+        let result_array_obj = json_get_object(&json, "queryResults".into())?;
+        let result_array = json_get_array(result_array_obj)?;
 
         let Some(result) = result_array.first() else {
             error!("Empty records\n{:?}", result_array);
@@ -66,10 +57,7 @@ impl AlFlahertys {
     }
 
     fn value_to_string(json: &Value, key: &str) -> Result<String, RetailerError> {
-        let Some(prop) = json.get(key) else {
-            error!("Failed to find key {}\n{}", key, json);
-            return Err(RetailerError::ApiResponseMissingKey(key.into()));
-        };
+        let prop = json_get_object(json, key.into())?;
 
         let Some(string_repr) = prop.as_str() else {
             let message = format!("{} is not a string: {}", key, prop);
@@ -119,17 +107,8 @@ impl Retailer for AlFlahertys {
     ) -> Result<Vec<FirearmResult>, RetailerError> {
         let result = Self::get_result(response)?;
 
-        let Some(records) = result.get("records") else {
-            error!("Failed to extract records from result\n{}", response);
-            return Err(RetailerError::ApiResponseMissingKey("records".into()));
-        };
-
-        let Some(firearms_json) = records.as_array() else {
-            error!("record is not an array\n{}", records);
-            return Err(RetailerError::ApiResponseInvalidShape(
-                "record is not an array".into(),
-            ));
-        };
+        let records = json_get_object(&result, "records".into())?;
+        let firearms_json = json_get_array(records)?;
 
         let mut firearms: Vec<FirearmResult> = Vec::new();
 
@@ -252,17 +231,8 @@ impl Retailer for AlFlahertys {
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {
         let result = Self::get_result(response)?;
 
-        let Some(meta) = result.get("meta") else {
-            error!("Failed to extract meta from result\n{}", result);
-            return Err(RetailerError::ApiResponseMissingKey("meta".into()));
-        };
-
-        let Some(total_results) = meta.get("totalResultsFound") else {
-            error!("Failed to extract totalResultsFound from meta\n{}", meta);
-            return Err(RetailerError::ApiResponseMissingKey(
-                "totalResultsFound".into(),
-            ));
-        };
+        let meta = json_get_object(&result, "meta".into())?;
+        let total_results = json_get_object(meta, "totalResultsFound".into())?;
 
         let Some(count) = total_results.as_u64() else {
             let message = format!("Failed to parse count as number: {}", total_results);

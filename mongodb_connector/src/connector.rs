@@ -1,14 +1,12 @@
 use mongodb::{Client, Collection, IndexModel, bson::doc};
 use retailers::results::firearm::FirearmResult;
-use tracing::info;
 
 const CONNECTION_URI: &str = "mongodb://root:root@localhost:27017";
 const DATABASE_NAME: &str = "project-carbon";
 const COLLECTION_FIREARMS_NAME: &str = "firearms";
 
 pub struct MongoDBConnector {
-    // mongodb client is already Arc, thread safe
-    client: Client,
+    // mongodb structs are already Arc, thread safe
     firearms_collection: Collection<FirearmResult>,
 }
 
@@ -19,7 +17,6 @@ impl MongoDBConnector {
         Self::initialize(client.clone()).await;
 
         Self {
-            client: client.clone(),
             firearms_collection: client
                 .database(DATABASE_NAME)
                 .collection::<FirearmResult>(COLLECTION_FIREARMS_NAME),

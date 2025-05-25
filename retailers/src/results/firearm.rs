@@ -6,8 +6,8 @@ use super::constants::{ActionType, AmmunitionType, FirearmClass, FirearmType, Re
 
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct FirearmPrice {
-    pub regular_price: u32,
-    pub sale_price: Option<u32>,
+    pub regular_price: u64,
+    pub sale_price: Option<u64>,
 }
 
 #[derive(Debug, Default, Deserialize, Serialize)]
