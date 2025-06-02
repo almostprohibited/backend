@@ -20,3 +20,4 @@ tracing.workspace = true
 async-trait.workspace = true
 regex.workspace = true
 thiserror.workspace = true
+urlencoding.workspace = true

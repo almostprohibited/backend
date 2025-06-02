@@ -1,4 +1,4 @@
-use std::{error::Error, str::FromStr, time::Duration};
+use std::{str::FromStr, time::Duration};
 
 use reqwest::{
     ClientBuilder,

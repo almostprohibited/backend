@@ -11,6 +11,7 @@ use scraper::{ElementRef, Html, Selector};
 use serde_json::Value;
 use tokio::time::sleep;
 use tracing::{debug, error, info, warn};
+use urlencoding::encode;
 
 use crate::{
     errors::RetailerError,
@@ -150,18 +151,27 @@ impl CanadasGunShop {
 
         let models = self.get_in_stock_models(&result)?;
 
-        let product_id = {
+        let (product_id, model_key_name) = {
             let html = Html::parse_document(&result);
 
             let input_element =
                 extract_element_from_element(html.root_element(), "input[name=product_id]".into())?;
-            element_extract_attr(input_element, "value".into())?
+            let product_id = element_extract_attr(input_element, "value".into())?;
+
+            let select_element = extract_element_from_element(
+                html.root_element(),
+                "select.form-select--small".into(),
+            )?;
+            let mut model_key_name = element_extract_attr(select_element, "name".into())?;
+            model_key_name = encode(&model_key_name).into_owned();
+
+            (product_id, model_key_name)
         };
 
         for (model_id, model_name) in models {
             let body = format!(
-                "action=add&attribute%5B2112%5D={}&product_id={}&user=",
-                model_id, product_id
+                "action=add&{}={}&product_id={}&user=",
+                model_key_name, model_id, product_id
             );
 
             let request = RequestBuilder::new()
@@ -182,7 +192,7 @@ impl CanadasGunShop {
             let Some(price_str) = price_obj.as_str() else {
                 let message = format!("Failed to convert {} into a string", price_obj);
                 error!(message);
-                return Err(RetailerError::GeneralError(message));
+                return Err(RetailerError::ApiResponseInvalidShape(message));
             };
 
             let price = FirearmPrice {
@@ -269,8 +279,6 @@ impl Retailer for CanadasGunShop {
             Pin<Box<dyn Future<Output = Result<Vec<FirearmResult>, RetailerError>> + Send>>,
         > = Vec::new();
 
-        // let mut nested_firearms: Vec<String> = Vec::new();
-
         for doc in products {
             let product_inner = Html::parse_document(&doc);
             let product = product_inner.root_element();
@@ -295,8 +303,6 @@ impl Retailer for CanadasGunShop {
                 .trim()
                 .contains("-")
             {
-                // nested_firearms.push(url.clone());
-
                 // this is a nested firearm, there are models inside
                 // the URL that have different prices
                 nested_firearm_handles.push(Box::pin(
@@ -323,10 +329,6 @@ impl Retailer for CanadasGunShop {
         for handler in nested_firearm_handles {
             firearms.append(&mut handler.await?);
         }
-
-        // let mut nested_result = self.parse_nested_firearms(nested_firearms).await?;
-
-        // firearms.append(&mut nested_result);
 
         Ok(firearms)
     }

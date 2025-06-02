@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use mongodb_connector::connector::MongoDBConnector;
 use retailers::{
     retailers::{
@@ -8,26 +6,14 @@ use retailers::{
     },
     traits::Retailer,
 };
+use std::sync::Arc;
 use tokio::task::JoinHandle;
-use tracing::{debug, level_filters::LevelFilter};
-use tracing_subscriber::{EnvFilter, FmtSubscriber};
-use utils::discord::Discord;
+use tracing::debug;
+use utils::{discord::Discord, logger::configure_logger};
 
 #[tokio::main]
 async fn main() {
-    let env_log = EnvFilter::builder()
-        .with_default_directive(LevelFilter::INFO.into())
-        .from_env()
-        .expect("Failed to create tracing filter");
-
-    let subscriber = FmtSubscriber::builder()
-        .pretty()
-        .compact()
-        .with_file(false)
-        .with_env_filter(env_log);
-
-    tracing::subscriber::set_global_default(subscriber.finish())
-        .expect("Failed to create log subscription");
+    configure_logger();
 
     let discord = Arc::new(Discord::new().await);
 
@@ -38,7 +24,6 @@ async fn main() {
     //     // Box::new(ArmsEast::new()),
     //     Box::new(AlFlahertys::new()),
     //     Box::new(BullseyeNorth::new()),
-    //     // contains a bug where the price can be a range -> "$123.00 - $456.00"
     //     Box::new(CanadasGunShop::new()),
     //     Box::new(CanadasGunStore::new()),
     //     Box::new(ReliableGun::new()),
@@ -52,7 +37,7 @@ async fn main() {
     //     //Box::new(InternationalShootingSupplies::new()),
     // ];
 
-    let retailers: Vec<Box<dyn Retailer + Sync + Send>> = vec![Box::new(CanadasGunShop::new())];
+    let retailers: Vec<Box<dyn Retailer + Sync + Send>> = vec![Box::new(AlFlahertys::new())];
 
     let mut handles: Vec<JoinHandle<()>> = Vec::new();
 

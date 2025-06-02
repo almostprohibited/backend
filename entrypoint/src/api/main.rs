@@ -1,39 +1,36 @@
-use std::{collections::HashMap, sync::Arc};
-
 use axum::{
     Json, Router,
-    extract::{Query, State},
-    http::{HeaderValue, Method, StatusCode},
-    response::IntoResponse,
+    extract::{Query, State, rejection::QueryRejection},
+    http::StatusCode,
+    response::{IntoResponse, Response},
     routing::get,
 };
-use mongodb_connector::connector::MongoDBConnector;
+use axum_extra::extract::WithRejection;
+use mongodb_connector::{connector::MongoDBConnector, stages::traits::QueryParams};
 use retailers::results::firearm::FirearmResult;
-use tokio::{net::TcpListener, time::Instant};
-use tower::ServiceBuilder;
-use tower_http::cors::CorsLayer;
-use tracing::{debug, info, level_filters::LevelFilter};
-use tracing_subscriber::{EnvFilter, FmtSubscriber};
+use serde::Serialize;
+use service_layers::build_service_layers;
+use std::sync::Arc;
+use thiserror::Error;
+use tokio::{join, net::TcpListener, time::Instant};
+use tracing::{debug, info};
+use utils::logger::configure_logger;
+
+mod service_layers;
 
 struct ServerState {
     db: MongoDBConnector,
 }
 
+#[derive(Serialize)]
+struct ApiResult {
+    firearms: Vec<FirearmResult>,
+    total_count: u64,
+}
+
 #[tokio::main]
 async fn main() {
-    let env_log = EnvFilter::builder()
-        .with_default_directive(LevelFilter::INFO.into())
-        .from_env()
-        .expect("Failed to create tracing filter");
-
-    let subscriber = FmtSubscriber::builder()
-        .pretty()
-        .compact()
-        .with_file(false)
-        .with_env_filter(env_log);
-
-    tracing::subscriber::set_global_default(subscriber.finish())
-        .expect("Failed to create log subscription");
+    configure_logger();
 
     info!("Starting MongoDB client");
 
@@ -44,36 +41,51 @@ async fn main() {
     info!("MongoDB client ready");
     info!("Starting web server");
 
-    let cors_layer = CorsLayer::new()
-        .allow_methods([Method::GET])
-        .allow_origin("http://localhost:3000".parse::<HeaderValue>().unwrap());
-    let service_layer = ServiceBuilder::new().layer(cors_layer);
-
     let router = Router::new()
         .route("/api", get(query))
         .with_state(state)
-        .layer(service_layer);
+        .layer(build_service_layers());
     let server = TcpListener::bind("0.0.0.0:3001").await.unwrap();
 
     axum::serve(server, router).await.unwrap();
 }
 
+#[derive(Debug, Error)]
+enum ApiError {
+    #[error(transparent)]
+    QueryExtractorRejection(#[from] QueryRejection),
+}
+
+impl IntoResponse for ApiError {
+    fn into_response(self) -> Response {
+        let (status, message) = match self {
+            ApiError::QueryExtractorRejection(rejection) => {
+                (rejection.status(), rejection.body_text())
+            }
+        };
+
+        debug!("Failed to parse incoming request: {}, {}", status, message);
+
+        status.into_response()
+    }
+}
+
 async fn query(
     State(state): State<Arc<ServerState>>,
-    Query(params): Query<HashMap<String, String>>,
+    WithRejection(Query(params), _): WithRejection<Query<QueryParams>, ApiError>,
 ) -> Result<impl IntoResponse, StatusCode> {
-    let Some(query_string) = params.get("query") else {
-        return Err(StatusCode::BAD_REQUEST);
-    };
-
-    if params.len() > 1 {
-        return Err(StatusCode::BAD_REQUEST);
-    }
-
     let start_time = Instant::now();
 
-    let firearms = state.db.search(query_string).await;
-    let response: Json<Vec<FirearmResult>> = Json::from(firearms);
+    let (firearms, count) = join!(state.db.search(&params), state.db.count(&params));
+
+    let result = ApiResult {
+        firearms,
+        total_count: count.total_count,
+    };
+
+    debug!("{:?}", count);
+
+    let response: Json<ApiResult> = Json::from(result);
 
     debug!("Request time: {}ms", start_time.elapsed().as_millis());
 
