@@ -1,0 +1,16 @@
+name: Build backend
+on: workflow_dispatch
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: cargo build --profile release --bins
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: binaries
+          path: |
+            target/release/api
+            target/release/indexer
