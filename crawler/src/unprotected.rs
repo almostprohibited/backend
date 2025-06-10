@@ -13,8 +13,7 @@ use crate::{
 };
 
 const PAGE_TIMEOUT_SECONDS: u64 = 30;
-// TODO: change to "bot friendly" user agent
-const USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36";
+const USER_AGENT: &str = "almostprohibited.ca/1.0 (hello@almostprohibited.ca)";
 
 #[derive(Copy, Clone)]
 pub struct UnprotectedCrawler {}

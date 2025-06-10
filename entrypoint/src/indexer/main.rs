@@ -17,27 +17,27 @@ async fn main() {
 
     let discord = Arc::new(Discord::new().await);
 
-    // let retailers: Vec<Box<dyn Retailer + Send + Sync>> = vec![
-    //     // disabled, they don't seem to be able to implement Cloudflare properly
-    //     // and instead have a jank recaptcha that doesn't work half the time
-    //     // note: unimplemented
-    //     // Box::new(ArmsEast::new()),
-    //     Box::new(AlFlahertys::new()),
-    //     Box::new(BullseyeNorth::new()),
-    //     Box::new(CanadasGunShop::new()),
-    //     Box::new(CanadasGunStore::new()),
-    //     Box::new(ReliableGun::new()),
-    //     // disable ISG, they appear to have ArsenalForce specified in https://www.italiansportinggoods.com/robots.txt
-    //     // TODO: talk to them instead of just crawling anyways
-    //     //Box::new(ItalianSportingGoods::new()),
-    //     Box::new(LeverArms::new()),
-    //     // disable ISS, they appear to have ArsenalForce specified in https://internationalshootingsupplies.com/robots.txt
-    //     // TODO: talk to them instead of just crawling anyways
-    //     // note: unimplemented
-    //     //Box::new(InternationalShootingSupplies::new()),
-    // ];
+    let retailers: Vec<Box<dyn Retailer + Send + Sync>> = vec![
+        // disabled, they don't seem to be able to implement Cloudflare properly
+        // and instead have a jank recaptcha that doesn't work half the time
+        // note: unimplemented
+        // Box::new(ArmsEast::new()),
+        Box::new(AlFlahertys::new()),
+        Box::new(BullseyeNorth::new()),
+        Box::new(CanadasGunShop::new()),
+        Box::new(CanadasGunStore::new()),
+        Box::new(ReliableGun::new()),
+        // disable ISG, they appear to have ArsenalForce specified in https://www.italiansportinggoods.com/robots.txt
+        // TODO: talk to them instead of just crawling anyways
+        //Box::new(ItalianSportingGoods::new()),
+        Box::new(LeverArms::new()),
+        // disable ISS, they appear to have ArsenalForce specified in https://internationalshootingsupplies.com/robots.txt
+        // TODO: talk to them instead of just crawling anyways
+        // note: unimplemented
+        //Box::new(InternationalShootingSupplies::new()),
+    ];
 
-    let retailers: Vec<Box<dyn Retailer + Sync + Send>> = vec![Box::new(AlFlahertys::new())];
+    // let retailers: Vec<Box<dyn Retailer + Sync + Send>> = vec![Box::new(AlFlahertys::new())];
 
     let mut handles: Vec<JoinHandle<()>> = Vec::new();
 
