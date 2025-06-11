@@ -22,8 +22,10 @@ runs:
         ref: main
         token: ${{ inputs.token }}
     - name: Deploy Docker containers
-      if: inputs.stage == "release"
+      if: inputs.stage == 'release'
       run: |
+        set -ueo pipefail
+
         mkdir -p ${{ inputs.binary-path }}
         mv backend/docker-compose.yaml ${{ inputs.binary-path }}
 
@@ -31,6 +33,7 @@ runs:
         docker compose pull
         docker compose up -d
         docker image prune -f
+      shell: bash
     - name: Deploy API service
       run: |
         set -ueo pipefail
@@ -48,7 +51,7 @@ runs:
         sudo systemctl enable --now almostprohibited-backend-api-${{ inputs.stage }}.service
       shell: bash
     - name: Deploy indexer service
-      if: inputs.stage == "release"
+      if: inputs.stage == 'release'
       run: |
         set -ueo pipefail
 
