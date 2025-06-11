@@ -26,3 +26,4 @@ jobs:
           binary-path: ${{ env.BINARY_PATH }}
           stage: ${{ env.STAGE }}
           token: ${{ secrets.DEPLOYMENT_ACCESS }}
+          api-port: "4001"

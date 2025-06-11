@@ -4,6 +4,10 @@ inputs:
     type: string
     required: true
     description: "The path on the machine to where the binaries should be installed"
+  api-port:
+    type: string
+    required: true
+    description: "The port to launch the API on"
   stage:
     type: choice
     required: true
@@ -45,6 +49,7 @@ runs:
 
         echo "Replacing service definition file"
         sed -i -e "s|{binary_path}|${{ inputs.binary-path }}|g" .deployment/backend/almostprohibited-backend-api.service
+        sed -i -e "s|{api_port}|${{ inputs.api-port }}|g" .deployment/backend/almostprohibited-backend-api.service
         sudo cp .deployment/backend/almostprohibited-backend-api.service /etc/systemd/system/almostprohibited-backend-api-${{ inputs.stage }}.service
         
         sudo systemctl daemon-reload

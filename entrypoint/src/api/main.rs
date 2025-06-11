@@ -10,7 +10,7 @@ use mongodb_connector::{connector::MongoDBConnector, stages::traits::QueryParams
 use retailers::results::firearm::FirearmResult;
 use serde::Serialize;
 use service_layers::build_service_layers;
-use std::sync::Arc;
+use std::{env, sync::Arc};
 use thiserror::Error;
 use tokio::{join, net::TcpListener, time::Instant};
 use tracing::{debug, info};
@@ -32,20 +32,24 @@ struct ApiResult {
 async fn main() {
     configure_logger();
 
+    let port = env::var("API_PORT").unwrap_or("3001".to_string());
+
     info!("Starting MongoDB client");
 
     let state = Arc::new(ServerState {
         db: MongoDBConnector::new().await,
     });
 
+    let addr = format!("0.0.0.0:{}", port);
+
     info!("MongoDB client ready");
-    info!("Starting web server");
+    info!("Starting web server on: {}", addr);
 
     let router = Router::new()
         .route("/api", get(query))
         .with_state(state)
         .layer(build_service_layers());
-    let server = TcpListener::bind("0.0.0.0:3001").await.unwrap();
+    let server = TcpListener::bind(addr).await.unwrap();
 
     axum::serve(server, router).await.unwrap();
 }
