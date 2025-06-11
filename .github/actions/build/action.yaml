@@ -16,3 +16,4 @@ runs:
         mkdir -p ${{ inputs.binary-path }}
         mv target/release/api ${{ inputs.binary-path }}
         mv target/release/indexer ${{ inputs.binary-path }}
+      shell: bash
