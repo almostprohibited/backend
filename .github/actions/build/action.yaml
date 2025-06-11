@@ -13,7 +13,10 @@ runs:
       run: |
         cargo build --profile release --bins
 
+        echo "Using binary path: ${{ inputs.binary-path }}"
         mkdir -p ${{ inputs.binary-path }}
+
+        echo "Moving binaries"
         mv target/release/api ${{ inputs.binary-path }}
         mv target/release/indexer ${{ inputs.binary-path }}
       shell: bash
