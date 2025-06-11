@@ -25,3 +25,4 @@ jobs:
         with:
           binary-path: ${{ env.BINARY_PATH }}
           stage: ${{ env.STAGE }}
+          token: ${{ secrets.DEPLOYMENT_ACCESS }}

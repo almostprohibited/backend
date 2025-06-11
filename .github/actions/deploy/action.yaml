@@ -9,6 +9,10 @@ inputs:
     required: true
     description: "The environment to install the systemd services into"
     options: ["release", "beta"]
+  token:
+    type: string
+    required: true
+    description: "Github PAT for accessing the deployment repo"
 runs:
   using: 'composite'
   steps:
@@ -16,9 +20,9 @@ runs:
       with:
         repository: almostprohibited/deployment
         ref: main
-        token: ${{ secrets.DEPLOYMENT_ACCESS }}
+        token: ${{ inputs.token }}
     - name: Deploy Docker containers
-      if: ${{ inputs.stage == "release" }}
+      if: inputs.stage == "release"
       run: |
         mkdir -p ${{ inputs.binary-path }}
         mv backend/docker-compose.yaml ${{ inputs.binary-path }}
@@ -28,8 +32,9 @@ runs:
         docker compose up -d
         docker image prune -f
     - name: Deploy API service
-      shell: bash
       run: |
+        set -ueo pipefail
+
         echo "Stopping API service"
         sudo systemctl stop almostprohibited-backend-api-${{ inputs.stage }}.service || true
 
@@ -41,10 +46,12 @@ runs:
 
         echo "Starting API service"
         sudo systemctl enable --now almostprohibited-backend-api-${{ inputs.stage }}.service
-    - name: Deploy indexer service
-      if: ${{ inputs.stage == "release" }}
       shell: bash
+    - name: Deploy indexer service
+      if: inputs.stage == "release"
       run: |
+        set -ueo pipefail
+
         sudo systemctl stop almostprohibited-backend-indexer-${{ inputs.stage }}.timer || true
 
         sed -i -e "s|{binary_path}|${{ inputs.binary-path }}|g" backend/almostprohibited-backend-indexer.service
@@ -54,3 +61,4 @@ runs:
         sudo systemctl daemon-reload
 
         sudo systemctl enable --now almostprohibited-backend-indexer-${{ inputs.stage }}.timer
+      shell: bash

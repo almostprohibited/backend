@@ -11,6 +11,8 @@ runs:
     - uses: actions-rust-lang/setup-rust-toolchain@v1
     - name: Build
       run: |
+        set -ueo pipefail
+        
         cargo build --profile release --bins
 
         echo "Using binary path: ${{ inputs.binary-path }}"
