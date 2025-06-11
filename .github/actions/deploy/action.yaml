@@ -17,17 +17,19 @@ runs:
   using: 'composite'
   steps:
     - uses: actions/checkout@v4
+    - uses: actions/checkout@v4
       with:
         repository: almostprohibited/deployment
         ref: main
         token: ${{ inputs.token }}
+        path: ./.deployment
     - name: Deploy Docker containers
       if: inputs.stage == 'release'
       run: |
         set -ueo pipefail
 
         mkdir -p ${{ inputs.binary-path }}
-        mv backend/docker-compose.yaml ${{ inputs.binary-path }}
+        mv .deployment/backend/docker-compose.yaml ${{ inputs.binary-path }}
 
         docker compose down
         docker compose pull
@@ -43,7 +45,7 @@ runs:
 
         echo "Replacing service definition file"
         sed -i -e "s|{binary_path}|${{ inputs.binary-path }}|g" backend/almostprohibited-backend-api.service
-        sudo cp backend/almostprohibited-backend-api.service /etc/systemd/system/almostprohibited-backend-api-${{ inputs.stage }}.service
+        sudo cp .deployment/backend/almostprohibited-backend-api.service /etc/systemd/system/almostprohibited-backend-api-${{ inputs.stage }}.service
         
         sudo systemctl daemon-reload
 
@@ -58,8 +60,8 @@ runs:
         sudo systemctl stop almostprohibited-backend-indexer-${{ inputs.stage }}.timer || true
 
         sed -i -e "s|{binary_path}|${{ inputs.binary-path }}|g" backend/almostprohibited-backend-indexer.service
-        sudo cp backend/almostprohibited-backend-indexer.service /etc/systemd/system/almostprohibited-backend-indexer-${{ inputs.stage }}.service
-        sudo cp backend/almostprohibited-backend-indexer.timer /etc/systemd/system/almostprohibited-backend-indexer-${{ inputs.stage }}.timer
+        sudo cp .deployment/backend/almostprohibited-backend-indexer.service /etc/systemd/system/almostprohibited-backend-indexer-${{ inputs.stage }}.service
+        sudo cp .deployment/backend/almostprohibited-backend-indexer.timer /etc/systemd/system/almostprohibited-backend-indexer-${{ inputs.stage }}.timer
 
         sudo systemctl daemon-reload
 
