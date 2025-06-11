@@ -1,0 +1,25 @@
+name: Publish (release)
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+env:
+  BINARY_PATH: "/home/ubuntu/almostprohibited/backend"
+  STAGE: "release"
+jobs:
+  build:
+    runs-on: self-hosted
+    steps:
+      - name: Build
+        uses: ./.github/actions/build
+        with:
+          binary-path: ${{ env.BINARY_PATH }}
+  # deploy:
+  #   needs: [build]
+  #   runs-on: self-hosted
+  #   steps:
+  #   - name: Deploy
+  #     uses: ./.github/actions/deploy
+  #     with:
+  #       binary-path: ${{ env.BINARY_PATH }}
+  #       stage: ${{ env.STAGE }}

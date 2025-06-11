@@ -1,0 +1,18 @@
+name: Build
+inputs:
+  binary-path:
+    type: string
+    required: true
+    description: "The path on the machine to where the binaries should be installed"
+runs:
+  using: 'composite'
+  steps:
+    - uses: actions/checkout@v4
+    - uses: actions-rust-lang/setup-rust-toolchain@v1
+    - name: Build
+      run: |
+        cargo build --profile release --bins
+
+        mkdir -p ${{ inputs.binary-path }}
+        mv target/release/api ${{ inputs.binary-path }}
+        mv target/release/indexer ${{ inputs.binary-path }}

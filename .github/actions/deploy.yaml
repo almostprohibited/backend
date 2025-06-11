@@ -1,0 +1,53 @@
+name: Deploy
+inputs:
+  binary-path:
+    type: string
+    required: true
+    description: "The path on the machine to where the binaries should be installed"
+  stage:
+    type: choice
+    required: true
+    description: "The environment to install the systemd services into"
+    options: ["release", "beta"]
+runs:
+  using: 'composite'
+  steps:
+    - uses: actions/checkout@v4
+      with:
+        repository: almostprohibited/deployment
+        ref: main
+        token: ${{ secrets.DEPLOYMENT_ACCESS }}
+    - name: Deploy Docker containers
+      if: ${{ inputs.stage == "release" }}
+      run: |
+        mkdir -p ${{ inputs.binary-path }}
+        mv backend/docker-compose.yaml ${{ inputs.binary-path }}
+
+        docker compose down
+        docker compose pull
+        docker compose up -d
+        docker image prune -f
+    - name: Deploy services
+      run: |
+        sudo systemctl stop almostprohibited-backend-api-${{ inputs.stage }}.service || true
+
+        if [[ ${{ inputs.stage == "release" }} ]]; then
+          sudo systemctl stop almostprohibited-backend-indexer-${{ inputs.stage }}.timer || true
+        fi
+
+        sed -i -e "s|{binary_path}|${{ inputs.binary-path }}|g" backend/almostprohibited-backend-api.service
+        sudo cp backend/almostprohibited-backend-api.service /etc/systemd/system/almostprohibited-backend-api-${{ inputs.stage }}.service
+        
+        if [[ ${{ inputs.stage == "release" }} ]]; then
+          sed -i -e "s|{binary_path}|${{ inputs.binary-path }}|g" backend/almostprohibited-backend-indexer.service
+          sudo cp backend/almostprohibited-backend-indexer.service /etc/systemd/system/almostprohibited-backend-indexer-${{ inputs.stage }}.service
+          sudo cp backend/almostprohibited-backend-indexer.timer /etc/systemd/system/almostprohibited-backend-indexer-${{ inputs.stage }}.timer
+        fi
+
+        sudo systemctl daemon-reload
+
+        sudo systemctl enable --now almostprohibited-backend-api-${{ inputs.stage }}.service
+        
+        if [[ ${{ inputs.stage == "release" }} ]]; then
+          sudo systemctl enable --now almostprohibited-backend-indexer-${{ inputs.stage }}.timer
+        fi
