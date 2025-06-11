@@ -57,13 +57,16 @@ runs:
       run: |
         set -ueo pipefail
 
+        echo "Stopping indexer service"
         sudo systemctl stop almostprohibited-backend-indexer-${{ inputs.stage }}.timer || true
 
+        echo "Replacing service definition file"
         sed -i -e "s|{binary_path}|${{ inputs.binary-path }}|g" .deployment/backend/almostprohibited-backend-indexer.service
         sudo cp .deployment/backend/almostprohibited-backend-indexer.service /etc/systemd/system/almostprohibited-backend-indexer-${{ inputs.stage }}.service
         sudo cp .deployment/backend/almostprohibited-backend-indexer.timer /etc/systemd/system/almostprohibited-backend-indexer-${{ inputs.stage }}.timer
 
         sudo systemctl daemon-reload
 
+        echo "Enabling indexer timer"
         sudo systemctl enable --now almostprohibited-backend-indexer-${{ inputs.stage }}.timer
       shell: bash
