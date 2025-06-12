@@ -42,7 +42,7 @@ impl AlFlahertys {
     pub fn new() -> Self {
         Self {
             crawler: UnprotectedCrawler::new(),
-            retailer: RetailerName::CanadasGunShop,
+            retailer: RetailerName::AlFlahertys,
         }
     }
 
