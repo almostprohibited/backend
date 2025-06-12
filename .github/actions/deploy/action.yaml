@@ -73,5 +73,5 @@ runs:
         sudo systemctl daemon-reload
 
         echo "Enabling indexer timer"
-        sudo systemctl enable --now almostprohibited-backend-indexer-${{ inputs.stage }}.timer
+        sudo systemctl enable almostprohibited-backend-indexer-${{ inputs.stage }}.timer
       shell: bash
