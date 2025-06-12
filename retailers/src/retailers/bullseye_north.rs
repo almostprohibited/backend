@@ -25,12 +25,14 @@ const URL: &str = "https://www.bullseyenorth.com/{category}/perpage/{page_limit}
 
 pub struct BullseyeNorth {
     crawler: UnprotectedCrawler,
+    retailer: RetailerName,
 }
 
 impl BullseyeNorth {
     pub fn new() -> Self {
         Self {
             crawler: UnprotectedCrawler::new(),
+            retailer: RetailerName::BullseyeNorth,
         }
     }
 
@@ -78,6 +80,10 @@ impl BullseyeNorth {
 
 #[async_trait]
 impl Retailer for BullseyeNorth {
+    fn get_retailer_name(&self) -> RetailerName {
+        self.retailer
+    }
+
     async fn build_page_request(
         &self,
         page_num: u64,
@@ -115,7 +121,7 @@ impl Retailer for BullseyeNorth {
 
             let price = Self::get_price(product)?;
 
-            let mut new_firearm = FirearmResult::new(name, url, price, RetailerName::BullseyeNorth);
+            let mut new_firearm = FirearmResult::new(name, url, price, self.get_retailer_name());
             new_firearm.thumbnail_link = Some(image.to_string());
             new_firearm.action_type = search_param.action_type;
             new_firearm.ammo_type = search_param.ammo_type;

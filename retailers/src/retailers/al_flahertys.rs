@@ -35,12 +35,14 @@ const API_URL: &str = "https://alflahertys.com/remote/v1/product-attributes/{pro
 
 pub struct AlFlahertys {
     crawler: UnprotectedCrawler,
+    retailer: RetailerName,
 }
 
 impl AlFlahertys {
     pub fn new() -> Self {
         Self {
             crawler: UnprotectedCrawler::new(),
+            retailer: RetailerName::CanadasGunShop,
         }
     }
 
@@ -181,7 +183,7 @@ impl AlFlahertys {
             }
 
             let mut nested_firearm =
-                FirearmResult::new(formatted_name, &url, price, RetailerName::CanadasGunShop);
+                FirearmResult::new(formatted_name, &url, price, self.get_retailer_name());
             nested_firearm.thumbnail_link = Some(image.to_string());
             nested_firearm.action_type = search_param.action_type;
             nested_firearm.ammo_type = search_param.ammo_type;
@@ -197,6 +199,10 @@ impl AlFlahertys {
 
 #[async_trait]
 impl Retailer for AlFlahertys {
+    fn get_retailer_name(&self) -> RetailerName {
+        self.retailer
+    }
+
     async fn build_page_request(
         &self,
         page_num: u64,

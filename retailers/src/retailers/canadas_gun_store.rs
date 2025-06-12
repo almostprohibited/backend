@@ -24,18 +24,24 @@ const URL: &str = "https://www.canadasgunstore.ca/inet/storefront/store.php?mode
 
 pub struct CanadasGunStore {
     crawler: UnprotectedCrawler,
+    retailer: RetailerName,
 }
 
 impl CanadasGunStore {
     pub fn new() -> Self {
         Self {
             crawler: UnprotectedCrawler::new(),
+            retailer: RetailerName::CanadasGunStore,
         }
     }
 }
 
 #[async_trait]
 impl Retailer for CanadasGunStore {
+    fn get_retailer_name(&self) -> RetailerName {
+        self.retailer
+    }
+
     async fn build_page_request(
         &self,
         _page_num: u64,
@@ -112,7 +118,7 @@ impl Retailer for CanadasGunStore {
             };
 
             let mut new_firearm =
-                FirearmResult::new(name, url, firearm_price, RetailerName::CanadasGunStore);
+                FirearmResult::new(name, url, firearm_price, self.get_retailer_name());
             new_firearm.thumbnail_link = Some(image.to_string());
             new_firearm.action_type = search_param.action_type;
             new_firearm.ammo_type = search_param.ammo_type;

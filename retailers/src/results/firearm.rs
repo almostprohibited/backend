@@ -16,7 +16,7 @@ pub struct FirearmResult {
     pub link: String,
     pub price: FirearmPrice,
     pub query_time: u64,
-    pub retailer: RetailerName,
+    retailer: RetailerName,
     pub description: Option<String>,
     pub thumbnail_link: Option<String>,
     pub action_type: Option<ActionType>,

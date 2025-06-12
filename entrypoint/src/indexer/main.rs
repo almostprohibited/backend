@@ -52,7 +52,12 @@ async fn main() {
             debug!("{:?}", result);
 
             match result {
-                Ok(firearms) => db.insert_many_firearms(firearms).await,
+                Ok(firearms) => {
+                    db.insert_many_firearms(firearms).await;
+
+                    let message = format!("{:?} completed crawling", retailer.get_retailer_name());
+                    discord.send_message(message).await;
+                }
                 Err(err) => discord.send_error(err).await,
             };
         }));
@@ -61,4 +66,6 @@ async fn main() {
     for handle in handles {
         let _ = handle.await;
     }
+
+    discord.send_message("Process complete".into()).await;
 }

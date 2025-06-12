@@ -8,7 +8,7 @@ use tracing::{debug, trace};
 use crate::{
     errors::RetailerError,
     results::{
-        constants::{ActionType, AmmunitionType, FirearmClass, FirearmType},
+        constants::{ActionType, AmmunitionType, FirearmClass, FirearmType, RetailerName},
         firearm::FirearmResult,
     },
 };
@@ -30,6 +30,7 @@ pub trait Retailer {
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError>;
     fn get_crawler(&self) -> UnprotectedCrawler;
     fn get_page_cooldown(&self) -> u64;
+    fn get_retailer_name(&self) -> RetailerName;
 
     // implemented methods
     async fn get_firearms(&self) -> Result<Vec<FirearmResult>, RetailerError> {

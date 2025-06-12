@@ -40,6 +40,7 @@ const HEADERS: [(&str, &str); 5] = [
 pub struct ReliableGun {
     crawler: UnprotectedCrawler,
     headers: Vec<(String, String)>,
+    retailer: RetailerName,
 }
 
 impl ReliableGun {
@@ -53,6 +54,7 @@ impl ReliableGun {
                 .into_iter()
                 .map(|(key, value)| (key.to_string(), value.to_string()))
                 .collect(),
+            retailer: RetailerName::ReliableGun,
         }
     }
 
@@ -109,6 +111,10 @@ impl ReliableGun {
 
 #[async_trait]
 impl Retailer for ReliableGun {
+    fn get_retailer_name(&self) -> RetailerName {
+        self.retailer
+    }
+
     async fn build_page_request(
         &self,
         page_num: u64,
@@ -165,7 +171,7 @@ impl Retailer for ReliableGun {
                 name,
                 format!("{}{}", BASE_URL, url_href),
                 price,
-                RetailerName::ReliableGun,
+                self.get_retailer_name(),
             );
             firearm.thumbnail_link = Some(image_url.to_string());
             firearm.description = Some(description);

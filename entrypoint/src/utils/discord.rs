@@ -31,9 +31,20 @@ impl Discord {
             .await;
     }
 
+    pub async fn send_message(&self, msg: String) {
+        let message = format!("```{}```", msg);
+        let embed = CreateEmbed::new().description(message);
+        let builder = ExecuteWebhook::new().embed(embed);
+
+        let _ = self
+            .webhook
+            .execute(self.http.clone(), false, builder)
+            .await;
+    }
+
     pub async fn send_error(&self, err: RetailerError) {
         let message = format!("```{}```", err);
-        let embed = CreateEmbed::new().title("Title").description(message);
+        let embed = CreateEmbed::new().title("Error").description(message);
         let builder = ExecuteWebhook::new().embed(embed);
 
         let _ = self

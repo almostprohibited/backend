@@ -23,16 +23,19 @@ const URL: &str = "https://leverarms.com/product-category/guns/{catagory}/page/{
 
 pub struct LeverArms {
     crawler: UnprotectedCrawler,
+    retailer: RetailerName,
 }
 
 impl LeverArms {
     pub fn new() -> Self {
         Self {
             crawler: UnprotectedCrawler::new(),
+            retailer: RetailerName::LeverArms,
         }
     }
 
     fn parse_firearm(
+        &self,
         element: ElementRef,
         search_param: &SearchParams<'_>,
     ) -> Result<FirearmResult, RetailerError> {
@@ -55,7 +58,7 @@ impl LeverArms {
                 regular_price: price,
                 sale_price: None,
             },
-            RetailerName::LeverArms,
+            self.get_retailer_name(),
         );
         result.thumbnail_link = Some(image_link.to_string());
         result.action_type = search_param.action_type;
@@ -69,6 +72,10 @@ impl LeverArms {
 
 #[async_trait]
 impl Retailer for LeverArms {
+    fn get_retailer_name(&self) -> RetailerName {
+        self.retailer
+    }
+
     async fn build_page_request(
         &self,
         page_num: u64,
@@ -97,7 +104,7 @@ impl Retailer for LeverArms {
         let product_selector = Selector::parse("a.woocommerce-LoopProduct-link").unwrap();
 
         for element in fragment.select(&product_selector) {
-            firearms.push(Self::parse_firearm(element, search_param)?);
+            firearms.push(self.parse_firearm(element, search_param)?);
         }
 
         Ok(firearms)

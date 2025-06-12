@@ -35,12 +35,14 @@ const API_URL: &str =
 
 pub struct CanadasGunShop {
     crawler: UnprotectedCrawler,
+    retailer: RetailerName,
 }
 
 impl CanadasGunShop {
     pub fn new() -> Self {
         Self {
             crawler: UnprotectedCrawler::new(),
+            retailer: RetailerName::CanadasGunShop,
         }
     }
 
@@ -203,7 +205,7 @@ impl CanadasGunShop {
             let formatted_name = format!("{} - {}", name, model_name);
 
             let mut nested_firearm =
-                FirearmResult::new(formatted_name, &url, price, RetailerName::CanadasGunShop);
+                FirearmResult::new(formatted_name, &url, price, self.get_retailer_name());
             nested_firearm.thumbnail_link = Some(image.to_string());
             nested_firearm.action_type = search_param.action_type;
             nested_firearm.ammo_type = search_param.ammo_type;
@@ -221,6 +223,10 @@ impl CanadasGunShop {
 
 #[async_trait]
 impl Retailer for CanadasGunShop {
+    fn get_retailer_name(&self) -> RetailerName {
+        self.retailer
+    }
+
     async fn build_page_request(
         &self,
         page_num: u64,
