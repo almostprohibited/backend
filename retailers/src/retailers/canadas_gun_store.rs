@@ -1,4 +1,8 @@
 use async_trait::async_trait;
+use common::firearms::{
+    constants::{ActionType, FirearmClass, FirearmType, RetailerName},
+    firearm::{Firearm, FirearmPrice},
+};
 use crawler::{
     request::{Request, RequestBuilder},
     unprotected::UnprotectedCrawler,
@@ -8,10 +12,6 @@ use tracing::debug;
 
 use crate::{
     errors::RetailerError,
-    results::{
-        constants::{ActionType, FirearmClass, FirearmType, RetailerName},
-        firearm::{FirearmPrice, FirearmResult},
-    },
     traits::{Retailer, SearchParams},
     utils::{
         conversions::price_to_cents,
@@ -79,8 +79,8 @@ impl Retailer for CanadasGunStore {
         &self,
         response: &String,
         search_param: &SearchParams,
-    ) -> Result<Vec<FirearmResult>, RetailerError> {
-        let mut firearms: Vec<FirearmResult> = Vec::new();
+    ) -> Result<Vec<Firearm>, RetailerError> {
+        let mut firearms: Vec<Firearm> = Vec::new();
 
         let html = Html::parse_document(response);
 
@@ -117,8 +117,7 @@ impl Retailer for CanadasGunStore {
                 sale_price: None,
             };
 
-            let mut new_firearm =
-                FirearmResult::new(name, url, firearm_price, self.get_retailer_name());
+            let mut new_firearm = Firearm::new(name, url, firearm_price, self.get_retailer_name());
             new_firearm.thumbnail_link = Some(image.to_string());
             new_firearm.action_type = search_param.action_type;
             new_firearm.ammo_type = search_param.ammo_type;

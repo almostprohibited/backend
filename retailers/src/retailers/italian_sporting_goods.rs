@@ -1,23 +1,10 @@
-//?product_list_limit=25
-//?cat=67
-
-// https://www.italiansportinggoods.com/firearms/shotguns.html
-// shotgun
-
 use async_trait::async_trait;
 use crawler::{request::RequestBuilder, traits::Crawler, unprotected::UnprotectedCrawler};
 use scraper::{ElementRef, Html, Selector};
 use tokio::time::{Duration, sleep};
 use tracing::{debug, trace};
 
-use crate::{
-    results::{
-        constants::{ActionType, AmmunitionType, FirearmClass, FirearmType, RetailerName},
-        firearm::{FirearmPrice, FirearmResult},
-    },
-    traits::{Retailer, SearchParams},
-    utils::price_to_cents,
-};
+use crate::traits::Retailer;
 
 const URL: &str =
     "https://www.italiansportinggoods.com/firearms/{catagory}.html?product_list_limit=25?p={page}";

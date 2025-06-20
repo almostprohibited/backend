@@ -1,18 +1,18 @@
 use async_trait::async_trait;
+use common::result::{
+    base::{CrawlResult, Price},
+    enums::{Category, RetailerName},
+};
 use crawler::{
     request::{Request, RequestBuilder},
     unprotected::UnprotectedCrawler,
 };
 use scraper::{ElementRef, Html, Selector};
-use tracing::warn;
+use tracing::{debug, warn};
 
 use crate::{
     errors::RetailerError,
-    results::{
-        constants::{ActionType, FirearmType, RetailerName},
-        firearm::{FirearmPrice, FirearmResult},
-    },
-    traits::{Retailer, SearchParams},
+    traits::{Retailer, SearchTerm},
     utils::{
         conversions::{price_to_cents, string_to_u64},
         html::{element_extract_attr, element_to_text, extract_element_from_element},
@@ -36,7 +36,7 @@ impl BullseyeNorth {
         }
     }
 
-    fn get_price(product_element: ElementRef) -> Result<FirearmPrice, RetailerError> {
+    fn get_price(product_element: ElementRef) -> Result<Price, RetailerError> {
         /*
         <span class="pricing">
             <strong class="itemPrice">$239.99</strong>
@@ -49,7 +49,7 @@ impl BullseyeNorth {
 
         let price_element = extract_element_from_element(product_element, "span.pricing".into())?;
 
-        let mut price = FirearmPrice {
+        let mut price = Price {
             regular_price: 0,
             sale_price: None,
         };
@@ -87,11 +87,11 @@ impl Retailer for BullseyeNorth {
     async fn build_page_request(
         &self,
         page_num: u64,
-        search_param: &SearchParams,
+        search_param: &SearchTerm,
     ) -> Result<Request, RetailerError> {
         let request = RequestBuilder::new()
             .set_url(
-                URL.replace("{category}", search_param.lookup)
+                URL.replace("{category}", &search_param.term)
                     .replace("{page_limit}", PAGE_LIMIT.to_string().as_str())
                     .replace("{page}", (page_num + 1).to_string().as_str()),
             )
@@ -103,9 +103,9 @@ impl Retailer for BullseyeNorth {
     async fn parse_response(
         &self,
         response: &String,
-        search_param: &SearchParams,
-    ) -> Result<Vec<FirearmResult>, RetailerError> {
-        let mut firearms: Vec<FirearmResult> = Vec::new();
+        search_term: &SearchTerm,
+    ) -> Result<Vec<CrawlResult>, RetailerError> {
+        let mut results: Vec<CrawlResult> = Vec::new();
 
         let html = Html::parse_document(response);
 
@@ -119,112 +119,55 @@ impl Retailer for BullseyeNorth {
             let name = element_to_text(name_element);
             let image = element_extract_attr(image_element, "src".into())?;
 
+            if extract_element_from_element(product, "span.stock".into()).is_err() {
+                debug!("Skipping not in stock product {}", name);
+                continue;
+            }
+
             let price = Self::get_price(product)?;
 
-            let mut new_firearm = FirearmResult::new(name, url, price, self.get_retailer_name());
-            new_firearm.thumbnail_link = Some(image.to_string());
-            new_firearm.action_type = search_param.action_type;
-            new_firearm.ammo_type = search_param.ammo_type;
-            new_firearm.firearm_class = search_param.firearm_class;
-            new_firearm.firearm_type = search_param.firearm_type;
+            let new_result = CrawlResult::new(
+                name,
+                url,
+                price,
+                self.get_retailer_name(),
+                search_term.category,
+            )
+            .with_image_url(image.to_string());
 
-            firearms.push(new_firearm);
+            results.push(new_result);
         }
 
-        Ok(firearms)
+        Ok(results)
     }
 
-    fn get_search_parameters(&self) -> Result<Vec<SearchParams>, RetailerError> {
-        let params = Vec::from_iter([
-            // rifles
-            SearchParams {
-                lookup: "firearms-rifles/browse/guntype/bolt-action",
-                action_type: Some(ActionType::BoltAction),
-                ammo_type: None,
-                firearm_class: None,
-                firearm_type: Some(FirearmType::Rifle),
+    fn get_search_terms(&self) -> Vec<SearchTerm> {
+        Vec::from_iter([
+            SearchTerm {
+                term: "firearms".into(),
+                category: Category::Firearm,
             },
-            SearchParams {
-                lookup: "firearms-rifles/browse/guntype/lever-action",
-                action_type: Some(ActionType::LeverAction),
-                ammo_type: None,
-                firearm_class: None,
-                firearm_type: Some(FirearmType::Rifle),
+            SearchTerm {
+                term: "magazines".into(),
+                category: Category::Other,
             },
-            SearchParams {
-                lookup: "firearms-rifles/browse/guntype/over%7Cunder",
-                action_type: Some(ActionType::OverUnder),
-                ammo_type: None,
-                firearm_class: None,
-                firearm_type: Some(FirearmType::Rifle),
+            SearchTerm {
+                term: "reloading".into(),
+                category: Category::Other,
             },
-            SearchParams {
-                lookup: "firearms-rifles/browse/guntype/pump-action",
-                action_type: Some(ActionType::PumpAction),
-                ammo_type: None,
-                firearm_class: None,
-                firearm_type: Some(FirearmType::Rifle),
+            SearchTerm {
+                term: "storage".into(),
+                category: Category::Other,
             },
-            SearchParams {
-                lookup: "firearms-rifles/browse/guntype/semi-auto",
-                action_type: Some(ActionType::SemiAuto),
-                ammo_type: None,
-                firearm_class: None,
-                firearm_type: Some(FirearmType::Rifle),
+            SearchTerm {
+                term: "optics".into(),
+                category: Category::Other,
             },
-            SearchParams {
-                lookup: "firearms-rifles/browse/guntype/single-shot",
-                action_type: Some(ActionType::SingleShot),
-                ammo_type: None,
-                firearm_class: None,
-                firearm_type: Some(FirearmType::Rifle),
+            SearchTerm {
+                term: "accessories".into(),
+                category: Category::Other,
             },
-            // shotguns
-            SearchParams {
-                lookup: "firearms-shotguns/browse/guntype/bolt-action",
-                action_type: Some(ActionType::BoltAction),
-                ammo_type: None,
-                firearm_class: None,
-                firearm_type: Some(FirearmType::Shotgun),
-            },
-            SearchParams {
-                lookup: "firearms-shotguns/browse/guntype/lever-action",
-                action_type: Some(ActionType::LeverAction),
-                ammo_type: None,
-                firearm_class: None,
-                firearm_type: Some(FirearmType::Shotgun),
-            },
-            SearchParams {
-                lookup: "firearms-shotguns/browse/guntype/over%7Cunder",
-                action_type: Some(ActionType::OverUnder),
-                ammo_type: None,
-                firearm_class: None,
-                firearm_type: Some(FirearmType::Shotgun),
-            },
-            SearchParams {
-                lookup: "firearms-shotguns/browse/guntype/pump-action",
-                action_type: Some(ActionType::PumpAction),
-                ammo_type: None,
-                firearm_class: None,
-                firearm_type: Some(FirearmType::Shotgun),
-            },
-            SearchParams {
-                lookup: "firearms-shotguns/browse/guntype/semi-auto",
-                action_type: Some(ActionType::SemiAuto),
-                ammo_type: None,
-                firearm_class: None,
-                firearm_type: Some(FirearmType::Shotgun),
-            },
-            SearchParams {
-                lookup: "firearms-shotguns/browse/guntype/single-shot",
-                action_type: Some(ActionType::SingleShot),
-                ammo_type: None,
-                firearm_class: None,
-                firearm_type: Some(FirearmType::Shotgun),
-            },
-        ]);
-
-        Ok(params)
+        ])
     }
 
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {

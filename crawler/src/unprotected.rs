@@ -13,7 +13,8 @@ use crate::{
 };
 
 const PAGE_TIMEOUT_SECONDS: u64 = 30;
-const USER_AGENT: &str = "almostprohibited.ca/1.0 (hello@almostprohibited.ca)";
+const USER_AGENT: &str =
+    "almostprohibited/1.0 (+https://almostprohibited.ca/contact/; hello@almostprohibited.ca)";
 
 #[derive(Copy, Clone)]
 pub struct UnprotectedCrawler {}

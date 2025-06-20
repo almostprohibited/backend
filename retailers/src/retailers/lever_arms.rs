@@ -1,4 +1,8 @@
 use async_trait::async_trait;
+use common::result::{
+    base::{CrawlResult, Price},
+    enums::{Category, RetailerName},
+};
 use crawler::{
     request::{Request, RequestBuilder},
     unprotected::UnprotectedCrawler,
@@ -8,18 +12,14 @@ use tracing::{debug, error};
 
 use crate::{
     errors::RetailerError,
-    results::{
-        constants::{ActionType, FirearmType, RetailerName},
-        firearm::{FirearmPrice, FirearmResult},
-    },
-    traits::{Retailer, SearchParams},
+    traits::{Retailer, SearchTerm},
     utils::{
         conversions::{price_to_cents, string_to_u64},
         html::{element_extract_attr, element_to_text, extract_element_from_element},
     },
 };
 
-const URL: &str = "https://leverarms.com/product-category/guns/{catagory}/page/{page}/";
+const URL: &str = "https://leverarms.com/product-category/{catagory}/page/{page}/";
 
 pub struct LeverArms {
     crawler: UnprotectedCrawler,
@@ -37,8 +37,8 @@ impl LeverArms {
     fn parse_firearm(
         &self,
         element: ElementRef,
-        search_param: &SearchParams<'_>,
-    ) -> Result<FirearmResult, RetailerError> {
+        search_term: &SearchTerm,
+    ) -> Result<CrawlResult, RetailerError> {
         let title_element =
             extract_element_from_element(element, "h2.woocommerce-loop-product__title".into())?;
         let price_element =
@@ -51,20 +51,17 @@ impl LeverArms {
         let price = price_to_cents(element_to_text(price_element))?;
         let image_link = element_extract_attr(image_element, "src".into())?;
 
-        let mut result = FirearmResult::new(
+        let result = CrawlResult::new(
             title,
             link,
-            FirearmPrice {
+            Price {
                 regular_price: price,
                 sale_price: None,
             },
             self.get_retailer_name(),
-        );
-        result.thumbnail_link = Some(image_link.to_string());
-        result.action_type = search_param.action_type;
-        result.ammo_type = search_param.ammo_type;
-        result.firearm_class = search_param.firearm_class;
-        result.firearm_type = search_param.firearm_type;
+            search_term.category,
+        )
+        .with_image_url(image_link.to_string());
 
         Ok(result)
     }
@@ -79,10 +76,10 @@ impl Retailer for LeverArms {
     async fn build_page_request(
         &self,
         page_num: u64,
-        search_param: &SearchParams,
+        search_term: &SearchTerm,
     ) -> Result<Request, RetailerError> {
         let url = URL
-            .replace("{catagory}", search_param.lookup)
+            .replace("{catagory}", &search_term.term)
             .replace("{page}", (page_num + 1).to_string().as_str());
 
         debug!("Setting page to {}", url);
@@ -95,63 +92,43 @@ impl Retailer for LeverArms {
     async fn parse_response(
         &self,
         response: &String,
-        search_param: &SearchParams,
-    ) -> Result<Vec<FirearmResult>, RetailerError> {
-        let mut firearms: Vec<FirearmResult> = Vec::new();
+        search_term: &SearchTerm,
+    ) -> Result<Vec<CrawlResult>, RetailerError> {
+        let mut results: Vec<CrawlResult> = Vec::new();
 
         let fragment = Html::parse_document(&response);
 
         let product_selector = Selector::parse("a.woocommerce-LoopProduct-link").unwrap();
 
         for element in fragment.select(&product_selector) {
-            firearms.push(self.parse_firearm(element, search_param)?);
+            results.push(self.parse_firearm(element, search_term)?);
         }
 
-        Ok(firearms)
+        Ok(results)
     }
 
-    fn get_search_parameters(&self) -> Result<Vec<SearchParams>, RetailerError> {
-        let params = Vec::from_iter([
-            // rifles
-            SearchParams {
-                lookup: "rifles/semi-auto-rifles", // https://leverarms.com/product-category/guns/rifles/semi-auto-rifles/
-                action_type: Some(ActionType::SemiAuto),
-                ammo_type: None,
-                firearm_class: None,
-                firearm_type: Some(FirearmType::Rifle),
+    fn get_search_terms(&self) -> Vec<SearchTerm> {
+        Vec::from_iter([
+            SearchTerm {
+                term: "guns/rifles".into(),
+                category: Category::Firearm,
             },
-            SearchParams {
-                lookup: "bolt-action-rifles", // https://leverarms.com/product-category/guns/rifles/bolt-action-rifles/
-                action_type: Some(ActionType::BoltAction),
-                ammo_type: None,
-                firearm_class: None,
-                firearm_type: Some(FirearmType::Rifle),
+            SearchTerm {
+                term: "guns/shotguns".into(),
+                category: Category::Firearm,
             },
-            SearchParams {
-                lookup: "rifles/lever-action-rifles", // https://leverarms.com/product-category/guns/rifles/lever-action-rifles/
-                action_type: Some(ActionType::LeverAction),
-                ammo_type: None,
-                firearm_class: None,
-                firearm_type: Some(FirearmType::Rifle),
+            SearchTerm {
+                term: "guns/used".into(),
+                category: Category::Firearm,
             },
-            // shotguns
-            SearchParams {
-                lookup: "shotguns/pump-action-shotguns", // https://leverarms.com/product-category/guns/shotguns/pump-action-shotguns/
-                action_type: Some(ActionType::PumpAction),
-                ammo_type: None,
-                firearm_class: None,
-                firearm_type: Some(FirearmType::Shotgun),
+            // don't bother parsing their other categories
+            // they add products into more than one category
+            // I'll parse out what I don't need later
+            SearchTerm {
+                term: "kit".into(),
+                category: Category::Other,
             },
-            SearchParams {
-                lookup: "shotguns/over-under-shotguns", // https://leverarms.com/product-category/guns/shotguns/over-under-shotguns/
-                action_type: Some(ActionType::OverUnder),
-                ammo_type: None,
-                firearm_class: None,
-                firearm_type: Some(FirearmType::Shotgun),
-            },
-        ]);
-
-        Ok(params)
+        ])
     }
 
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {

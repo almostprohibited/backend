@@ -1,6 +1,10 @@
 use std::{pin::Pin, time::Duration};
 
 use async_trait::async_trait;
+use common::result::{
+    base::{CrawlResult, Price},
+    enums::{Category, RetailerName},
+};
 use crawler::{
     request::{Request, RequestBuilder},
     traits::{Crawler, HttpMethod},
@@ -15,11 +19,7 @@ use urlencoding::encode;
 
 use crate::{
     errors::RetailerError,
-    results::{
-        constants::{ActionType, FirearmType, RetailerName},
-        firearm::{FirearmPrice, FirearmResult},
-    },
-    traits::{Retailer, SearchParams},
+    traits::{Retailer, SearchTerm},
     utils::{
         conversions::{price_to_cents, string_to_u64},
         html::{element_extract_attr, element_to_text, extract_element_from_element},
@@ -29,7 +29,8 @@ use crate::{
 
 const PAGE_COOLDOWN: u64 = 10;
 const PAGE_LIMIT: u64 = 100;
-const MAIN_URL: &str = "https://store.theshootingcentre.com/firearms/{firearm_type}/?limit={page_limit}&mode=6&Action+Type={action}&page={page}";
+const MAIN_URL: &str =
+    "https://store.theshootingcentre.com/{category}/?limit={page_limit}&mode=6&page={page}";
 const API_URL: &str =
     "https://store.theshootingcentre.com/remote/v1/product-attributes/{product_id}";
 
@@ -46,7 +47,8 @@ impl CanadasGunShop {
         }
     }
 
-    fn get_price(product_element: ElementRef) -> Result<FirearmPrice, RetailerError> {
+    /// For regular parcing using HTML elements
+    fn get_price_from_element(product_element: ElementRef) -> Result<Price, RetailerError> {
         /*
         <span data-product-price-without-tax="" class="price price--withoutTax price--main">$2,160.00</span>
         <span data-product-non-sale-price-without-tax="" class="price price--non-sale">$2,400.00</span>
@@ -61,21 +63,71 @@ impl CanadasGunShop {
         let price_str = element_to_text(price_main);
         let price_non_sale_str = element_to_text(price_non_sale);
 
-        let mut price = FirearmPrice {
-            regular_price: 0,
+        let mut price = Price {
+            regular_price: price_to_cents(price_str)?,
             sale_price: None,
         };
 
-        if price_non_sale_str == "" {
-            price.regular_price = price_to_cents(price_str)?;
-        } else {
+        if !price_non_sale_str.is_empty() {
+            price.sale_price = Some(price.regular_price);
             price.regular_price = price_to_cents(price_non_sale_str)?;
-            price.sale_price = Some(price_to_cents(price_str)?);
         }
 
         Ok(price)
     }
 
+    /// For nested pricing using the JSON API response
+    fn get_price_from_object(obj: &Value) -> Result<Price, RetailerError> {
+        // "price": {
+        //     "without_tax": {
+        //         "formatted": "$3,476.00",
+        //         "value": 3476,
+        //         "currency": "CAD"
+        //     },
+        //     "tax_label": "Tax",
+        //     "sale_price_without_tax": { <-- not included in non sales
+        //         "formatted": "$3,476.00",
+        //         "value": 3476,
+        //         "currency": "CAD"
+        //     },
+        //     "non_sale_price_without_tax": { <-- not included in non sales
+        //         "formatted": "$3,950.00",
+        //         "value": 3950,
+        //         "currency": "CAD"
+        //     }
+        // },
+
+        let mut main_price = json_get_object(obj, "without_tax".into())?;
+        main_price = json_get_object(main_price, "formatted".into())?;
+
+        let Some(price_str) = main_price.as_str() else {
+            let message = format!("Failed to convert {} into a string", main_price);
+            error!(message);
+            return Err(RetailerError::ApiResponseInvalidShape(message));
+        };
+
+        let mut price = Price {
+            regular_price: price_to_cents(price_str.into())?,
+            sale_price: None,
+        };
+
+        if let Ok(non_sale_price) = json_get_object(obj, "non_sale_price_without_tax".into()) {
+            price.sale_price = Some(price.regular_price);
+
+            let regular_price = json_get_object(non_sale_price, "formatted".into())?;
+            let Some(regular_price_str) = regular_price.as_str() else {
+                let message = format!("Failed to convert {} into a string", regular_price);
+                error!(message);
+                return Err(RetailerError::ApiResponseInvalidShape(message));
+            };
+
+            price.regular_price = price_to_cents(regular_price_str.into())?;
+        };
+
+        Ok(price)
+    }
+
+    /// Returns Vec<(model_id, model_sub_name)>
     fn get_in_stock_models(&self, result: &String) -> Result<Vec<(String, String)>, RetailerError> {
         let html = Html::parse_document(result);
         let script_selector = Selector::parse("script[type='text/javascript']").unwrap();
@@ -139,16 +191,16 @@ impl CanadasGunShop {
         Ok(models_in_stock)
     }
 
-    async fn parse_nested_firearm(
+    async fn parse_nested(
         &self,
         url: String,
         name: String,
         image: String,
-        search_param: &SearchParams<'_>,
-    ) -> Result<Vec<FirearmResult>, RetailerError> {
-        let mut nested_results: Vec<FirearmResult> = Vec::new();
+        search_term: &SearchTerm,
+    ) -> Result<Vec<CrawlResult>, RetailerError> {
+        let mut nested_results: Vec<CrawlResult> = Vec::new();
 
-        let request = RequestBuilder::new().set_url(&url).build();
+        let request = RequestBuilder::new().set_url(url.clone()).build();
         let result = self.crawler.make_web_request(request).await?;
 
         let models = self.get_in_stock_models(&result)?;
@@ -187,32 +239,21 @@ impl CanadasGunShop {
             let json = serde_json::from_str::<Value>(result.as_str())?;
             let data = json_get_object(&json, "data".into())?;
 
-            let mut price_obj = json_get_object(&data, "price".into())?;
-            price_obj = json_get_object(&price_obj, "without_tax".into())?;
-            price_obj = json_get_object(&price_obj, "formatted".into())?;
-
-            let Some(price_str) = price_obj.as_str() else {
-                let message = format!("Failed to convert {} into a string", price_obj);
-                error!(message);
-                return Err(RetailerError::ApiResponseInvalidShape(message));
-            };
-
-            let price = FirearmPrice {
-                regular_price: price_to_cents(price_str.into())?,
-                sale_price: None,
-            };
+            let price_obj = json_get_object(&data, "price".into())?;
+            let price = Self::get_price_from_object(price_obj)?;
 
             let formatted_name = format!("{} - {}", name, model_name);
 
-            let mut nested_firearm =
-                FirearmResult::new(formatted_name, &url, price, self.get_retailer_name());
-            nested_firearm.thumbnail_link = Some(image.to_string());
-            nested_firearm.action_type = search_param.action_type;
-            nested_firearm.ammo_type = search_param.ammo_type;
-            nested_firearm.firearm_class = search_param.firearm_class;
-            nested_firearm.firearm_type = search_param.firearm_type;
+            let new_result = CrawlResult::new(
+                formatted_name,
+                url.clone(),
+                price,
+                self.get_retailer_name(),
+                search_term.category,
+            )
+            .with_image_url(image.to_string());
 
-            nested_results.push(nested_firearm);
+            nested_results.push(new_result);
 
             sleep(Duration::from_secs(self.get_page_cooldown())).await;
         }
@@ -230,33 +271,14 @@ impl Retailer for CanadasGunShop {
     async fn build_page_request(
         &self,
         page_num: u64,
-        search_param: &SearchParams,
+        search_term: &SearchTerm,
     ) -> Result<Request, RetailerError> {
-        let firearm_type = match search_param.firearm_type.unwrap() {
-            FirearmType::Rifle => "rifles",
-            FirearmType::Shotgun => "shotguns",
-        };
-
-        let action_type = match search_param.action_type.unwrap() {
-            ActionType::SemiAuto => "Semi-Auto",
-            ActionType::LeverAction => "Lever",
-            ActionType::BreakAction => "Break",
-            ActionType::BoltAction => "Bolt",
-            ActionType::OverUnder => "",
-            ActionType::PumpAction => "Pump",
-            ActionType::SideBySide => "",
-            ActionType::SingleShot => "",
-            ActionType::Revolver => "Revolver",
-            ActionType::StraightPull => "Straight-Pull",
-        };
-
         let request: Request = RequestBuilder::new()
             .set_url(
                 MAIN_URL
-                    .replace("{firearm_type}", firearm_type)
+                    .replace("{category}", &search_term.term)
                     .replace("{page_limit}", PAGE_LIMIT.to_string().as_str())
-                    .replace("{page}", (page_num + 1).to_string().as_str())
-                    .replace("{action}", action_type),
+                    .replace("{page}", (page_num + 1).to_string().as_str()),
             )
             .build();
 
@@ -266,9 +288,9 @@ impl Retailer for CanadasGunShop {
     async fn parse_response(
         &self,
         response: &String,
-        search_param: &SearchParams,
-    ) -> Result<Vec<FirearmResult>, RetailerError> {
-        let mut firearms: Vec<FirearmResult> = Vec::new();
+        search_term: &SearchTerm,
+    ) -> Result<Vec<CrawlResult>, RetailerError> {
+        let mut results: Vec<CrawlResult> = Vec::new();
 
         // commit another Rust sin, and clone the entire HTML
         // as a string since scraper::ElementRef is not thread safe
@@ -281,8 +303,8 @@ impl Retailer for CanadasGunShop {
                 .collect::<Vec<_>>()
         };
 
-        let mut nested_firearm_handles: Vec<
-            Pin<Box<dyn Future<Output = Result<Vec<FirearmResult>, RetailerError>> + Send>>,
+        let mut nested_handlers: Vec<
+            Pin<Box<dyn Future<Output = Result<Vec<CrawlResult>, RetailerError>> + Send>>,
         > = Vec::new();
 
         for doc in products {
@@ -311,139 +333,58 @@ impl Retailer for CanadasGunShop {
             {
                 // this is a nested firearm, there are models inside
                 // the URL that have different prices
-                nested_firearm_handles.push(Box::pin(
-                    self.parse_nested_firearm(url, name, image, search_param)
+                nested_handlers.push(Box::pin(
+                    self.parse_nested(url, name, image, search_term)
                         .into_future(),
                 ));
 
                 continue;
             }
 
-            let price = Self::get_price(product)?;
+            let price = Self::get_price_from_element(product)?;
 
-            let mut new_firearm =
-                FirearmResult::new(name, url, price, RetailerName::CanadasGunShop);
-            new_firearm.thumbnail_link = Some(image.to_string());
-            new_firearm.action_type = search_param.action_type;
-            new_firearm.ammo_type = search_param.ammo_type;
-            new_firearm.firearm_class = search_param.firearm_class;
-            new_firearm.firearm_type = search_param.firearm_type;
+            let new_result = CrawlResult::new(
+                name,
+                url,
+                price,
+                self.get_retailer_name(),
+                search_term.category,
+            )
+            .with_image_url(image.to_string());
 
-            firearms.push(new_firearm);
+            results.push(new_result);
         }
 
-        for handler in nested_firearm_handles {
-            firearms.append(&mut handler.await?);
+        for handler in nested_handlers {
+            results.append(&mut handler.await?);
         }
 
-        Ok(firearms)
+        Ok(results)
     }
 
-    fn get_search_parameters(&self) -> Result<Vec<SearchParams>, RetailerError> {
-        let params = Vec::from_iter([
-            // rifles
-            SearchParams {
-                lookup: "",
-                action_type: Some(ActionType::BoltAction),
-                ammo_type: None,
-                firearm_class: None,
-                firearm_type: Some(FirearmType::Rifle),
+    fn get_search_terms(&self) -> Vec<SearchTerm> {
+        Vec::from_iter([
+            SearchTerm {
+                term: "firearms".into(),
+                category: Category::Firearm,
             },
-            SearchParams {
-                lookup: "",
-                action_type: Some(ActionType::BreakAction),
-                ammo_type: None,
-                firearm_class: None,
-                firearm_type: Some(FirearmType::Rifle),
+            SearchTerm {
+                term: "optics".into(),
+                category: Category::Other,
             },
-            SearchParams {
-                lookup: "",
-                action_type: Some(ActionType::LeverAction),
-                ammo_type: None,
-                firearm_class: None,
-                firearm_type: Some(FirearmType::Rifle),
+            SearchTerm {
+                term: "reloading".into(),
+                category: Category::Other,
             },
-            SearchParams {
-                lookup: "",
-                action_type: Some(ActionType::PumpAction),
-                ammo_type: None,
-                firearm_class: None,
-                firearm_type: Some(FirearmType::Rifle),
+            SearchTerm {
+                term: "gun-parts-accessories".into(),
+                category: Category::Other,
             },
-            SearchParams {
-                lookup: "",
-                action_type: Some(ActionType::Revolver),
-                ammo_type: None,
-                firearm_class: None,
-                firearm_type: Some(FirearmType::Rifle),
+            SearchTerm {
+                term: "optics-accessories".into(),
+                category: Category::Other,
             },
-            SearchParams {
-                lookup: "",
-                action_type: Some(ActionType::SemiAuto),
-                ammo_type: None,
-                firearm_class: None,
-                firearm_type: Some(FirearmType::Rifle),
-            },
-            SearchParams {
-                lookup: "",
-                action_type: Some(ActionType::StraightPull),
-                ammo_type: None,
-                firearm_class: None,
-                firearm_type: Some(FirearmType::Rifle),
-            },
-            // shotguns
-            SearchParams {
-                lookup: "",
-                action_type: Some(ActionType::BoltAction),
-                ammo_type: None,
-                firearm_class: None,
-                firearm_type: Some(FirearmType::Shotgun),
-            },
-            SearchParams {
-                lookup: "",
-                action_type: Some(ActionType::BreakAction),
-                ammo_type: None,
-                firearm_class: None,
-                firearm_type: Some(FirearmType::Shotgun),
-            },
-            SearchParams {
-                lookup: "",
-                action_type: Some(ActionType::LeverAction),
-                ammo_type: None,
-                firearm_class: None,
-                firearm_type: Some(FirearmType::Shotgun),
-            },
-            SearchParams {
-                lookup: "",
-                action_type: Some(ActionType::PumpAction),
-                ammo_type: None,
-                firearm_class: None,
-                firearm_type: Some(FirearmType::Shotgun),
-            },
-            SearchParams {
-                lookup: "",
-                action_type: Some(ActionType::Revolver),
-                ammo_type: None,
-                firearm_class: None,
-                firearm_type: Some(FirearmType::Shotgun),
-            },
-            SearchParams {
-                lookup: "",
-                action_type: Some(ActionType::SemiAuto),
-                ammo_type: None,
-                firearm_class: None,
-                firearm_type: Some(FirearmType::Shotgun),
-            },
-            SearchParams {
-                lookup: "",
-                action_type: Some(ActionType::StraightPull),
-                ammo_type: None,
-                firearm_class: None,
-                firearm_type: Some(FirearmType::Shotgun),
-            },
-        ]);
-
-        Ok(params)
+        ])
     }
 
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {

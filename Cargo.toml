@@ -4,13 +4,16 @@ members = [
 	"crawler",
 	"entrypoint",
 	"retailers",
-	"mongodb_connector"
+	"mongodb_connector",
+	"common"
 ]
 
 [workspace.dependencies]
 crawler = { path = "./crawler" }
 retailers = { path = "./retailers" }
 mongodb_connector = { path = "./mongodb_connector" }
+common = { path = "./common" }
+
 reqwest = "0.12.15"
 serde = "1.0.219"
 serde_json = "1.0.140"

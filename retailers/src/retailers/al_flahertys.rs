@@ -1,6 +1,10 @@
 use std::{pin::Pin, time::Duration};
 
 use async_trait::async_trait;
+use common::result::{
+    base::{CrawlResult, Price},
+    enums::{Category, RetailerName},
+};
 use crawler::{
     request::{Request, RequestBuilder},
     traits::{Crawler, HttpMethod},
@@ -14,11 +18,7 @@ use urlencoding::encode;
 
 use crate::{
     errors::RetailerError,
-    results::{
-        constants::{ActionType, AmmunitionType, FirearmType, RetailerName},
-        firearm::{FirearmPrice, FirearmResult},
-    },
-    traits::{Retailer, SearchParams},
+    traits::{Retailer, SearchTerm},
     utils::{
         conversions::price_to_cents,
         html::{element_extract_attr, element_to_text, extract_element_from_element},
@@ -30,7 +30,7 @@ const PAGE_COOLDOWN: u64 = 10;
 const PAGE_LIMIT: u64 = 36;
 const AL_FLAHERTYS_KLEVU_API_KEY: &str = "klevu-170966446878517137";
 const MAIN_URL: &str = "https://uscs33v2.ksearchnet.com/cs/v2/search";
-const MAIN_PAYLOAD: &str = "{\"context\":{\"apiKeys\":[\"{api_key}\"]},\"recordQueries\":[{\"id\":\"productList\",\"typeOfRequest\":\"CATNAV\",\"settings\":{\"query\":{\"term\":\"*\",\"categoryPath\":\"Shooting Supplies, Firearms & Ammunition;Firearms\"},\"typeOfRecords\":[\"KLEVU_PRODUCT\"],\"offset\":{offset},\"limit\":\"{page_limit}\",\"typeOfSearch\":\"AND\",\"priceFieldSuffix\":\"CAD\"},\"filters\":{\"filtersToReturn\":{\"enabled\":true,\"options\":{\"limit\":50},\"rangeFilterSettings\":[{\"key\":\"klevu_price\",\"minMax\":\"true\"}]},\"applyFilters\":{\"filters\":[{\"key\":\"type\",\"values\":[\"{category}\"]}]}}}]}";
+const MAIN_PAYLOAD: &str = "{\"context\":{\"apiKeys\":[\"{api_key}\"]},\"recordQueries\":[{\"id\":\"productList\",\"typeOfRequest\":\"CATNAV\",\"settings\":{\"query\":{\"term\":\"*\",\"categoryPath\":\"{category}\"},\"typeOfRecords\":[\"KLEVU_PRODUCT\"],\"offset\":{offset},\"limit\":\"{page_limit}\",\"priceFieldSuffix\":\"CAD\"},\"filters\":{\"filtersToReturn\":{\"enabled\":true,\"options\":{\"limit\":50},\"rangeFilterSettings\":[{\"key\":\"klevu_price\",\"minMax\":\"true\"}]}}}]}";
 const API_URL: &str = "https://alflahertys.com/remote/v1/product-attributes/{product_id}";
 
 pub struct AlFlahertys {
@@ -57,6 +57,7 @@ impl AlFlahertys {
 
         let Some(result) = result_array.first() else {
             error!("Empty records\n{:?}", result_array);
+
             return Err(RetailerError::ApiResponseInvalidShape(
                 "Empty records array".into(),
             ));
@@ -79,23 +80,24 @@ impl AlFlahertys {
         Ok(string_repr.to_string())
     }
 
+    /// Theres no way to filter by in-stock models, we have to fetch them all
     fn get_in_stock_models(&self, result: &String) -> Result<Vec<(String, String)>, RetailerError> {
         let html = Html::parse_document(result);
         let option_selector =
-            Selector::parse("select.form-select--small > option[data-product-attribute-value]")
+            Selector::parse("section.productView-details select.form-select--small > option[data-product-attribute-value]")
                 .unwrap();
 
-        let mut models_in_stock: Vec<(String, String)> = Vec::new();
+        let mut models: Vec<(String, String)> = Vec::new();
 
         for option in html.select(&option_selector) {
             let model_id = element_extract_attr(option, "data-product-attribute-value".into())?;
 
-            models_in_stock.push((model_id, element_to_text(option)));
+            models.push((model_id, element_to_text(option)));
         }
 
-        info!("Found extra model IDs: {:?}", models_in_stock);
+        info!("Found extra model IDs: {:?}", models);
 
-        Ok(models_in_stock)
+        Ok(models)
     }
 
     async fn parse_nested_firearm(
@@ -103,9 +105,9 @@ impl AlFlahertys {
         url: String,
         name: String,
         image: String,
-        search_param: &SearchParams<'_>,
-    ) -> Result<Vec<FirearmResult>, RetailerError> {
-        let mut nested_results: Vec<FirearmResult> = Vec::new();
+        search_param: &SearchTerm,
+    ) -> Result<Vec<CrawlResult>, RetailerError> {
+        let mut results: Vec<CrawlResult> = Vec::new();
 
         let request = RequestBuilder::new().set_url(&url).build();
         let result = self.crawler.make_web_request(request).await?;
@@ -136,6 +138,7 @@ impl AlFlahertys {
             );
 
             sleep(Duration::from_secs(self.get_page_cooldown())).await;
+
             let request = RequestBuilder::new()
                 .set_url(API_URL.replace("{product_id}", &product_id))
                 .set_method(HttpMethod::POST)
@@ -170,30 +173,26 @@ impl AlFlahertys {
                 return Err(RetailerError::ApiResponseInvalidShape(message));
             };
 
-            let price = FirearmPrice {
+            let price = Price {
                 regular_price: price_to_cents(price_without_currency.into())?,
                 sale_price: None,
             };
 
-            let mut formatted_name = name.replace("Various Calibers", &model_name);
+            let formatted_name = format!("({}) - {}", model_name, name);
 
-            if formatted_name == name {
-                // this indicates that original text did not have "Various Calibers"
-                formatted_name = format!("{} - {}", name, model_name);
-            }
+            let new_result = CrawlResult::new(
+                formatted_name,
+                url.clone(),
+                price,
+                self.get_retailer_name(),
+                search_param.category,
+            )
+            .with_image_url(image.to_string());
 
-            let mut nested_firearm =
-                FirearmResult::new(formatted_name, &url, price, self.get_retailer_name());
-            nested_firearm.thumbnail_link = Some(image.to_string());
-            nested_firearm.action_type = search_param.action_type;
-            nested_firearm.ammo_type = search_param.ammo_type;
-            nested_firearm.firearm_class = search_param.firearm_class;
-            nested_firearm.firearm_type = search_param.firearm_type;
-
-            nested_results.push(nested_firearm);
+            results.push(new_result);
         }
 
-        Ok([].into())
+        Ok(results)
     }
 }
 
@@ -206,13 +205,13 @@ impl Retailer for AlFlahertys {
     async fn build_page_request(
         &self,
         page_num: u64,
-        search_param: &SearchParams,
+        search_term: &SearchTerm,
     ) -> Result<Request, RetailerError> {
         let offset = PAGE_LIMIT * page_num;
 
         let body = MAIN_PAYLOAD
             .replace("{api_key}", AL_FLAHERTYS_KLEVU_API_KEY)
-            .replace("{category}", search_param.lookup)
+            .replace("{category}", &search_term.term)
             .replace("{offset}", offset.to_string().as_str())
             .replace("{page_limit}", PAGE_LIMIT.to_string().as_str());
 
@@ -233,31 +232,32 @@ impl Retailer for AlFlahertys {
     async fn parse_response(
         &self,
         response: &String,
-        search_param: &SearchParams,
-    ) -> Result<Vec<FirearmResult>, RetailerError> {
+        search_term: &SearchTerm,
+    ) -> Result<Vec<CrawlResult>, RetailerError> {
         let result = Self::get_result(response)?;
 
         let records = json_get_object(&result, "records".into())?;
-        let firearms_json = json_get_array(records)?;
+        let item_objects = json_get_array(records)?;
 
         let mut nested_handlers: Vec<
-            Pin<Box<dyn Future<Output = Result<Vec<FirearmResult>, RetailerError>> + Send>>,
+            Pin<Box<dyn Future<Output = Result<Vec<CrawlResult>, RetailerError>> + Send>>,
         > = Vec::new();
-        let mut firearms: Vec<FirearmResult> = Vec::new();
 
-        for firearm in firearms_json {
-            if Self::value_to_string(firearm, "inStock")? != "yes" {
+        let mut results: Vec<CrawlResult> = Vec::new();
+
+        for item in item_objects {
+            if Self::value_to_string(item, "inStock")? != "yes" {
                 continue;
             }
 
-            let url = Self::value_to_string(firearm, "url")?;
-            let name = Self::value_to_string(firearm, "name")?;
-            let image = Self::value_to_string(firearm, "imageUrl")?;
+            let url = Self::value_to_string(item, "url")?;
+            let name = Self::value_to_string(item, "name")?;
+            let image = Self::value_to_string(item, "imageUrl")?;
 
-            let base_price_string = Self::value_to_string(firearm, "basePrice")?;
-            let sale_price_string = Self::value_to_string(firearm, "salePrice")?;
+            let base_price_string = Self::value_to_string(item, "basePrice")?;
+            let sale_price_string = Self::value_to_string(item, "salePrice")?;
 
-            let variant_value = json_get_object(firearm, "totalVariants".into())?;
+            let variant_value = json_get_object(item, "totalVariants".into())?;
             let Some(variants) = variant_value.as_u64() else {
                 let message = format!("Failed to convert {} into an u64", variant_value);
                 error!(message);
@@ -266,14 +266,14 @@ impl Retailer for AlFlahertys {
 
             if variants != 0 {
                 nested_handlers.push(Box::pin(
-                    self.parse_nested_firearm(url, name, image, search_param)
+                    self.parse_nested_firearm(url, name, image, search_term)
                         .into_future(),
                 ));
 
                 continue;
             }
 
-            let mut price = FirearmPrice {
+            let mut price = Price {
                 regular_price: price_to_cents(base_price_string.clone())?,
                 sale_price: None,
             };
@@ -282,103 +282,49 @@ impl Retailer for AlFlahertys {
                 price.sale_price = Some(price_to_cents(sale_price_string)?);
             }
 
-            let mut new_firearm = FirearmResult::new(name, url, price, RetailerName::AlFlahertys);
-            new_firearm.thumbnail_link = Some(image);
-            new_firearm.action_type = search_param.action_type;
-            new_firearm.ammo_type = search_param.ammo_type;
-            new_firearm.firearm_class = search_param.firearm_class;
-            new_firearm.firearm_type = search_param.firearm_type;
+            let new_result = CrawlResult::new(
+                name,
+                url,
+                price,
+                RetailerName::AlFlahertys,
+                search_term.category,
+            )
+            .with_image_url(image);
 
-            firearms.push(new_firearm);
+            results.push(new_result);
         }
 
         for handler in nested_handlers {
-            firearms.append(&mut handler.await?);
+            results.append(&mut handler.await?);
         }
 
-        Ok(firearms)
+        Ok(results)
     }
 
-    fn get_search_parameters(&self) -> Result<Vec<SearchParams>, RetailerError> {
-        /*
-        Muzzle Loader
-        Firearm - Combination Gun
-        */
-
-        let search_params = Vec::from_iter([
-            SearchParams {
-                lookup: "Rifle - Bolt Action",
-                action_type: Some(ActionType::BoltAction),
-                ammo_type: None,
-                firearm_class: None,
-                firearm_type: Some(FirearmType::Rifle),
+    fn get_search_terms(&self) -> Vec<SearchTerm> {
+        Vec::from_iter([
+            SearchTerm {
+                term: "Shooting Supplies, Firearms & Ammunition;Firearms".into(),
+                category: Category::Firearm,
             },
-            SearchParams {
-                lookup: "Rifle - Lever Action",
-                action_type: Some(ActionType::LeverAction),
-                ammo_type: None,
-                firearm_class: None,
-                firearm_type: Some(FirearmType::Rifle),
+            SearchTerm {
+                term: "Shooting Supplies, Firearms & Ammunition;Stocks, Parts, Barrels & Kits"
+                    .into(),
+                category: Category::Other,
             },
-            SearchParams {
-                lookup: "Rifle - Rimfire",
-                action_type: None,
-                ammo_type: Some(AmmunitionType::Rimfire),
-                firearm_class: None,
-                firearm_type: Some(FirearmType::Rifle),
+            SearchTerm {
+                term: "Shooting Supplies, Firearms & Ammunition;Shooting Accessories".into(),
+                category: Category::Other,
             },
-            SearchParams {
-                lookup: "Rifle - Semi",
-                action_type: Some(ActionType::SemiAuto),
-                ammo_type: None,
-                firearm_class: None,
-                firearm_type: Some(FirearmType::Rifle),
+            SearchTerm {
+                term: "Shooting Supplies, Firearms & Ammunition;Storage & Transportation".into(),
+                category: Category::Other,
             },
-            SearchParams {
-                lookup: "Rifle Single Shot",
-                action_type: Some(ActionType::SingleShot),
-                ammo_type: None,
-                firearm_class: None,
-                firearm_type: Some(FirearmType::Rifle),
+            SearchTerm {
+                term: "Optics".into(),
+                category: Category::Other,
             },
-            SearchParams {
-                lookup: "Shotgun - Break Action",
-                action_type: Some(ActionType::BoltAction),
-                ammo_type: None,
-                firearm_class: None,
-                firearm_type: Some(FirearmType::Shotgun),
-            },
-            SearchParams {
-                lookup: "Shotgun - Semi",
-                action_type: Some(ActionType::SemiAuto),
-                ammo_type: None,
-                firearm_class: None,
-                firearm_type: Some(FirearmType::Shotgun),
-            },
-            SearchParams {
-                lookup: "Shotgun - Pump Action",
-                action_type: Some(ActionType::PumpAction),
-                ammo_type: None,
-                firearm_class: None,
-                firearm_type: Some(FirearmType::Shotgun),
-            },
-            SearchParams {
-                lookup: "Shotgun - Lever Action",
-                action_type: Some(ActionType::LeverAction),
-                ammo_type: None,
-                firearm_class: None,
-                firearm_type: Some(FirearmType::Shotgun),
-            },
-            SearchParams {
-                lookup: "Shotgun - Bolt Action",
-                action_type: Some(ActionType::BoltAction),
-                ammo_type: None,
-                firearm_class: None,
-                firearm_type: Some(FirearmType::Shotgun),
-            },
-        ]);
-
-        Ok(search_params)
+        ])
     }
 
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {
@@ -395,7 +341,7 @@ impl Retailer for AlFlahertys {
             return Err(RetailerError::ApiResponseInvalidShape(message.into()));
         };
 
-        Ok(count / 36 + 1)
+        Ok(count / PAGE_LIMIT + 1)
     }
 
     fn get_crawler(&self) -> UnprotectedCrawler {

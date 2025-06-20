@@ -1,17 +1,15 @@
 use std::time::Duration;
 
 use async_trait::async_trait;
+use common::result::{
+    base::CrawlResult,
+    enums::{Category, RetailerName},
+};
 use crawler::{request::Request, traits::Crawler, unprotected::UnprotectedCrawler};
 use tokio::time::sleep;
 use tracing::{debug, trace};
 
-use crate::{
-    errors::RetailerError,
-    results::{
-        constants::{ActionType, AmmunitionType, FirearmClass, FirearmType, RetailerName},
-        firearm::FirearmResult,
-    },
-};
+use crate::errors::RetailerError;
 
 #[async_trait]
 pub trait Retailer {
@@ -19,29 +17,29 @@ pub trait Retailer {
     async fn build_page_request(
         &self,
         page_num: u64,
-        search_param: &SearchParams,
+        search_term: &SearchTerm,
     ) -> Result<Request, RetailerError>;
     async fn parse_response(
         &self,
         response: &String,
-        search_param: &SearchParams,
-    ) -> Result<Vec<FirearmResult>, RetailerError>;
-    fn get_search_parameters(&self) -> Result<Vec<SearchParams>, RetailerError>;
+        search_term: &SearchTerm,
+    ) -> Result<Vec<CrawlResult>, RetailerError>;
+    fn get_search_terms(&self) -> Vec<SearchTerm>;
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError>;
     fn get_crawler(&self) -> UnprotectedCrawler;
     fn get_page_cooldown(&self) -> u64;
     fn get_retailer_name(&self) -> RetailerName;
 
     // implemented methods
-    async fn get_firearms(&self) -> Result<Vec<FirearmResult>, RetailerError> {
-        let mut firearms: Vec<FirearmResult> = Vec::new();
+    async fn get_crawl_results(&self) -> Result<Vec<CrawlResult>, RetailerError> {
+        let mut results: Vec<CrawlResult> = Vec::new();
 
-        for search_param in self.get_search_parameters()? {
+        for term in self.get_search_terms() {
             let mut page: u64 = 0;
             let mut max_page: u64 = 1;
 
             while page < max_page {
-                let request = self.build_page_request(page, &search_param).await?;
+                let request = self.build_page_request(page, &term).await?;
 
                 let result = self.send_request(self.get_crawler(), request).await?;
 
@@ -52,14 +50,11 @@ pub trait Retailer {
                     let pages = self.get_num_pages(&result)?;
                     max_page = pages;
 
-                    debug!(
-                        "Changing max pages for '{:?}' to {}",
-                        search_param.lookup, max_page
-                    );
+                    debug!("Changing max pages for '{:?}' to {}", term, max_page);
                 }
 
-                let mut page_firearms = self.parse_response(&result, &search_param).await?;
-                firearms.append(&mut page_firearms);
+                let mut interm_results = self.parse_response(&result, &term).await?;
+                results.append(&mut interm_results);
 
                 page = page + 1;
 
@@ -69,7 +64,7 @@ pub trait Retailer {
             sleep(Duration::from_secs(1)).await;
         }
 
-        Ok(firearms)
+        Ok(results)
     }
 
     async fn send_request(
@@ -81,10 +76,8 @@ pub trait Retailer {
     }
 }
 
-pub struct SearchParams<'a> {
-    pub lookup: &'a str,
-    pub action_type: Option<ActionType>,
-    pub ammo_type: Option<AmmunitionType>,
-    pub firearm_class: Option<FirearmClass>,
-    pub firearm_type: Option<FirearmType>,
+#[derive(Debug, Clone)]
+pub struct SearchTerm {
+    pub term: String,
+    pub category: Category,
 }

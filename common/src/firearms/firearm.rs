@@ -11,7 +11,7 @@ pub struct FirearmPrice {
 }
 
 #[derive(Debug, Default, Deserialize, Serialize)]
-pub struct FirearmResult {
+pub struct Firearm {
     pub name: String,
     pub link: String,
     pub price: FirearmPrice,
@@ -25,7 +25,7 @@ pub struct FirearmResult {
     pub firearm_type: Option<FirearmType>,
 }
 
-impl FirearmResult {
+impl Firearm {
     pub fn new(
         name: impl Into<String>,
         link: impl Into<String>,

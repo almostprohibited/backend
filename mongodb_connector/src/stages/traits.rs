@@ -1,3 +1,4 @@
+use common::deserialize_disallow_empty_string::disallow_empty_string;
 use mongodb::bson::Document;
 use mongodb::bson::doc;
 use serde::Deserialize;
@@ -18,15 +19,19 @@ use super::sort_stage::SortStage;
 #[derive(Debug, Default, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 #[serde(deny_unknown_fields)]
-#[serde(default)]
 pub struct QueryParams {
+    #[serde(deserialize_with = "disallow_empty_string")]
     pub(crate) query: String,
     #[serde_as(as = "NoneAsEmptyString")]
+    #[serde(default)]
     pub(crate) page: Option<u32>,
     #[serde(deserialize_with = "string_to_cents")]
+    #[serde(default)]
     pub(crate) min_price: Option<u32>,
     #[serde(deserialize_with = "string_to_cents")]
+    #[serde(default)]
     pub(crate) max_price: Option<u32>,
+    #[serde(default)]
     pub(crate) sort: Sort,
 }
 
@@ -40,6 +45,7 @@ pub(crate) enum Sort {
     PriceDesc,
 }
 
+// responsible for turning a String input, into an optional number
 fn string_to_cents<'de, D>(deserializer: D) -> Result<Option<u32>, D::Error>
 where
     D: Deserializer<'de>,

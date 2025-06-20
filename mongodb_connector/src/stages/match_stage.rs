@@ -1,3 +1,5 @@
+use std::time::{SystemTime, UNIX_EPOCH};
+
 use mongodb::bson::{Document, doc};
 use tracing::trace;
 
@@ -45,6 +47,19 @@ impl MatchStage {
 
         documents
     }
+
+    fn relative_time_document(&self) -> Document {
+        let two_days_ago_secs: i64 = 2 * 24 * 60 * 60;
+
+        let current_time = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap() // this should not fail since the current time is always > UNIX_EPOCH
+            .as_secs() as i64;
+
+        doc! {
+            "$gte": current_time - two_days_ago_secs
+        }
+    }
 }
 
 impl StageDocument for MatchStage {
@@ -52,7 +67,8 @@ impl StageDocument for MatchStage {
         let mut match_filter = doc! {
             "$text": {
                 "$search": &self.query
-            }
+            },
+            "query_time": self.relative_time_document()
         };
 
         let price_filter = self.get_price_documents();
