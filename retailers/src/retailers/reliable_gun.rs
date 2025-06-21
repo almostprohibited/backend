@@ -3,9 +3,8 @@ use common::result::{
     base::{CrawlResult, Price},
     enums::{Category, RetailerName},
 };
-use crawler::{request::Request, traits::HttpMethod, unprotected::UnprotectedCrawler};
+use crawler::{request::Request, unprotected::UnprotectedCrawler};
 use scraper::{ElementRef, Html, Selector};
-use serde_json::Value;
 use tracing::{debug, error};
 
 use crate::{
