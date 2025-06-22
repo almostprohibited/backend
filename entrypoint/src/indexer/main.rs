@@ -22,7 +22,7 @@ async fn main() {
     let retailers: Vec<Box<dyn Retailer + Send + Sync>> = vec![
         Box::new(AlFlahertys::new()),
         Box::new(BullseyeNorth::new()),
-        // Box::new(CanadasGunShop::new()),
+        Box::new(CanadasGunShop::new()),
         Box::new(ReliableGun::new()),
         Box::new(LeverArms::new()),
         Box::new(FirearmsOutletCanada::new()),

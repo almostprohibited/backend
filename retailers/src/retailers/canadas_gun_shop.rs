@@ -11,7 +11,7 @@ use crawler::{
     unprotected::UnprotectedCrawler,
 };
 use regex::Regex;
-use scraper::{CaseSensitivity, ElementRef, Html, Selector};
+use scraper::{ElementRef, Html, Selector};
 use serde_json::Value;
 use tokio::time::sleep;
 use tracing::{debug, error, info, warn};
@@ -201,18 +201,21 @@ impl CanadasGunShop {
 
         let selector = Selector::parse("label.form-option").unwrap();
 
-        for option in element.select(&selector) {
+        let root_el = extract_element_from_element(
+            element,
+            "form[action='https://store.theshootingcentre.com/cart.php'] div.form-field",
+        )?;
+
+        for option in root_el.select(&selector) {
             let model_id = element_extract_attr(option, "data-product-attribute-value")?;
 
             if !in_stock.contains(&model_id) {
                 continue;
             }
 
-            let span_el = extract_element_from_element(
-                option,
-                "span.form-option-variant.form-option-variant--pattern",
-            )?;
-            let model_name = element_extract_attr(span_el, "title")?;
+            let span_el = extract_element_from_element(option, "span.form-option-variant")?;
+            let model_name =
+                element_extract_attr(span_el, "title").unwrap_or_else(|_| element_to_text(span_el));
 
             models.push(Model {
                 model_name,
@@ -450,10 +453,10 @@ impl Retailer for CanadasGunShop {
 
     fn get_search_terms(&self) -> Vec<SearchTerm> {
         Vec::from_iter([
-            // SearchTerm {
-            //     term: "firearms".into(),
-            //     category: Category::Firearm,
-            // },
+            SearchTerm {
+                term: "firearms".into(),
+                category: Category::Firearm,
+            },
             SearchTerm {
                 term: "optics".into(),
                 category: Category::Other,
