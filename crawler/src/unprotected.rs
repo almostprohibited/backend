@@ -1,9 +1,11 @@
 use std::{str::FromStr, time::Duration};
 
 use reqwest::{
-    ClientBuilder,
+    ClientBuilder as BaseClientBuilder,
     header::{HeaderMap, HeaderName, HeaderValue},
 };
+use reqwest_middleware::ClientBuilder as RetryableClientBuilder;
+use reqwest_retry::{RetryTransientMiddleware, policies::ExponentialBackoff};
 use tracing::{debug, info};
 
 use crate::{
@@ -27,7 +29,7 @@ impl UnprotectedCrawler {
 
 impl Crawler for UnprotectedCrawler {
     async fn make_web_request(&self, request: Request) -> Result<String, CrawlerError> {
-        let client = ClientBuilder::new()
+        let base_client = BaseClientBuilder::new()
             .gzip(true)
             .http1_ignore_invalid_headers_in_responses(true)
             .timeout(Duration::from_secs(PAGE_TIMEOUT_SECONDS))
@@ -35,6 +37,15 @@ impl Crawler for UnprotectedCrawler {
             .https_only(true)
             .connection_verbose(true)
             .build()?;
+
+        let retry_strat = ExponentialBackoff::builder()
+            .retry_bounds(Duration::from_secs(1), Duration::from_secs(60))
+            .build_with_max_retries(2);
+        let retry_middleware = RetryTransientMiddleware::new_with_policy(retry_strat);
+
+        let client = RetryableClientBuilder::new(base_client)
+            .with(retry_middleware)
+            .build();
 
         let mut request_builder = match request.method {
             HttpMethod::GET => client.get(request.url.clone()),

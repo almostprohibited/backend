@@ -35,7 +35,7 @@ impl ReliableGun {
     }
 
     fn find_prices(element: ElementRef) -> Result<Price, RetailerError> {
-        let actual_element = extract_element_from_element(element, "span.actual-price".into())?;
+        let actual_element = extract_element_from_element(element, "span.actual-price")?;
         let actual_price = price_to_cents(element_to_text(actual_element))?;
 
         let mut price = Price {
@@ -43,9 +43,7 @@ impl ReliableGun {
             sale_price: None,
         };
 
-        if let Ok(old_price_element) =
-            extract_element_from_element(element, "span.old-price".into())
-        {
+        if let Ok(old_price_element) = extract_element_from_element(element, "span.old-price") {
             let old_price = price_to_cents(element_to_text(old_price_element))?;
 
             price.sale_price = Some(price.regular_price);
@@ -56,7 +54,7 @@ impl ReliableGun {
     }
 
     fn extract_page_num_from_href(element: ElementRef) -> Result<u64, RetailerError> {
-        let href = element_extract_attr(element, "href".into())?;
+        let href = element_extract_attr(element, "href")?;
 
         let Some((_, page_num)) = href.split_once("?pagenumber=") else {
             let message = format!("href element is missing pagenumber query: {}", href);
@@ -107,16 +105,14 @@ impl Retailer for ReliableGun {
         let fragment = Html::parse_document(response);
 
         for element in fragment.select(&Selector::parse("div.product-item").unwrap()) {
-            let description_element =
-                extract_element_from_element(element, "div.description".into())?;
-            let url_element = extract_element_from_element(element, "h2.product-title > a".into())?;
-            let image_element =
-                extract_element_from_element(element, "img.product-overview-img".into())?;
+            let description_element = extract_element_from_element(element, "div.description")?;
+            let url_element = extract_element_from_element(element, "h2.product-title > a")?;
+            let image_element = extract_element_from_element(element, "img.product-overview-img")?;
 
             let description = element_to_text(description_element);
-            let url_href = element_extract_attr(url_element, "href".into())?;
+            let url_href = element_extract_attr(url_element, "href")?;
             let name = element_to_text(url_element);
-            let image_url = element_extract_attr(image_element, "src".into())?;
+            let image_url = element_extract_attr(image_element, "src")?;
 
             let price = Self::find_prices(element)?;
 

@@ -17,6 +17,7 @@ pub enum RetailerName {
     BullseyeNorth,
     CanadasGunShop,
     CanadasGunStore,
+    FirearmsOutletCanada,
 }
 
 #[derive(Deserialize, Serialize, Debug)]

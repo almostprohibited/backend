@@ -7,7 +7,7 @@ use crawler::{
     request::{Request, RequestBuilder},
     unprotected::UnprotectedCrawler,
 };
-use scraper::{ElementRef, Html, Selector};
+use scraper::{Html, Selector};
 use tracing::{debug, error};
 
 use crate::{
@@ -32,38 +32,6 @@ impl LeverArms {
             crawler: UnprotectedCrawler::new(),
             retailer: RetailerName::LeverArms,
         }
-    }
-
-    fn parse_firearm(
-        &self,
-        element: ElementRef,
-        search_term: &SearchTerm,
-    ) -> Result<CrawlResult, RetailerError> {
-        let title_element =
-            extract_element_from_element(element, "h2.woocommerce-loop-product__title".into())?;
-        let price_element =
-            extract_element_from_element(element, "span.woocommerce-Price-amount".into())?;
-        let image_element =
-            extract_element_from_element(element, "img.attachment-woocommerce_thumbnail".into())?;
-
-        let link = element_extract_attr(element, "href".into())?;
-        let title = element_to_text(title_element);
-        let price = price_to_cents(element_to_text(price_element))?;
-        let image_link = element_extract_attr(image_element, "src".into())?;
-
-        let result = CrawlResult::new(
-            title,
-            link,
-            Price {
-                regular_price: price,
-                sale_price: None,
-            },
-            self.get_retailer_name(),
-            search_term.category,
-        )
-        .with_image_url(image_link.to_string());
-
-        Ok(result)
     }
 }
 
@@ -101,7 +69,42 @@ impl Retailer for LeverArms {
         let product_selector = Selector::parse("a.woocommerce-LoopProduct-link").unwrap();
 
         for element in fragment.select(&product_selector) {
-            results.push(self.parse_firearm(element, search_term)?);
+            let title_element =
+                extract_element_from_element(element, "h2.woocommerce-loop-product__title")?;
+            let price_element =
+                extract_element_from_element(element, "span.woocommerce-Price-amount")?;
+            let image_element =
+                extract_element_from_element(element, "img.attachment-woocommerce_thumbnail");
+
+            let link = element_extract_attr(element, "href")?;
+            let title = element_to_text(title_element);
+            let price = price_to_cents(element_to_text(price_element))?;
+
+            // lever arms uses a place holder element for missing images
+            let image_link = match image_element {
+                Ok(unwrapped_img_el) => element_extract_attr(unwrapped_img_el, "src")?,
+                Err(_) => {
+                    "https://leverarms.com/wp-content/uploads/2021/07/placehold.jpg".to_string()
+                }
+            };
+
+            if link.contains("/gunsmithing/") {
+                continue;
+            }
+
+            let result = CrawlResult::new(
+                title,
+                link,
+                Price {
+                    regular_price: price,
+                    sale_price: None,
+                },
+                self.get_retailer_name(),
+                search_term.category,
+            )
+            .with_image_url(image_link.to_string());
+
+            results.push(result);
         }
 
         Ok(results)

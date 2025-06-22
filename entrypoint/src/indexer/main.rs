@@ -2,7 +2,8 @@ use mongodb_connector::connector::MongoDBConnector;
 use retailers::{
     retailers::{
         al_flahertys::AlFlahertys, bullseye_north::BullseyeNorth, canadas_gun_shop::CanadasGunShop,
-        lever_arms::LeverArms, reliable_gun::ReliableGun,
+        firearmsoutletcanada::FirearmsOutletCanada, lever_arms::LeverArms,
+        reliable_gun::ReliableGun,
     },
     traits::Retailer,
 };
@@ -17,27 +18,18 @@ async fn main() {
 
     let discord = Arc::new(IndexerWebhook::new().await);
 
+    #[cfg(not(debug_assertions))]
     let retailers: Vec<Box<dyn Retailer + Send + Sync>> = vec![
-        // disabled, they don't seem to be able to implement Cloudflare properly
-        // and instead have a jank recaptcha that doesn't work half the time
-        // note: unimplemented
-        // Box::new(ArmsEast::new()),
         Box::new(AlFlahertys::new()),
         Box::new(BullseyeNorth::new()),
-        Box::new(CanadasGunShop::new()),
-        // Box::new(CanadasGunStore::new()),
+        // Box::new(CanadasGunShop::new()),
         Box::new(ReliableGun::new()),
-        // disable ISG, they appear to have ArsenalForce specified in https://www.italiansportinggoods.com/robots.txt
-        // TODO: talk to them instead of just crawling anyways
-        // Box::new(ItalianSportingGoods::new()),
         Box::new(LeverArms::new()),
-        // disable ISS, they appear to have ArsenalForce specified in https://internationalshootingsupplies.com/robots.txt
-        // TODO: talk to them instead of just crawling anyways
-        // note: unimplemented
-        // Box::new(InternationalShootingSupplies::new()),
+        Box::new(FirearmsOutletCanada::new()),
     ];
 
-    // let retailers: Vec<Box<dyn Retailer + Sync + Send>> = vec![Box::new(ReliableGun::new())];
+    #[cfg(debug_assertions)]
+    let retailers: Vec<Box<dyn Retailer + Sync + Send>> = vec![Box::new(CanadasGunShop::new())];
 
     let mut handles: Vec<JoinHandle<()>> = Vec::new();
 

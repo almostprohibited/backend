@@ -11,11 +11,10 @@ use crawler::{
     unprotected::UnprotectedCrawler,
 };
 use regex::Regex;
-use scraper::{ElementRef, Html, Selector};
+use scraper::{CaseSensitivity, ElementRef, Html, Selector};
 use serde_json::Value;
 use tokio::time::sleep;
 use tracing::{debug, error, info, warn};
-use urlencoding::encode;
 
 use crate::{
     errors::RetailerError,
@@ -33,6 +32,19 @@ const MAIN_URL: &str =
     "https://store.theshootingcentre.com/{category}/?limit={page_limit}&mode=6&page={page}";
 const API_URL: &str =
     "https://store.theshootingcentre.com/remote/v1/product-attributes/{product_id}";
+
+#[derive(Debug)]
+struct Model {
+    model_name: String,
+    model_id: String,
+}
+
+#[derive(Debug)]
+struct NestedModel {
+    api_key: String,
+    parent_id: String,
+    models: Vec<Model>,
+}
 
 pub struct CanadasGunShop {
     crawler: UnprotectedCrawler,
@@ -56,9 +68,8 @@ impl CanadasGunShop {
         <span data-product-non-sale-price-without-tax="" class="price price--non-sale"></span>
         </span> */
 
-        let price_main = extract_element_from_element(product_element, "span.price--main".into())?;
-        let price_non_sale =
-            extract_element_from_element(product_element, "span.price--non-sale".into())?;
+        let price_main = extract_element_from_element(product_element, "span.price--main")?;
+        let price_non_sale = extract_element_from_element(product_element, "span.price--non-sale")?;
 
         let price_str = element_to_text(price_main);
         let price_non_sale_str = element_to_text(price_non_sale);
@@ -127,21 +138,15 @@ impl CanadasGunShop {
         Ok(price)
     }
 
-    /// Returns Vec<(model_id, model_sub_name)>
-    fn get_in_stock_models(&self, result: &String) -> Result<Vec<(String, String)>, RetailerError> {
-        let html = Html::parse_document(result);
+    fn get_in_stock_models(element: ElementRef) -> Result<Vec<String>, RetailerError> {
         let script_selector = Selector::parse("script[type='text/javascript']").unwrap();
-        let option_selector =
-            Selector::parse("select.form-select--small > option[data-product-attribute-value]")
-                .unwrap();
 
         let mut model_ids_in_stock: Vec<String> = Vec::new();
-        let mut models_in_stock: Vec<(String, String)> = Vec::new();
 
         // I could get the model IDs in a single go, but more reliable
         // to parse the JSON instead of checking if the option says
         // "out of stock"
-        for script in html.select(&script_selector) {
+        for script in element.select(&script_selector) {
             let javascript = element_to_text(script);
 
             if !javascript.contains("in_stock_attributes") {
@@ -159,6 +164,7 @@ impl CanadasGunShop {
                     return Err(RetailerError::GeneralError(message));
                 }
             };
+
             let attributes = json_get_object(&json_result, "product_attributes".into())?;
             let in_stock_prop = json_get_object(&attributes, "in_stock_attributes".into())?;
             let in_stock_array = json_get_array(&in_stock_prop)?;
@@ -178,17 +184,115 @@ impl CanadasGunShop {
             break;
         }
 
-        // find the model name
-        for option in html.select(&option_selector) {
-            let model_id = element_extract_attr(option, "data-product-attribute-value".into())?;
-            if model_ids_in_stock.contains(&model_id) {
-                models_in_stock.push((model_id, element_to_text(option)));
+        Ok(model_ids_in_stock)
+    }
+
+    fn get_models_radio_buttons(
+        element: ElementRef,
+        in_stock: &Vec<String>,
+    ) -> Result<NestedModel, RetailerError> {
+        let mut models: Vec<Model> = Vec::new();
+
+        let api_key_el = extract_element_from_element(element, "input.form-radio")?;
+        let api_key = element_extract_attr(api_key_el, "name")?;
+
+        let parent_id_el = extract_element_from_element(element, "input[name=product_id]")?;
+        let parent_id = element_extract_attr(parent_id_el, "value")?;
+
+        let selector = Selector::parse("label.form-option").unwrap();
+
+        for option in element.select(&selector) {
+            let model_id = element_extract_attr(option, "data-product-attribute-value")?;
+
+            if !in_stock.contains(&model_id) {
+                continue;
+            }
+
+            let span_el = extract_element_from_element(
+                option,
+                "span.form-option-variant.form-option-variant--pattern",
+            )?;
+            let model_name = element_extract_attr(span_el, "title")?;
+
+            models.push(Model {
+                model_name,
+                model_id,
+            });
+        }
+
+        Ok(NestedModel {
+            api_key,
+            parent_id,
+            models,
+        })
+    }
+
+    fn get_models_dropdown(
+        element: ElementRef,
+        in_stock: &Vec<String>,
+    ) -> Result<NestedModel, RetailerError> {
+        let mut models: Vec<Model> = Vec::new();
+
+        let api_key_el =
+            extract_element_from_element(element, "select.form-select.form-select--small")?;
+        let api_key = element_extract_attr(api_key_el, "name")?;
+
+        let parent_id_el = extract_element_from_element(element, "input[name=product_id]")?;
+        let parent_id = element_extract_attr(parent_id_el, "value")?;
+
+        let selector =
+            Selector::parse("select.form-select--small > option[data-product-attribute-value]")
+                .unwrap();
+
+        for option in element.select(&selector) {
+            let model_name = element_to_text(option);
+            let model_id = element_extract_attr(option, "data-product-attribute-value")?;
+
+            if !in_stock.contains(&model_id) {
+                continue;
+            }
+
+            models.push(Model {
+                model_name,
+                model_id,
+            });
+        }
+
+        Ok(NestedModel {
+            api_key,
+            parent_id,
+            models,
+        })
+    }
+
+    fn get_models(html: String) -> Result<NestedModel, RetailerError> {
+        let parsed_html = Html::parse_document(&html);
+        let element = parsed_html.root_element();
+
+        let in_stock_model_ids = Self::get_in_stock_models(element)?;
+        debug!("Models in stock: {:?}", in_stock_model_ids);
+
+        let models = [
+            Self::get_models_dropdown(element, &in_stock_model_ids),
+            Self::get_models_radio_buttons(element, &in_stock_model_ids),
+        ];
+
+        for result in models {
+            match result {
+                Ok(models_data) => {
+                    if models_data.models.len() > 0 {
+                        info!("Returning model info: {:?}", models_data);
+
+                        return Ok(models_data);
+                    }
+                }
+                Err(_) => {}
             }
         }
 
-        info!("Found extra model IDs: {:?}", models_in_stock);
-
-        Ok(models_in_stock)
+        Err(RetailerError::GeneralError(
+            "Missing nested model information".into(),
+        ))
     }
 
     async fn parse_nested(
@@ -203,33 +307,18 @@ impl CanadasGunShop {
         let request = RequestBuilder::new().set_url(url.clone()).build();
         let result = self.crawler.make_web_request(request).await?;
 
-        let models = self.get_in_stock_models(&result)?;
+        let nested_models = Self::get_models(result)?;
 
-        let (product_id, model_key_name) = {
-            let html = Html::parse_document(&result);
-
-            let input_element =
-                extract_element_from_element(html.root_element(), "input[name=product_id]".into())?;
-            let product_id = element_extract_attr(input_element, "value".into())?;
-
-            let select_element = extract_element_from_element(
-                html.root_element(),
-                "select.form-select--small".into(),
-            )?;
-            let mut model_key_name = element_extract_attr(select_element, "name".into())?;
-            model_key_name = encode(&model_key_name).into_owned();
-
-            (product_id, model_key_name)
-        };
-
-        for (model_id, model_name) in models {
+        for model in nested_models.models {
             let body = format!(
                 "action=add&{}={}&product_id={}&user=",
-                model_key_name, model_id, product_id
+                nested_models.api_key, model.model_id, nested_models.parent_id
             );
 
+            debug!("Sending subrequest with {}", body);
+
             let request = RequestBuilder::new()
-                .set_url(API_URL.replace("{product_id}", &product_id))
+                .set_url(API_URL.replace("{product_id}", &nested_models.parent_id))
                 .set_method(HttpMethod::POST)
                 .set_body(body)
                 .build();
@@ -242,7 +331,7 @@ impl CanadasGunShop {
             let price_obj = json_get_object(&data, "price".into())?;
             let price = Self::get_price_from_object(price_obj)?;
 
-            let formatted_name = format!("{} - {}", name, model_name);
+            let formatted_name = format!("{} - {}", name, model.model_name);
 
             let new_result = CrawlResult::new(
                 formatted_name,
@@ -311,19 +400,16 @@ impl Retailer for CanadasGunShop {
             let product_inner = Html::parse_document(&doc);
             let product = product_inner.root_element();
 
-            let name_link_element =
-                extract_element_from_element(product, "h4.card-title > a".into())?;
+            let name_link_element = extract_element_from_element(product, "h4.card-title > a")?;
 
-            let image_element = extract_element_from_element(
-                product,
-                "div.card-img-container > img.card-image".into(),
-            )?;
+            let image_element =
+                extract_element_from_element(product, "div.card-img-container > img.card-image")?;
 
-            let url = element_extract_attr(name_link_element, "href".into())?;
+            let url = element_extract_attr(name_link_element, "href")?;
             let name = element_to_text(name_link_element);
-            let image = element_extract_attr(image_element, "src".into())?;
+            let image = element_extract_attr(image_element, "src")?;
 
-            let price_element = extract_element_from_element(product, "span.price--main".into())?;
+            let price_element = extract_element_from_element(product, "span.price--main")?;
 
             if price_element
                 .text()
@@ -364,10 +450,10 @@ impl Retailer for CanadasGunShop {
 
     fn get_search_terms(&self) -> Vec<SearchTerm> {
         Vec::from_iter([
-            SearchTerm {
-                term: "firearms".into(),
-                category: Category::Firearm,
-            },
+            // SearchTerm {
+            //     term: "firearms".into(),
+            //     category: Category::Firearm,
+            // },
             SearchTerm {
                 term: "optics".into(),
                 category: Category::Other,
@@ -391,7 +477,7 @@ impl Retailer for CanadasGunShop {
         let html = Html::parse_document(response);
 
         let Ok(count_element) =
-            extract_element_from_element(html.root_element(), "div.pagination-info".into())
+            extract_element_from_element(html.root_element(), "div.pagination-info")
         else {
             warn!("Page does not contain extra pages, returning 0 as max page");
             return Ok(0);

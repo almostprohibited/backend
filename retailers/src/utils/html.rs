@@ -9,15 +9,17 @@ pub(crate) fn element_to_text(element: ElementRef) -> String {
 
 pub(crate) fn element_extract_attr(
     element: ElementRef,
-    attr_name: String,
+    attr_name: impl Into<String>,
 ) -> Result<String, RetailerError> {
-    let Some(attr_value) = element.attr(&attr_name) else {
+    let attribute: String = attr_name.into();
+
+    let Some(attr_value) = element.attr(&attribute) else {
         error!(
             "Failed to find attribute {} in element {:?}",
-            attr_name, element
+            attribute, element
         );
         return Err(RetailerError::HtmlElementMissingAttribute(
-            attr_name,
+            attribute,
             element.html(),
         ));
     };
@@ -27,17 +29,19 @@ pub(crate) fn element_extract_attr(
 
 pub(crate) fn extract_element_from_element(
     element: ElementRef,
-    query_string: String,
+    query_string: impl Into<String>,
 ) -> Result<ElementRef, RetailerError> {
-    let selector = Selector::parse(&query_string).unwrap();
+    let query: String = query_string.into();
+
+    let selector = Selector::parse(&query).unwrap();
 
     let Some(query_element) = element.select(&selector).next() else {
         error!(
             "Failed to find element '{}' in parent element {:?}",
-            query_string, element
+            query, element
         );
 
-        return Err(RetailerError::HtmlMissingElement(query_string));
+        return Err(RetailerError::HtmlMissingElement(query));
     };
 
     Ok(query_element)

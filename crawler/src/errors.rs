@@ -3,6 +3,8 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum CrawlerError {
     #[error("Unprotected crawler general error")]
+    UnprotectedClientMiddlewareGeneralError(#[from] reqwest_middleware::Error),
+    #[error("Unprotected crawler general error")]
     UnprotectedClientGeneralError(#[from] reqwest::Error),
     #[error("Unprotected crawler failed to create header")]
     UnprotectedClientInvalidHeader,

@@ -47,17 +47,17 @@ impl BullseyeNorth {
             <strong class="salePrice">$1,304.99</strong>
         </span> */
 
-        let price_element = extract_element_from_element(product_element, "span.pricing".into())?;
+        let price_element = extract_element_from_element(product_element, "span.pricing")?;
 
         let mut price = Price {
             regular_price: 0,
             sale_price: None,
         };
 
-        match extract_element_from_element(price_element, "strong.salePrice".into()) {
+        match extract_element_from_element(price_element, "strong.salePrice") {
             Ok(sale_element) => {
                 let normal_price_element =
-                    extract_element_from_element(price_element, "strong.listPrice > span".into())?;
+                    extract_element_from_element(price_element, "strong.listPrice > span")?;
 
                 let normal_price = element_to_text(normal_price_element);
 
@@ -66,7 +66,7 @@ impl BullseyeNorth {
             }
             Err(_) => {
                 let normal_price_element =
-                    extract_element_from_element(price_element, "strong.itemPrice".into())?;
+                    extract_element_from_element(price_element, "strong.itemPrice")?;
 
                 let normal_price = element_to_text(normal_price_element);
 
@@ -112,14 +112,14 @@ impl Retailer for BullseyeNorth {
         let product_selector = Selector::parse("a.product").unwrap();
 
         for product in html.select(&product_selector) {
-            let name_element = extract_element_from_element(product, "span.name".into())?;
-            let image_element = extract_element_from_element(product, "span.image > img".into())?;
+            let name_element = extract_element_from_element(product, "span.name")?;
+            let image_element = extract_element_from_element(product, "span.image > img")?;
 
-            let url = element_extract_attr(product, "href".into())?;
+            let url = element_extract_attr(product, "href")?;
             let name = element_to_text(name_element);
-            let image = element_extract_attr(image_element, "src".into())?;
+            let image = element_extract_attr(image_element, "src")?;
 
-            if extract_element_from_element(product, "span.stock".into()).is_err() {
+            if extract_element_from_element(product, "span.stock").is_err() {
                 debug!("Skipping not in stock product {}", name);
                 continue;
             }
@@ -173,15 +173,14 @@ impl Retailer for BullseyeNorth {
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {
         let html = Html::parse_document(response);
 
-        let Ok(max_pages_el) =
-            extract_element_from_element(html.root_element(), "p.paginTotals".into())
+        let Ok(max_pages_el) = extract_element_from_element(html.root_element(), "p.paginTotals")
         else {
             warn!("Page missing total, probably no products in category");
 
             return Ok(0);
         };
 
-        let max_page_count = element_extract_attr(max_pages_el, "data-max-pages".into())?;
+        let max_page_count = element_extract_attr(max_pages_el, "data-max-pages")?;
 
         let item_as_int = string_to_u64(max_page_count)?;
 

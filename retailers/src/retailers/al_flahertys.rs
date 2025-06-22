@@ -90,7 +90,7 @@ impl AlFlahertys {
         let mut models: Vec<(String, String)> = Vec::new();
 
         for option in html.select(&option_selector) {
-            let model_id = element_extract_attr(option, "data-product-attribute-value".into())?;
+            let model_id = element_extract_attr(option, "data-product-attribute-value")?;
 
             models.push((model_id, element_to_text(option)));
         }
@@ -118,14 +118,12 @@ impl AlFlahertys {
             let html = Html::parse_document(&result);
 
             let input_element =
-                extract_element_from_element(html.root_element(), "input[name=product_id]".into())?;
-            let product_id = element_extract_attr(input_element, "value".into())?;
+                extract_element_from_element(html.root_element(), "input[name=product_id]")?;
+            let product_id = element_extract_attr(input_element, "value")?;
 
-            let select_element = extract_element_from_element(
-                html.root_element(),
-                "select.form-select--small".into(),
-            )?;
-            let mut model_key_name = element_extract_attr(select_element, "name".into())?;
+            let select_element =
+                extract_element_from_element(html.root_element(), "select.form-select--small")?;
+            let mut model_key_name = element_extract_attr(select_element, "name")?;
             model_key_name = encode(&model_key_name).into_owned();
 
             (product_id, model_key_name)
