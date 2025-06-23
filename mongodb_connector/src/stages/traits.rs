@@ -1,4 +1,5 @@
 use common::deserialize_disallow_empty_string::disallow_empty_string;
+use common::result::enums::Category;
 use mongodb::bson::Document;
 use mongodb::bson::doc;
 use serde::Deserialize;
@@ -33,6 +34,8 @@ pub struct QueryParams {
     pub(crate) max_price: Option<u32>,
     #[serde(default)]
     pub(crate) sort: Sort,
+    #[serde(default)]
+    pub(crate) category: Category,
 }
 
 #[derive(Debug, Default, Deserialize, EnumString, Clone, Copy)]
@@ -108,8 +111,13 @@ impl QueryParams {
         };
 
         documents.append(
-            &mut MatchStage::new(self.query.clone(), self.min_price, self.max_price)
-                .get_stage_documents(),
+            &mut MatchStage::new(
+                self.query.clone(),
+                self.category,
+                self.min_price,
+                self.max_price,
+            )
+            .get_stage_documents(),
         );
         documents.append(&mut DedupeStage::new().get_stage_documents());
         documents.push(flatten);
@@ -129,8 +137,13 @@ impl QueryParams {
         };
 
         documents.append(
-            &mut MatchStage::new(self.query.clone(), self.min_price, self.max_price)
-                .get_stage_documents(),
+            &mut MatchStage::new(
+                self.query.clone(),
+                self.category,
+                self.min_price,
+                self.max_price,
+            )
+            .get_stage_documents(),
         );
         documents.append(&mut DedupeStage::new().get_stage_documents());
         documents.push(count);

@@ -1,10 +1,22 @@
+use std::fmt::{Display, Formatter, Result};
+
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, Deserialize, Serialize)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, Default, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub enum Category {
     Firearm,
     Ammunition,
     Other,
+    #[default]
+    #[serde(rename = "all")]
+    _All,
+}
+
+impl Display for Category {
+    fn fmt(&self, format: &mut Formatter) -> Result {
+        write!(format, "{}", format!("{:?}", self).to_lowercase())
+    }
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]

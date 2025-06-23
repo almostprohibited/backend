@@ -1,5 +1,6 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use common::result::enums::Category;
 use mongodb::bson::{Document, doc};
 use tracing::trace;
 
@@ -7,12 +8,18 @@ use super::traits::StageDocument;
 
 pub(crate) struct MatchStage {
     query: String,
+    category: Category,
     min_price: Option<u32>,
     max_price: Option<u32>,
 }
 
 impl MatchStage {
-    pub(crate) fn new(query: String, min_price: Option<u32>, max_price: Option<u32>) -> Self {
+    pub(crate) fn new(
+        query: String,
+        category: Category,
+        min_price: Option<u32>,
+        max_price: Option<u32>,
+    ) -> Self {
         let search_terms = query
             .split(" ")
             .map(|term| format!("\"{}\"", term))
@@ -21,6 +28,7 @@ impl MatchStage {
 
         Self {
             query: search_terms,
+            category,
             min_price,
             max_price,
         }
@@ -82,6 +90,10 @@ impl StageDocument for MatchStage {
                     "$and": price_filter
                 },
             );
+        }
+
+        if self.category != Category::default() {
+            match_filter.insert("category", format!("{}", self.category));
         }
 
         [doc! {"$match": match_filter}].into()

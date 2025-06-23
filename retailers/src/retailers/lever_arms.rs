@@ -71,10 +71,17 @@ impl Retailer for LeverArms {
         for element in fragment.select(&product_selector) {
             let title_element =
                 extract_element_from_element(element, "h2.woocommerce-loop-product__title")?;
-            let price_element =
-                extract_element_from_element(element, "span.woocommerce-Price-amount")?;
             let image_element =
                 extract_element_from_element(element, "img.attachment-woocommerce_thumbnail");
+
+            // what the hell lever arms
+            // you have a product that is listed that has no listed
+            // price that you let people add to their carts
+            let Ok(price_element) =
+                extract_element_from_element(element, "span.woocommerce-Price-amount")
+            else {
+                continue;
+            };
 
             let link = element_extract_attr(element, "href")?;
             let title = element_to_text(title_element);

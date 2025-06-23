@@ -10,7 +10,6 @@ use axum::{Json, extract::State, http::StatusCode, response::IntoResponse};
 use axum_extra::extract::WithRejection;
 use common::deserialize_disallow_empty_string::disallow_empty_string;
 use common::messages::Message;
-use regex::Regex;
 use reqwest::ClientBuilder;
 use serde::Deserialize;
 use serde_json::json;
@@ -83,7 +82,7 @@ pub(crate) async fn contact_handler(
 
     let message = Message::new(json.body, ip_addr, json.subject, json.email);
 
-    if let Some(email) = message.email {
+    if let Some(ref email) = message.email {
         // I just copied the regex from the Javscript version, but it doesn't work
         // let regex = Regex::new(r"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$").unwrap();
 
@@ -97,12 +96,12 @@ pub(crate) async fn contact_handler(
         return Ok(StatusCode::BAD_REQUEST);
     }
 
-    // ContactWebhook::new()
-    //     .await
-    //     .relay_message(message.clone())
-    //     .await;
+    ContactWebhook::new()
+        .await
+        .relay_message(message.clone())
+        .await;
 
-    // state.db.insert_message(message).await;
+    state.db.insert_message(message).await;
 
     sleep(Duration::from_secs(1)).await;
 

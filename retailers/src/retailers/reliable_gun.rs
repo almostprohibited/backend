@@ -17,7 +17,7 @@ use crate::{
 };
 
 const CRAWL_DELAY_SECS: u64 = 10; // https://www.reliablegun.com/robots.txt
-const PAGE_SIZE: u64 = 24; // Reliable Gun's site is slow
+const PAGE_SIZE: u64 = 12; // Reliable Gun's site is slow
 const BASE_URL: &str = "https://www.reliablegun.com";
 const URL: &str = "https://www.reliablegun.com/{category}#/pageSize={page_size}&viewMode=grid&orderBy=0&pageNumber={page}";
 

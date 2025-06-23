@@ -14,7 +14,10 @@ impl StageDocument for DedupeStage {
     fn get_stage_documents(&self) -> Vec<Document> {
         [doc! {
             "$group": {
-                "_id": "$link",
+                "_id": {
+                    "url": "$url",
+                    "name": "$name",
+                },
                 "doc": {
                     "$first": "$$ROOT"
                 }
