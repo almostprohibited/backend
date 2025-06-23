@@ -29,7 +29,8 @@ async fn main() {
     ];
 
     #[cfg(debug_assertions)]
-    let retailers: Vec<Box<dyn Retailer + Sync + Send>> = vec![Box::new(LeverArms::new())];
+    let retailers: Vec<Box<dyn Retailer + Sync + Send>> =
+        vec![Box::new(FirearmsOutletCanada::new())];
 
     let mut handles: Vec<JoinHandle<()>> = Vec::new();
 

@@ -8,7 +8,7 @@ use crawler::{
     unprotected::UnprotectedCrawler,
 };
 use scraper::{ElementRef, Html, Selector};
-use tracing::error;
+use tracing::{debug, error};
 
 use crate::{
     errors::RetailerError,
@@ -159,12 +159,27 @@ impl Retailer for FirearmsOutletCanada {
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {
         let html = Html::parse_document(response);
 
-        let in_stock_el = extract_element_from_element(
-            html.root_element(),
-            "ul#facetedSearch-navList--bool > li > a > span",
-        )?;
+        let dropdown_option_selector =
+            Selector::parse("ul#facetedSearch-navList--bool > li > a").unwrap();
 
-        let mut in_stock_text = element_to_text(in_stock_el);
+        let mut in_stock_element: Option<ElementRef> = None;
+
+        for dropdown_option in html.select(&dropdown_option_selector) {
+            let text = element_to_text(dropdown_option);
+
+            debug!("text: {}", text);
+
+            if text.contains("In Stock") {
+                in_stock_element = Some(extract_element_from_element(dropdown_option, "span")?);
+                break;
+            }
+        }
+
+        let Some(unwrapped_in_stock_el) = in_stock_element else {
+            return Ok(0);
+        };
+
+        let mut in_stock_text = element_to_text(unwrapped_in_stock_el);
         // the in stock text has () around it, like "(62)", use .replace()
         // because I don't want to deal with array slicing or regex
         in_stock_text = in_stock_text.replace("(", "").replace(")", "");
