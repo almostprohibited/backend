@@ -46,16 +46,16 @@ struct NestedModel {
     models: Vec<Model>,
 }
 
-pub struct CanadasGunShop {
+pub struct CalgaryShootingCentre {
     crawler: UnprotectedCrawler,
     retailer: RetailerName,
 }
 
-impl CanadasGunShop {
+impl CalgaryShootingCentre {
     pub fn new() -> Self {
         Self {
             crawler: UnprotectedCrawler::new(),
-            retailer: RetailerName::CanadasGunShop,
+            retailer: RetailerName::CalgaryShootingCentre,
         }
     }
 
@@ -355,7 +355,7 @@ impl CanadasGunShop {
 }
 
 #[async_trait]
-impl Retailer for CanadasGunShop {
+impl Retailer for CalgaryShootingCentre {
     fn get_retailer_name(&self) -> RetailerName {
         self.retailer
     }

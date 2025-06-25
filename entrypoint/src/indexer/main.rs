@@ -1,9 +1,9 @@
 use mongodb_connector::connector::MongoDBConnector;
 use retailers::{
     retailers::{
-        al_flahertys::AlFlahertys, bullseye_north::BullseyeNorth, canadas_gun_shop::CanadasGunShop,
-        firearmsoutletcanada::FirearmsOutletCanada, lever_arms::LeverArms,
-        reliable_gun::ReliableGun,
+        al_flahertys::AlFlahertys, bullseye_north::BullseyeNorth,
+        calgary_shooting_centre::CalgaryShootingCentre, firearmsoutletcanada::FirearmsOutletCanada,
+        lever_arms::LeverArms, reliable_gun::ReliableGun,
     },
     traits::Retailer,
 };
@@ -22,7 +22,7 @@ async fn main() {
     let retailers: Vec<Box<dyn Retailer + Send + Sync>> = vec![
         Box::new(AlFlahertys::new()),
         Box::new(BullseyeNorth::new()),
-        Box::new(CanadasGunShop::new()),
+        Box::new(CalgaryShootingCentre::new()),
         Box::new(ReliableGun::new()),
         Box::new(LeverArms::new()),
         Box::new(FirearmsOutletCanada::new()),
@@ -30,7 +30,7 @@ async fn main() {
 
     #[cfg(debug_assertions)]
     let retailers: Vec<Box<dyn Retailer + Sync + Send>> =
-        vec![Box::new(FirearmsOutletCanada::new())];
+        vec![Box::new(CalgaryShootingCentre::new())];
 
     let mut handles: Vec<JoinHandle<()>> = Vec::new();
 
