@@ -1,24 +1,9 @@
 pub mod al_flahertys;
 pub mod bullseye_north;
-// they have a GQL end point @ https://store.theshootingcentre.com/graphql
-// TODO: investigate this
-pub mod calgary_shooting_centre;
-
-// pub mod canadas_gun_store;
-
-// why is FOC so bloated
-// it uses so much memory in a browser window
-pub mod firearmsoutletcanada;
-
+pub mod calgary_shooting_centre; // TODO: investigate this, they have a GQL end point @ https://store.theshootingcentre.com/graphql
+pub mod canadas_gun_store;
+pub mod firearmsoutletcanada; // why is FOC so bloated it uses so much memory in a browser window
+// pub mod italian_sporting_goods; // they have arsenalforce in their robots.txt
 pub mod lever_arms;
 pub mod reliable_gun;
-
-// they have arsenalforce in their robots.txt
-// pub mod italian_sporting_goods;
-
-// https://armseast.com/
-// double check their website to see if it is still broken
-// they had their own jank captcha for some reason
-
-// https://internationalshootingsupplies.com/
-// they have arsenalforce in their robots.txt
+// pub mod theammosource;

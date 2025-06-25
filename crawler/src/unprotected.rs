@@ -71,8 +71,6 @@ impl Crawler for UnprotectedCrawler {
         }
 
         info!("Sending request to {}", request.url);
-        debug!("{:?}", request_builder);
-        debug!("{:?}", client);
 
         let sent_request = request_builder.send().await?;
 
