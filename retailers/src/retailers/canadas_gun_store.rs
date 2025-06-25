@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use common::result::{
-    base::CrawlResult,
+    base::{CrawlResult, Price},
     enums::{Category, RetailerName},
 };
 use crawler::{
@@ -8,7 +8,7 @@ use crawler::{
     unprotected::UnprotectedCrawler,
 };
 use scraper::{Html, Selector};
-use tracing::debug;
+use tracing::{debug, error};
 
 use crate::{
     errors::RetailerError,
@@ -22,7 +22,7 @@ use crate::{
 // items per page is constant, for some reason
 const ITEM_PER_PAGE: u64 = 255;
 const PAGE_COOLDOWN: u64 = 10;
-const URL: &str = "https://www.canadasgunstore.ca/inet/storefront/store.php?mode=browsecategory&department=30&class=FA&fineline={type}&attr[A2]={action}&refine=Y";
+const URL: &str = "https://www.canadasgunstore.ca/departments/{category}.html?top={count}";
 
 pub struct CanadasGunStore {
     crawler: UnprotectedCrawler,
@@ -49,28 +49,10 @@ impl Retailer for CanadasGunStore {
         page_num: u64,
         search_term: &SearchTerm,
     ) -> Result<Request, RetailerError> {
-        let firearm_type = match search_param.firearm_type.unwrap() {
-            FirearmType::Rifle => "RIFLNR",
-            FirearmType::Shotgun => "SHOTGN",
-        };
-
-        let action_type = match search_param.action_type.unwrap() {
-            ActionType::SemiAuto => "SEMIAUTO",
-            ActionType::LeverAction => "LEVER",
-            ActionType::BreakAction => "BREAK",
-            ActionType::BoltAction => "BOLTACTION",
-            ActionType::OverUnder => "OVER%2FUNDER",
-            ActionType::PumpAction => "PUMP",
-            ActionType::SideBySide => "SIDEBYSIDE",
-            ActionType::SingleShot => "SINGLE",
-            ActionType::Revolver => "REVOLVER",
-            ActionType::StraightPull => "STRIAGHT",
-        };
-
         let request = RequestBuilder::new()
             .set_url(
-                URL.replace("{type}", firearm_type)
-                    .replace("{action}", action_type),
+                URL.replace("{category}", &search_term.term)
+                    .replace("{count}", &(page_num * ITEM_PER_PAGE).to_string()),
             )
             .build();
 
@@ -82,15 +64,14 @@ impl Retailer for CanadasGunStore {
         response: &String,
         search_term: &SearchTerm,
     ) -> Result<Vec<CrawlResult>, RetailerError> {
-        let mut firearms: Vec<CrawlResult> = Vec::new();
+        let mut results: Vec<CrawlResult> = Vec::new();
 
         let html = Html::parse_document(response);
 
         let product_selector = Selector::parse("div.product_body").unwrap();
 
         for product in html.select(&product_selector) {
-            let stock_element =
-                extract_element_from_element(product, "span.product_status".into())?;
+            let stock_element = extract_element_from_element(product, "span.product_status")?;
 
             if element_to_text(stock_element) != "In Stock" {
                 debug!("Skipping out of stock item");
@@ -98,38 +79,37 @@ impl Retailer for CanadasGunStore {
             }
 
             let name_link_element =
-                extract_element_from_element(product, "h4.store_product_name > a".into())?;
-
-            let image_element = extract_element_from_element(product, "img.product_image".into())?;
-
-            let price_element = extract_element_from_element(product, "div.product_price".into())?;
-
+                extract_element_from_element(product, "h4.store_product_name > a")?;
+            let image_element = extract_element_from_element(product, "img.product_image")?;
+            let price_element = extract_element_from_element(product, "div.product_price")?;
             let url = format!(
                 "https://www.canadasgunstore.ca{}",
-                element_extract_attr(name_link_element, "href".into())?
+                element_extract_attr(name_link_element, "href")?
             );
 
             let name = element_to_text(name_link_element);
-            let image = element_extract_attr(image_element, "src".into())?;
+            let image = element_extract_attr(image_element, "src")?;
 
             let price = price_to_cents(element_to_text(price_element))?;
 
-            let firearm_price = FirearmPrice {
+            let firearm_price = Price {
                 regular_price: price,
                 sale_price: None,
             };
 
-            let mut new_firearm = Firearm::new(name, url, firearm_price, self.get_retailer_name());
-            new_firearm.thumbnail_link = Some(image.to_string());
-            new_firearm.action_type = search_param.action_type;
-            new_firearm.ammo_type = search_param.ammo_type;
-            new_firearm.firearm_class = search_param.firearm_class;
-            new_firearm.firearm_type = search_param.firearm_type;
+            let new_result = CrawlResult::new(
+                name,
+                url,
+                firearm_price,
+                self.get_retailer_name(),
+                search_term.category,
+            )
+            .with_image_url(image.to_string());
 
-            firearms.push(new_firearm);
+            results.push(new_result);
         }
 
-        Ok(firearms)
+        Ok(results)
     }
 
     fn get_search_terms(&self) -> Vec<SearchTerm> {
@@ -153,8 +133,41 @@ impl Retailer for CanadasGunStore {
         ])
     }
 
-    fn get_num_pages(&self, _response: &String) -> Result<u64, RetailerError> {
-        Ok(0)
+    fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {
+        let html = Html::parse_document(response);
+
+        let Ok(page_count_element) = extract_element_from_element(
+            html.root_element(),
+            "div.store_results_navigation_top_wrapper > p.text-success",
+        ) else {
+            return Ok(0);
+        };
+
+        // 694 found, showing page 1 of 3
+        let results_text = element_to_text(page_count_element);
+        let results_parts: Vec<&str> = results_text.split(" ").collect();
+
+        let Some(pages) = results_parts.last() else {
+            let message = format!(
+                "Failed to split the string (empty matches): {}",
+                results_text
+            );
+
+            error!(message);
+
+            return Err(RetailerError::GeneralError(message));
+        };
+
+        let Ok(page_as_num) = pages.parse::<u64>() else {
+            error!(
+                "{}",
+                format!("Failed to convert string into number: {}", pages)
+            );
+
+            return Err(RetailerError::InvalidNumber(pages.to_string()));
+        };
+
+        Ok(page_as_num)
     }
 
     fn get_crawler(&self) -> UnprotectedCrawler {

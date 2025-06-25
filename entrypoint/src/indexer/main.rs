@@ -1,4 +1,6 @@
 use mongodb_connector::connector::MongoDBConnector;
+#[cfg(debug_assertions)]
+use retailers::retailers::canadas_gun_store::CanadasGunStore;
 use retailers::{
     retailers::{
         al_flahertys::AlFlahertys, bullseye_north::BullseyeNorth,
@@ -26,11 +28,11 @@ async fn main() {
         Box::new(ReliableGun::new()),
         Box::new(LeverArms::new()),
         Box::new(FirearmsOutletCanada::new()),
+        Box::new(CanadasGunStore::new()),
     ];
 
     #[cfg(debug_assertions)]
-    let retailers: Vec<Box<dyn Retailer + Sync + Send>> =
-        vec![Box::new(CalgaryShootingCentre::new())];
+    let retailers: Vec<Box<dyn Retailer + Sync + Send>> = vec![Box::new(CanadasGunStore::new())];
 
     let mut handles: Vec<JoinHandle<()>> = Vec::new();
 
@@ -53,6 +55,7 @@ async fn main() {
 
             match results {
                 Ok(result) => {
+                    #[cfg(not(debug_assertions))]
                     db.insert_many_results(result).await;
 
                     let message = format!("{:?} completed crawling", retailer.get_retailer_name());
