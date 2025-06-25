@@ -1,11 +1,10 @@
 use mongodb_connector::connector::MongoDBConnector;
-#[cfg(debug_assertions)]
-use retailers::retailers::canadas_gun_store::CanadasGunStore;
 use retailers::{
     retailers::{
         al_flahertys::AlFlahertys, bullseye_north::BullseyeNorth,
-        calgary_shooting_centre::CalgaryShootingCentre, firearmsoutletcanada::FirearmsOutletCanada,
-        lever_arms::LeverArms, reliable_gun::ReliableGun,
+        calgary_shooting_centre::CalgaryShootingCentre, canadas_gun_store::CanadasGunStore,
+        firearmsoutletcanada::FirearmsOutletCanada, lever_arms::LeverArms,
+        reliable_gun::ReliableGun,
     },
     traits::Retailer,
 };
