@@ -27,7 +27,7 @@ pub enum RetailerName {
     InternationalShootingSupplies,
     AlFlahertys,
     BullseyeNorth,
-    CanadasGunShop,
+    CalgaryShootingCentre,
     CanadasGunStore,
     FirearmsOutletCanada,
 }
