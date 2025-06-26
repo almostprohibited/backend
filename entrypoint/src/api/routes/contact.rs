@@ -1,11 +1,10 @@
-use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
 
 use crate::{ServerState, routes::error_message_erasure::ApiError};
 
 use axum::debug_handler;
-use axum::extract::ConnectInfo;
+use axum::http::HeaderMap;
 use axum::{Json, extract::State, http::StatusCode, response::IntoResponse};
 use axum_extra::extract::WithRejection;
 use common::deserialize_disallow_empty_string::disallow_empty_string;
@@ -51,11 +50,15 @@ pub(crate) struct Payload {
 
 #[debug_handler]
 pub(crate) async fn contact_handler(
+    headers: HeaderMap,
     State(state): State<Arc<ServerState>>,
-    ConnectInfo(addr): ConnectInfo<SocketAddr>,
     WithRejection(Json(json), _): WithRejection<Json<Payload>, ApiError>,
 ) -> Result<impl IntoResponse, StatusCode> {
-    let ip_addr = addr.ip().to_string();
+    let Some(ip_addr_header) = headers.get("X-Real-IP") else {
+        Ok(StatusCode::BAD_GATEWAY);
+    };
+
+    let ip_addr = ip_addr_header.to_str().unwrap_or_default();
 
     let client = ClientBuilder::new()
         .gzip(true)
@@ -80,7 +83,7 @@ pub(crate) async fn contact_handler(
         return Ok(StatusCode::UNAUTHORIZED);
     }
 
-    let message = Message::new(json.body, ip_addr, json.subject, json.email);
+    let message = Message::new(json.body, ip_addr.to_string(), json.subject, json.email);
 
     if let Some(ref email) = message.email {
         // I just copied the regex from the Javscript version, but it doesn't work
