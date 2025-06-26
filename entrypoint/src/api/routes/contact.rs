@@ -55,7 +55,7 @@ pub(crate) async fn contact_handler(
     WithRejection(Json(json), _): WithRejection<Json<Payload>, ApiError>,
 ) -> Result<impl IntoResponse, StatusCode> {
     let Some(ip_addr_header) = headers.get("X-Real-IP") else {
-        Ok(StatusCode::BAD_GATEWAY);
+        return Ok(StatusCode::BAD_GATEWAY);
     };
 
     let ip_addr = ip_addr_header.to_str().unwrap_or_default();
