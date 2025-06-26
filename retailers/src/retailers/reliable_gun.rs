@@ -29,7 +29,9 @@ pub struct ReliableGun {
 impl ReliableGun {
     pub fn new() -> ReliableGun {
         ReliableGun {
-            crawler: UnprotectedCrawler::new(),
+            crawler: UnprotectedCrawler::new()
+                .with_min_secs_backoff(60)
+                .with_max_secs_backoff(120),
             retailer: RetailerName::ReliableGun,
         }
     }

@@ -15,15 +15,42 @@ use crate::{
 };
 
 const PAGE_TIMEOUT_SECONDS: u64 = 30;
+const PAGE_MIN_SECS_BACKOFF: u64 = 1;
+const PAGE_MAX_SECS_BACKOFF: u64 = 60;
+const MAX_RETRY: u32 = 3;
+
 const USER_AGENT: &str =
     "almostprohibited/1.0 (+https://almostprohibited.ca/contact/; hello@almostprohibited.ca)";
 
 #[derive(Copy, Clone)]
-pub struct UnprotectedCrawler {}
+pub struct UnprotectedCrawler {
+    min_backoff: u64,
+    max_backoff: u64,
+    max_retry: u32,
+}
 
 impl UnprotectedCrawler {
     pub fn new() -> Self {
-        Self {}
+        Self {
+            min_backoff: PAGE_MIN_SECS_BACKOFF,
+            max_backoff: PAGE_MAX_SECS_BACKOFF,
+            max_retry: MAX_RETRY,
+        }
+    }
+
+    pub fn with_min_secs_backoff(mut self, backoff: u64) -> Self {
+        self.min_backoff = backoff;
+        self
+    }
+
+    pub fn with_max_secs_backoff(mut self, backoff: u64) -> Self {
+        self.max_backoff = backoff;
+        self
+    }
+
+    pub fn with_max_retry(mut self, retries: u32) -> Self {
+        self.max_retry = retries;
+        self
     }
 }
 
@@ -39,8 +66,11 @@ impl Crawler for UnprotectedCrawler {
             .build()?;
 
         let retry_strat = ExponentialBackoff::builder()
-            .retry_bounds(Duration::from_secs(1), Duration::from_secs(60))
-            .build_with_max_retries(2);
+            .retry_bounds(
+                Duration::from_secs(self.min_backoff),
+                Duration::from_secs(self.max_backoff),
+            )
+            .build_with_max_retries(self.max_retry);
         let retry_middleware = RetryTransientMiddleware::new_with_policy(retry_strat);
 
         let client = RetryableClientBuilder::new(base_client)

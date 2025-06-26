@@ -23,6 +23,7 @@ use crate::{
 const ITEM_PER_PAGE: u64 = 255;
 const PAGE_COOLDOWN: u64 = 10;
 const URL: &str = "https://www.canadasgunstore.ca/departments/{category}.html?top={count}";
+const BASE_URL: &str = "https://www.canadasgunstore.ca";
 
 pub struct CanadasGunStore {
     crawler: UnprotectedCrawler,
@@ -83,12 +84,12 @@ impl Retailer for CanadasGunStore {
             let image_element = extract_element_from_element(product, "img.product_image")?;
             let price_element = extract_element_from_element(product, "div.product_price")?;
             let url = format!(
-                "https://www.canadasgunstore.ca{}",
+                "{BASE_URL}{}",
                 element_extract_attr(name_link_element, "href")?
             );
 
             let name = element_to_text(name_link_element);
-            let image = element_extract_attr(image_element, "src")?;
+            let image = format!("{BASE_URL}{}", element_extract_attr(image_element, "src")?);
 
             let price = price_to_cents(element_to_text(price_element))?;
 
