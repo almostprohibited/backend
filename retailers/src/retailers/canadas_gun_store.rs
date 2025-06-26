@@ -89,7 +89,12 @@ impl Retailer for CanadasGunStore {
             );
 
             let name = element_to_text(name_link_element);
-            let image = format!("{BASE_URL}{}", element_extract_attr(image_element, "src")?);
+
+            let image_src = element_extract_attr(image_element, "src")?;
+            let image_url = match image_src.starts_with("/") {
+                true => format!("{BASE_URL}{}", image_src),
+                false => image_src,
+            };
 
             let price = price_to_cents(element_to_text(price_element))?;
 
@@ -105,7 +110,7 @@ impl Retailer for CanadasGunStore {
                 self.get_retailer_name(),
                 search_term.category,
             )
-            .with_image_url(image.to_string());
+            .with_image_url(image_url.to_string());
 
             results.push(new_result);
         }
