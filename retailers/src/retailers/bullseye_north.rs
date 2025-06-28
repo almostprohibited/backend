@@ -21,7 +21,8 @@ use crate::{
 
 const PAGE_COOLDOWN: u64 = 5;
 const PAGE_LIMIT: u64 = 36;
-const URL: &str = "https://www.bullseyenorth.com/{category}/perpage/{page_limit}/page/{page}";
+const URL: &str =
+    "https://www.bullseyenorth.com/{category}/browse/perpage/{page_limit}/page/{page}";
 
 pub struct BullseyeNorth {
     crawler: UnprotectedCrawler,
