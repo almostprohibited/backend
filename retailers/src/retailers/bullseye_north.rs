@@ -19,7 +19,7 @@ use crate::{
     },
 };
 
-const PAGE_COOLDOWN: u64 = 5;
+const PAGE_COOLDOWN: u64 = 10;
 const PAGE_LIMIT: u64 = 36;
 const URL: &str =
     "https://www.bullseyenorth.com/{category}/browse/perpage/{page_limit}/page/{page}";
@@ -165,7 +165,43 @@ impl Retailer for BullseyeNorth {
                 category: Category::Other,
             },
             SearchTerm {
-                term: "accessories".into(),
+                term: "accessories-cleaning-supplies".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "accessories-eye-ear-protection".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "accessories-gun-parts".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "accessories-flashlights".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "accessories-gunsmithing-tools".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "accessories-holsters-magazine-pouches".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "accessories-reference-manuals".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "accessories-shooting-gear".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "accessories-stock-bipod-sling".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "accessories-targets".into(),
                 category: Category::Other,
             },
         ])
@@ -183,9 +219,7 @@ impl Retailer for BullseyeNorth {
 
         let max_page_count = element_extract_attr(max_pages_el, "data-max-pages")?;
 
-        let item_as_int = string_to_u64(max_page_count)?;
-
-        Ok((item_as_int / PAGE_LIMIT).into())
+        Ok(string_to_u64(max_page_count)?)
     }
 
     fn get_crawler(&self) -> UnprotectedCrawler {
