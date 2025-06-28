@@ -1,263 +1,187 @@
 use async_trait::async_trait;
-use crawler::{request::RequestBuilder, traits::Crawler, unprotected::UnprotectedCrawler};
+use common::result::{
+    base::{CrawlResult, Price},
+    enums::{Category, RetailerName},
+};
+use crawler::{
+    request::{Request, RequestBuilder},
+    unprotected::UnprotectedCrawler,
+};
 use scraper::{ElementRef, Html, Selector};
-use tokio::time::{Duration, sleep};
-use tracing::{debug, trace};
+use tracing::debug;
 
-use crate::traits::Retailer;
+use crate::{
+    errors::RetailerError,
+    traits::{Retailer, SearchTerm},
+    utils::{
+        conversions::price_to_cents,
+        html::{element_extract_attr, element_to_text, extract_element_from_element},
+    },
+};
 
-const URL: &str =
-    "https://www.italiansportinggoods.com/firearms/{catagory}.html?product_list_limit=25?p={page}";
-const SEARCH_PARAMS: [SearchParams; 16] = [
-    // centerfire rifle
-    SearchParams {
-        lookup: "centerfire-rifles/bolt-action", // https://www.italiansportinggoods.com/firearms/centerfire-rifles/bolt-action.html
-        action_type: Some(ActionType::BoltAction),
-        ammo_type: Some(AmmunitionType::CenterFire),
-        firearm_class: Some(FirearmClass::NonRestricted),
-        firearm_type: Some(FirearmType::Rifle),
-    },
-    SearchParams {
-        lookup: "centerfire-rifles/lever-action", // https://www.italiansportinggoods.com/firearms/centerfire-rifles/lever-action.html
-        action_type: Some(ActionType::LeverAction),
-        ammo_type: Some(AmmunitionType::CenterFire),
-        firearm_class: Some(FirearmClass::NonRestricted),
-        firearm_type: Some(FirearmType::Rifle),
-    },
-    SearchParams {
-        lookup: "centerfire-rifles/pump-action", // https://www.italiansportinggoods.com/firearms/centerfire-rifles/pump-action.html
-        action_type: Some(ActionType::PumpAction),
-        ammo_type: Some(AmmunitionType::CenterFire),
-        firearm_class: Some(FirearmClass::NonRestricted),
-        firearm_type: Some(FirearmType::Rifle),
-    },
-    SearchParams {
-        lookup: "centerfire-rifles/semi-automatic", // https://www.italiansportinggoods.com/firearms/centerfire-rifles/semi-automatic.html
-        action_type: Some(ActionType::SemiAuto),
-        ammo_type: Some(AmmunitionType::CenterFire),
-        firearm_class: Some(FirearmClass::NonRestricted),
-        firearm_type: Some(FirearmType::Rifle),
-    },
-    SearchParams {
-        lookup: "centerfire-rifles/break", // https://www.italiansportinggoods.com/firearms/centerfire-rifles/break.html
-        action_type: Some(ActionType::BreakAction),
-        ammo_type: Some(AmmunitionType::CenterFire),
-        firearm_class: Some(FirearmClass::NonRestricted),
-        firearm_type: Some(FirearmType::Rifle),
-    },
-    SearchParams {
-        lookup: "centerfire-rifles/over-under", // https://www.italiansportinggoods.com/firearms/centerfire-rifles/over-under.html
-        action_type: Some(ActionType::OverUnder),
-        ammo_type: Some(AmmunitionType::CenterFire),
-        firearm_class: Some(FirearmClass::NonRestricted),
-        firearm_type: Some(FirearmType::Rifle),
-    },
-    // rimfire
-    SearchParams {
-        lookup: "rimfire-rifles/bolt-action", // https://www.italiansportinggoods.com/firearms/rimfire-rifles/bolt-action.html
-        action_type: Some(ActionType::BoltAction),
-        ammo_type: Some(AmmunitionType::Rimfire),
-        firearm_class: Some(FirearmClass::NonRestricted),
-        firearm_type: Some(FirearmType::Rifle),
-    },
-    SearchParams {
-        lookup: "rimfire-rifles/lever-action", // https://www.italiansportinggoods.com/firearms/rimfire-rifles/lever-action.html
-        action_type: Some(ActionType::LeverAction),
-        ammo_type: Some(AmmunitionType::Rimfire),
-        firearm_class: Some(FirearmClass::NonRestricted),
-        firearm_type: Some(FirearmType::Rifle),
-    },
-    SearchParams {
-        lookup: "rimfire-rifles/semi-auto", // https://www.italiansportinggoods.com/firearms/rimfire-rifles/semi-auto.html
-        action_type: Some(ActionType::SemiAuto),
-        ammo_type: Some(AmmunitionType::Rimfire),
-        firearm_class: Some(FirearmClass::NonRestricted),
-        firearm_type: Some(FirearmType::Rifle),
-    },
-    SearchParams {
-        lookup: "rimfire-rifles/revolver", // https://www.italiansportinggoods.com/firearms/rimfire-rifles/revolver.html
-        action_type: Some(ActionType::SemiAuto),
-        ammo_type: Some(AmmunitionType::Rimfire),
-        firearm_class: Some(FirearmClass::NonRestricted),
-        firearm_type: Some(FirearmType::Rifle),
-    },
-    // shotguns
-    SearchParams {
-        lookup: "shotguns/lever", // https://www.italiansportinggoods.com/firearms/shotguns/lever.html
-        action_type: Some(ActionType::LeverAction),
-        ammo_type: Some(AmmunitionType::CenterFire),
-        firearm_class: Some(FirearmClass::NonRestricted),
-        firearm_type: Some(FirearmType::Shotgun),
-    },
-    SearchParams {
-        lookup: "shotguns/over-and-under", // https://www.italiansportinggoods.com/firearms/shotguns/over-and-under.html
-        action_type: Some(ActionType::OverUnder),
-        ammo_type: Some(AmmunitionType::CenterFire),
-        firearm_class: Some(FirearmClass::NonRestricted),
-        firearm_type: Some(FirearmType::Shotgun),
-    },
-    SearchParams {
-        lookup: "shotguns/side-by-side", // https://www.italiansportinggoods.com/firearms/shotguns/side-by-side.html
-        action_type: Some(ActionType::SideBySide),
-        ammo_type: Some(AmmunitionType::CenterFire),
-        firearm_class: Some(FirearmClass::NonRestricted),
-        firearm_type: Some(FirearmType::Shotgun),
-    },
-    SearchParams {
-        lookup: "shotguns/pump-action", // https://www.italiansportinggoods.com/firearms/shotguns/pump-action.html
-        action_type: Some(ActionType::PumpAction),
-        ammo_type: Some(AmmunitionType::CenterFire),
-        firearm_class: Some(FirearmClass::NonRestricted),
-        firearm_type: Some(FirearmType::Shotgun),
-    },
-    SearchParams {
-        lookup: "shotguns/semi-automatic", // https://www.italiansportinggoods.com/firearms/shotguns/semi-automatic.html
-        action_type: Some(ActionType::SemiAuto),
-        ammo_type: Some(AmmunitionType::CenterFire),
-        firearm_class: Some(FirearmClass::NonRestricted),
-        firearm_type: Some(FirearmType::Shotgun),
-    },
-    SearchParams {
-        lookup: "shotguns/single-shot", // https://www.italiansportinggoods.com/firearms/shotguns/single-shot.html
-        action_type: Some(ActionType::SingleShot),
-        ammo_type: Some(AmmunitionType::CenterFire),
-        firearm_class: Some(FirearmClass::NonRestricted),
-        firearm_type: Some(FirearmType::Shotgun),
-    },
-];
+const ITEMS_PER_PAGE: u64 = 25;
+const CRAWL_DELAY: u64 = 10;
+const URL: &str = "https://www.italiansportinggoods.com/{category}.html?product_list_limit={items_per_page}&p={page}";
 
 pub struct ItalianSportingGoods {
     crawler: UnprotectedCrawler,
+    retailer: RetailerName,
 }
 
 impl ItalianSportingGoods {
-    pub fn new() -> ItalianSportingGoods {
-        ItalianSportingGoods {
+    pub fn new() -> Self {
+        Self {
             crawler: UnprotectedCrawler::new(),
+            retailer: RetailerName::ItalianSportingGoods,
         }
     }
 
-    fn get_num_pages(html: &String) -> u32 {
-        let fragment = Html::parse_document(&html);
+    fn parse_prices(element: ElementRef) -> Result<Price, RetailerError> {
+        let final_price_el = extract_element_from_element(
+            element,
+            "span.price-wrapper[data-price-type=finalPrice] > span",
+        )?;
+        let final_price = price_to_cents(element_to_text(final_price_el))?;
 
-        let item_counts = Selector::parse("p#toolbar-amount > span.toolbar-number").unwrap();
-        if let Some(total_items_element) = fragment.select(&item_counts).nth(2) {
-            let count = total_items_element
-                .text()
-                .collect::<String>()
-                .trim()
-                .parse::<f32>()
-                .unwrap();
+        let mut price = Price {
+            regular_price: final_price,
+            sale_price: None,
+        };
 
-            (count / 25.).ceil() as u32 + 1
-        } else {
-            0
-        }
-    }
+        if let Ok(old_price_element) = extract_element_from_element(
+            element,
+            "span.price-wrapper[data-price-type=oldPrice] > span",
+        ) {
+            price.regular_price = price_to_cents(element_to_text(old_price_element))?;
+            price.sale_price = Some(final_price);
+        };
 
-    fn parse_prices(element: ElementRef) -> FirearmPrice {
-        let final_price =
-            Selector::parse("span.price-wrapper[data-price-type=finalPrice]").unwrap();
-        let old_price = Selector::parse("span.price-wrapper[data-price-type=oldPrice]").unwrap();
-
-        let final_price = price_to_cents(
-            element
-                .select(&final_price)
-                .next()
-                .unwrap()
-                .attr("data-price-amount")
-                .unwrap()
-                .to_string(),
-        );
-
-        if let Some(old_price_element) = element.select(&old_price).next() {
-            let old_price = old_price_element
-                .attr("data-price-amount")
-                .unwrap()
-                .to_string();
-
-            FirearmPrice {
-                regular_price: price_to_cents(old_price),
-                sale_price: Some(final_price),
-            }
-        } else {
-            FirearmPrice {
-                regular_price: final_price,
-                sale_price: None,
-            }
-        }
-    }
-
-    fn parse_webpage(html: &String, parameters: &SearchParams) -> Vec<FirearmResult> {
-        let mut firearms: Vec<FirearmResult> = Vec::new();
-
-        let fragment = Html::parse_document(&html);
-
-        trace!(html);
-
-        let product_selector = Selector::parse("div.product-item-details").unwrap();
-        let name_link_selector = Selector::parse("a.product-item-link").unwrap();
-
-        for element in fragment.select(&product_selector) {
-            let ahref = element.select(&name_link_selector).next().unwrap();
-
-            if let Some(link) = ahref.attr("href") {
-                let name = ahref.text().collect::<String>().trim().to_string();
-
-                let prices = Self::parse_prices(element);
-
-                let mut new_firearm =
-                    FirearmResult::new(name, link, prices, RetailerName::ItalianSportingGoods);
-                new_firearm.action_type = parameters.action_type;
-                new_firearm.ammo_type = parameters.ammo_type;
-                new_firearm.firearm_class = parameters.firearm_class;
-                new_firearm.firearm_type = parameters.firearm_type;
-
-                firearms.push(new_firearm);
-            }
-        }
-
-        firearms
-    }
-
-    async fn send_request(&self, page_num: &str, parameters: &SearchParams<'_>) -> String {
-        let url = URL
-            .replace("{catagory}", parameters.lookup)
-            .replace("{page}", page_num);
-
-        debug!("Setting page to {}", url);
-
-        let request = RequestBuilder::new().set_url(url).build();
-
-        self.crawler.make_web_request(request).await.unwrap()
+        Ok(price)
     }
 }
 
 #[async_trait]
 impl Retailer for ItalianSportingGoods {
-    async fn get_firearms(&self) -> Vec<FirearmResult> {
-        let mut firearms: Vec<FirearmResult> = Vec::new();
+    async fn build_page_request(
+        &self,
+        page_num: u64,
+        search_term: &SearchTerm,
+    ) -> Result<Request, RetailerError> {
+        let url = URL
+            .replace("{category}", &search_term.term)
+            .replace("{page}", &(page_num + 1).to_string())
+            .replace("{items_per_page}", &ITEMS_PER_PAGE.to_string());
 
-        for search in SEARCH_PARAMS {
-            let result = self.send_request("1", &search).await;
+        debug!("Setting page to {}", url);
 
-            let mut new_firearms = Self::parse_webpage(&result, &search);
+        Ok(RequestBuilder::new().set_url(url).build())
+    }
 
-            for page_num in 2..Self::get_num_pages(&result) {
-                sleep(Duration::from_secs(1)).await;
+    async fn parse_response(
+        &self,
+        response: &String,
+        search_term: &SearchTerm,
+    ) -> Result<Vec<CrawlResult>, RetailerError> {
+        let mut results: Vec<CrawlResult> = Vec::new();
 
-                let result = self
-                    .send_request(page_num.to_string().as_str(), &search)
-                    .await;
+        let html = Html::parse_document(&response);
 
-                new_firearms.append(&mut Self::parse_webpage(&result, &search));
+        let product_selector = Selector::parse("div.product-item-info").unwrap();
+
+        for element in html.select(&product_selector) {
+            let details_element =
+                extract_element_from_element(element, "div.product-item-details")?;
+            let link_element =
+                extract_element_from_element(details_element, "a.product-item-link")?;
+
+            if let Ok(data_bind_attr) = element_extract_attr(link_element, "data-bind")
+                && !data_bind_attr.is_empty()
+            {
+                continue;
             }
 
-            firearms.append(&mut new_firearms);
+            let url = element_extract_attr(link_element, "href")?;
+            let name = element_to_text(link_element);
+            let price = Self::parse_prices(details_element)?;
 
-            sleep(Duration::from_secs(1)).await;
+            let image_element = extract_element_from_element(
+                element,
+                "a.product-item-photo img.product-image-photo",
+            )?;
+            let image_url = element_extract_attr(image_element, "src")?;
+
+            let new_result = CrawlResult::new(
+                name,
+                url,
+                price,
+                self.get_retailer_name(),
+                search_term.category,
+            )
+            .with_image_url(image_url);
+
+            results.push(new_result);
         }
 
-        firearms
+        Ok(results)
+    }
+
+    fn get_search_terms(&self) -> Vec<SearchTerm> {
+        Vec::from_iter([
+            SearchTerm {
+                term: "firearms".into(),
+                category: Category::Firearm,
+            },
+            SearchTerm {
+                term: "optics".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "reloading".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "shooting".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "ar-accessories".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "gun-care".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "gun-cases-and-storage".into(),
+                category: Category::Other,
+            },
+        ])
+    }
+
+    fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {
+        let html = Html::parse_document(&response);
+
+        let item_counts = Selector::parse("p#toolbar-amount > span.toolbar-number").unwrap();
+        if let Some(total_items_element) = html.select(&item_counts).nth(2) {
+            let count = element_to_text(total_items_element)
+                .parse::<f32>()
+                .expect("Count not a number");
+
+            Ok((count / ITEMS_PER_PAGE as f32).ceil() as u64)
+        } else {
+            Ok(0)
+        }
+    }
+
+    fn get_crawler(&self) -> UnprotectedCrawler {
+        self.crawler
+    }
+
+    fn get_page_cooldown(&self) -> u64 {
+        CRAWL_DELAY
+    }
+
+    fn get_retailer_name(&self) -> RetailerName {
+        self.retailer
     }
 }

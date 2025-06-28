@@ -3,8 +3,8 @@ use retailers::{
     retailers::{
         al_flahertys::AlFlahertys, bullseye_north::BullseyeNorth,
         calgary_shooting_centre::CalgaryShootingCentre, canadas_gun_store::CanadasGunStore,
-        firearmsoutletcanada::FirearmsOutletCanada, lever_arms::LeverArms,
-        reliable_gun::ReliableGun,
+        firearmsoutletcanada::FirearmsOutletCanada, italian_sporting_goods::ItalianSportingGoods,
+        lever_arms::LeverArms, reliable_gun::ReliableGun,
     },
     traits::Retailer,
 };
@@ -28,10 +28,12 @@ async fn main() {
         Box::new(LeverArms::new()),
         Box::new(FirearmsOutletCanada::new()),
         Box::new(CanadasGunStore::new()),
+        Box::new(ItalianSportingGoods::new()),
     ];
 
     #[cfg(debug_assertions)]
-    let retailers: Vec<Box<dyn Retailer + Sync + Send>> = vec![Box::new(AlFlahertys::new())];
+    let retailers: Vec<Box<dyn Retailer + Sync + Send>> =
+        vec![Box::new(ItalianSportingGoods::new())];
 
     let mut handles: Vec<JoinHandle<()>> = Vec::new();
 
@@ -54,11 +56,15 @@ async fn main() {
 
             match results {
                 Ok(result) => {
+                    let message = format!(
+                        "{:?} completed crawling ({} items)",
+                        retailer.get_retailer_name(),
+                        result.len()
+                    );
+                    discord.send_message(message).await;
+
                     #[cfg(not(debug_assertions))]
                     db.insert_many_results(result).await;
-
-                    let message = format!("{:?} completed crawling", retailer.get_retailer_name());
-                    discord.send_message(message).await;
                 }
                 Err(err) => discord.send_error(retailer.get_retailer_name(), err).await,
             };
