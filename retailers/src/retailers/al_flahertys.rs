@@ -7,7 +7,7 @@ use common::result::{
 };
 use crawler::{
     request::{Request, RequestBuilder},
-    traits::{Crawler, HttpMethod},
+    traits::HttpMethod,
     unprotected::UnprotectedCrawler,
 };
 use scraper::{Html, Selector};
@@ -100,6 +100,10 @@ impl AlFlahertys {
         Ok(models)
     }
 
+    // alflahertys works weirdly
+    // you need to set ?setCurrencyId=1 on the main product page
+    // then you need to copy the Shopper-Pref cookie from the
+    // main page response and add it to the API request to get CAD pricing
     async fn parse_nested_firearm(
         &self,
         url: String,
@@ -109,13 +113,17 @@ impl AlFlahertys {
     ) -> Result<Vec<CrawlResult>, RetailerError> {
         let mut results: Vec<CrawlResult> = Vec::new();
 
-        let request = RequestBuilder::new().set_url(&url).build();
+        let cad_formatted_pricing = format!("{}?setCurrencyId=1", url);
+
+        let request = RequestBuilder::new()
+            .set_url(&cad_formatted_pricing)
+            .build();
         let result = self.crawler.make_web_request(request).await?;
 
-        let models = self.get_in_stock_models(&result)?;
+        let models = self.get_in_stock_models(&result.body)?;
 
         let (product_id, model_key_name) = {
-            let html = Html::parse_document(&result);
+            let html = Html::parse_document(&result.body);
 
             let input_element =
                 extract_element_from_element(html.root_element(), "input[name=product_id]")?;
@@ -137,15 +145,24 @@ impl AlFlahertys {
 
             sleep(Duration::from_secs(self.get_page_cooldown())).await;
 
+            let Some(pref_value) = result.cookies.get("Shopper-Pref") else {
+                let message = "Failed to fetch main product correctly, response is missing Shopper-Pref cookie";
+                error!(message);
+                return Err(RetailerError::ApiResponseInvalidShape(message.into()));
+            };
+
+            let cookie = format!("Shopper-Pref={pref_value};");
+
             let request = RequestBuilder::new()
                 .set_url(API_URL.replace("{product_id}", &product_id))
                 .set_method(HttpMethod::POST)
+                .set_headers(&[("Cookie".to_string(), cookie)].to_vec())
                 .set_body(body)
                 .build();
 
             let result = self.crawler.make_web_request(request).await?;
 
-            let json = serde_json::from_str::<Value>(result.as_str())?;
+            let json = serde_json::from_str::<Value>(&result.body)?;
             let data = json_get_object(&json, "data".into())?;
 
             if json_get_object(&data, "stock".into())? == "0" {
@@ -154,10 +171,20 @@ impl AlFlahertys {
 
             let mut price_obj = json_get_object(&data, "price".into())?;
             price_obj = json_get_object(&price_obj, "without_tax".into())?;
-            price_obj = json_get_object(&price_obj, "formatted".into())?;
 
-            let Some(price_str) = price_obj.as_str() else {
-                let message = format!("Failed to convert {} into a string", price_obj);
+            let currency = json_get_object(&price_obj, "currency".into())?;
+            if let Some(currency_string) = currency.as_str()
+                && currency_string != "CAD"
+            {
+                let message = "Invalid pricing, API returned USD instead of CAD";
+                error!(message);
+                return Err(RetailerError::ApiResponseInvalidShape(message.into()));
+            };
+
+            let fomatted_price = json_get_object(&price_obj, "formatted".into())?;
+
+            let Some(price_str) = fomatted_price.as_str() else {
+                let message = format!("Failed to convert {} into a string", fomatted_price);
                 error!(message);
                 return Err(RetailerError::ApiResponseInvalidShape(message));
             };
@@ -165,7 +192,7 @@ impl AlFlahertys {
             let Some((_, price_without_currency)) = price_str.split_once(" ") else {
                 let message = format!(
                     "Expected price in format: 'CAD $1.23', got {} instead",
-                    price_obj
+                    price_str
                 );
                 error!(message);
                 return Err(RetailerError::ApiResponseInvalidShape(message));

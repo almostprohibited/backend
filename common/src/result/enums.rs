@@ -24,7 +24,6 @@ pub enum RetailerName {
     ReliableGun,
     LeverArms,
     ItalianSportingGoods,
-    InternationalShootingSupplies,
     AlFlahertys,
     BullseyeNorth,
     CalgaryShootingCentre,

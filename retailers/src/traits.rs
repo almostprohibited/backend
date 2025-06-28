@@ -5,7 +5,7 @@ use common::result::{
     base::CrawlResult,
     enums::{Category, RetailerName},
 };
-use crawler::{request::Request, traits::Crawler, unprotected::UnprotectedCrawler};
+use crawler::{request::Request, unprotected::UnprotectedCrawler};
 use tokio::time::sleep;
 use tracing::{debug, trace};
 
@@ -72,7 +72,7 @@ pub trait Retailer {
         crawler: UnprotectedCrawler,
         request: Request,
     ) -> Result<String, RetailerError> {
-        Ok(crawler.make_web_request(request).await?)
+        Ok(crawler.make_web_request(request).await?.body)
     }
 }
 

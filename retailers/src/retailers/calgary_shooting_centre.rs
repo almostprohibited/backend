@@ -7,7 +7,7 @@ use common::result::{
 };
 use crawler::{
     request::{Request, RequestBuilder},
-    traits::{Crawler, HttpMethod},
+    traits::HttpMethod,
     unprotected::UnprotectedCrawler,
 };
 use regex::Regex;
@@ -310,7 +310,7 @@ impl CalgaryShootingCentre {
         let request = RequestBuilder::new().set_url(url.clone()).build();
         let result = self.crawler.make_web_request(request).await?;
 
-        let nested_models = Self::get_models(result)?;
+        let nested_models = Self::get_models(result.body)?;
 
         for model in nested_models.models {
             let body = format!(
@@ -328,7 +328,7 @@ impl CalgaryShootingCentre {
 
             let result = self.crawler.make_web_request(request).await?;
 
-            let json = serde_json::from_str::<Value>(result.as_str())?;
+            let json = serde_json::from_str::<Value>(&result.body)?;
             let data = json_get_object(&json, "data".into())?;
 
             let price_obj = json_get_object(&data, "price".into())?;

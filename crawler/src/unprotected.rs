@@ -1,17 +1,17 @@
-use std::{str::FromStr, time::Duration};
+use std::{collections::HashMap, str::FromStr, time::Duration};
 
 use reqwest::{
     ClientBuilder as BaseClientBuilder,
     header::{HeaderMap, HeaderName, HeaderValue},
 };
-use reqwest_middleware::ClientBuilder as RetryableClientBuilder;
+use reqwest_middleware::{ClientBuilder as RetryableClientBuilder, ClientWithMiddleware};
 use reqwest_retry::{RetryTransientMiddleware, policies::ExponentialBackoff};
 use tracing::{debug, info};
 
 use crate::{
     errors::CrawlerError,
     request::Request,
-    traits::{Crawler, HttpMethod},
+    traits::{CrawlerResponse, HttpMethod},
 };
 
 const PAGE_TIMEOUT_SECONDS: u64 = 30;
@@ -52,10 +52,8 @@ impl UnprotectedCrawler {
         self.max_retry = retries;
         self
     }
-}
 
-impl Crawler for UnprotectedCrawler {
-    async fn make_web_request(&self, request: Request) -> Result<String, CrawlerError> {
+    fn create_client(&self) -> Result<ClientWithMiddleware, CrawlerError> {
         let base_client = BaseClientBuilder::new()
             .gzip(true)
             .http1_ignore_invalid_headers_in_responses(true)
@@ -73,9 +71,16 @@ impl Crawler for UnprotectedCrawler {
             .build_with_max_retries(self.max_retry);
         let retry_middleware = RetryTransientMiddleware::new_with_policy(retry_strat);
 
-        let client = RetryableClientBuilder::new(base_client)
+        Ok(RetryableClientBuilder::new(base_client)
             .with(retry_middleware)
-            .build();
+            .build())
+    }
+
+    pub async fn make_web_request(
+        &self,
+        request: Request,
+    ) -> Result<CrawlerResponse, CrawlerError> {
+        let client = self.create_client()?;
 
         let mut request_builder = match request.method {
             HttpMethod::GET => client.get(request.url.clone()),
@@ -102,10 +107,23 @@ impl Crawler for UnprotectedCrawler {
 
         info!("Sending request to {}", request.url);
 
-        let sent_request = request_builder.send().await?;
+        let response = request_builder.send().await?;
 
-        debug!("{:?}", sent_request);
+        debug!("{response:?}");
 
-        Ok(sent_request.text().await?)
+        let headers = response.headers().clone();
+
+        let mut cookies = HashMap::new();
+        for cookie in response.cookies() {
+            cookies.insert(cookie.name().into(), cookie.value().into());
+        }
+
+        let body = response.text().await?;
+
+        Ok(CrawlerResponse {
+            body,
+            headers,
+            cookies,
+        })
     }
 }
