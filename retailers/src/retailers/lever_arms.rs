@@ -3,10 +3,7 @@ use common::result::{
     base::{CrawlResult, Price},
     enums::{Category, RetailerName},
 };
-use crawler::{
-    request::{Request, RequestBuilder},
-    unprotected::UnprotectedCrawler,
-};
+use crawler::request::{Request, RequestBuilder};
 use scraper::{Html, Selector};
 use tracing::{debug, error};
 
@@ -22,14 +19,12 @@ use crate::{
 const URL: &str = "https://leverarms.com/product-category/{catagory}/page/{page}/";
 
 pub struct LeverArms {
-    crawler: UnprotectedCrawler,
     retailer: RetailerName,
 }
 
 impl LeverArms {
     pub fn new() -> Self {
         Self {
-            crawler: UnprotectedCrawler::new(),
             retailer: RetailerName::LeverArms,
         }
     }
@@ -95,6 +90,7 @@ impl Retailer for LeverArms {
                 }
             };
 
+            // parsing out the gunsmithing services located under /kit
             if link.contains("/gunsmithing/") {
                 continue;
             }
@@ -143,7 +139,8 @@ impl Retailer for LeverArms {
 
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {
         let fragment = Html::parse_document(&response);
-        let page_number_selector = Selector::parse("a.page-numbers").unwrap();
+        let page_number_selector =
+            Selector::parse("a:not(.next):not(.prev).page-numbers, span.page-numbers").unwrap();
 
         let mut page_links = fragment.select(&page_number_selector);
         let page_links_count = page_links.clone().count();
@@ -155,8 +152,7 @@ impl Retailer for LeverArms {
 
         // page links look like:
         // ["1", "2", "3", "->"]
-        // do `count - 2` to grab the number before the arrow
-        let Some(last_page_element) = page_links.nth(page_links_count - 2) else {
+        let Some(last_page_element) = page_links.nth(page_links_count - 1) else {
             let message = format!("Invalid number of page elements: {:?}", page_links);
             error!(message);
 
@@ -166,13 +162,5 @@ impl Retailer for LeverArms {
         };
 
         Ok(string_to_u64(element_to_text(last_page_element))?)
-    }
-
-    fn get_crawler(&self) -> UnprotectedCrawler {
-        self.crawler
-    }
-
-    fn get_page_cooldown(&self) -> u64 {
-        1
     }
 }

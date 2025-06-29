@@ -18,6 +18,7 @@ use tracing::{debug, error, info, warn};
 
 use crate::{
     errors::RetailerError,
+    pagination_client::CRAWL_COOLDOWN_SECS,
     traits::{Retailer, SearchTerm},
     utils::{
         conversions::{price_to_cents, string_to_u64},
@@ -26,7 +27,6 @@ use crate::{
     },
 };
 
-const PAGE_COOLDOWN: u64 = 10;
 const PAGE_LIMIT: u64 = 100;
 const MAIN_URL: &str =
     "https://store.theshootingcentre.com/{category}/?limit={page_limit}&mode=6&page={page}";
@@ -347,7 +347,7 @@ impl CalgaryShootingCentre {
 
             nested_results.push(new_result);
 
-            sleep(Duration::from_secs(self.get_page_cooldown())).await;
+            sleep(Duration::from_secs(CRAWL_COOLDOWN_SECS)).await;
         }
 
         Ok(nested_results)
@@ -522,13 +522,5 @@ impl Retailer for CalgaryShootingCentre {
         let item_as_int = string_to_u64(item_count.as_str().into())?;
 
         Ok((item_as_int / PAGE_LIMIT).into())
-    }
-
-    fn get_crawler(&self) -> UnprotectedCrawler {
-        self.crawler
-    }
-
-    fn get_page_cooldown(&self) -> u64 {
-        PAGE_COOLDOWN
     }
 }

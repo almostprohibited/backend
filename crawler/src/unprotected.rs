@@ -15,8 +15,8 @@ use crate::{
 };
 
 const PAGE_TIMEOUT_SECONDS: u64 = 30;
-const PAGE_MIN_SECS_BACKOFF: u64 = 1;
-const PAGE_MAX_SECS_BACKOFF: u64 = 60;
+const PAGE_MIN_SECS_BACKOFF: u64 = 60;
+const PAGE_MAX_SECS_BACKOFF: u64 = 120;
 const MAX_RETRY: u32 = 3;
 
 const USER_AGENT: &str =

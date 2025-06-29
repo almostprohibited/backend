@@ -3,10 +3,7 @@ use common::result::{
     base::{CrawlResult, Price},
     enums::{Category, RetailerName},
 };
-use crawler::{
-    request::{Request, RequestBuilder},
-    unprotected::UnprotectedCrawler,
-};
+use crawler::request::{Request, RequestBuilder};
 use scraper::{ElementRef, Html, Selector};
 use tracing::debug;
 
@@ -20,18 +17,15 @@ use crate::{
 };
 
 const ITEMS_PER_PAGE: u64 = 25;
-const CRAWL_DELAY: u64 = 10;
 const URL: &str = "https://www.italiansportinggoods.com/{category}.html?product_list_limit={items_per_page}&p={page}";
 
 pub struct ItalianSportingGoods {
-    crawler: UnprotectedCrawler,
     retailer: RetailerName,
 }
 
 impl ItalianSportingGoods {
     pub fn new() -> Self {
         Self {
-            crawler: UnprotectedCrawler::new(),
             retailer: RetailerName::ItalianSportingGoods,
         }
     }
@@ -171,14 +165,6 @@ impl Retailer for ItalianSportingGoods {
         } else {
             Ok(0)
         }
-    }
-
-    fn get_crawler(&self) -> UnprotectedCrawler {
-        self.crawler
-    }
-
-    fn get_page_cooldown(&self) -> u64 {
-        CRAWL_DELAY
     }
 
     fn get_retailer_name(&self) -> RetailerName {

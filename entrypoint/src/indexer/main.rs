@@ -1,12 +1,12 @@
 use mongodb_connector::connector::MongoDBConnector;
 use retailers::{
+    pagination_client::PaginationClient,
     retailers::{
         al_flahertys::AlFlahertys, bullseye_north::BullseyeNorth,
         calgary_shooting_centre::CalgaryShootingCentre, canadas_gun_store::CanadasGunStore,
         firearmsoutletcanada::FirearmsOutletCanada, italian_sporting_goods::ItalianSportingGoods,
         lever_arms::LeverArms, reliable_gun::ReliableGun,
     },
-    traits::Retailer,
 };
 use std::sync::Arc;
 use tokio::task::JoinHandle;
@@ -20,20 +20,19 @@ async fn main() {
     let discord = Arc::new(IndexerWebhook::new().await);
 
     #[cfg(not(debug_assertions))]
-    let retailers: Vec<Box<dyn Retailer + Send + Sync>> = vec![
-        Box::new(AlFlahertys::new()),
-        Box::new(BullseyeNorth::new()),
-        Box::new(CalgaryShootingCentre::new()),
-        Box::new(ReliableGun::new()),
-        Box::new(LeverArms::new()),
-        Box::new(FirearmsOutletCanada::new()),
-        Box::new(CanadasGunStore::new()),
-        Box::new(ItalianSportingGoods::new()),
+    let retailers: Vec<PaginationClient> = vec![
+        PaginationClient::new(Box::new(AlFlahertys::new())),
+        PaginationClient::new(Box::new(BullseyeNorth::new())),
+        PaginationClient::new(Box::new(CalgaryShootingCentre::new())),
+        PaginationClient::new(Box::new(ReliableGun::new())),
+        PaginationClient::new(Box::new(LeverArms::new())),
+        PaginationClient::new(Box::new(FirearmsOutletCanada::new())),
+        PaginationClient::new(Box::new(CanadasGunStore::new())),
+        PaginationClient::new(Box::new(ItalianSportingGoods::new())),
     ];
 
     #[cfg(debug_assertions)]
-    let retailers: Vec<Box<dyn Retailer + Sync + Send>> =
-        vec![Box::new(ItalianSportingGoods::new())];
+    let retailers: Vec<PaginationClient> = vec![PaginationClient::new(Box::new(LeverArms::new()))];
 
     let mut handles: Vec<JoinHandle<()>> = Vec::new();
 
@@ -43,31 +42,32 @@ async fn main() {
         .send_message("Starting crawling process".into())
         .await;
 
-    for retailer in retailers {
+    for mut retailer in retailers {
         let db = mongodb.clone();
         let discord = discord.clone();
 
         handles.push(tokio::spawn(async move {
-            let message = format!("{:?} started crawling", retailer.get_retailer_name());
-            discord.send_message(message).await;
+            let start_message = format!("{:?} started crawling", retailer.get_retailer_name());
+            discord.send_message(start_message).await;
 
-            let results = retailer.get_crawl_results().await;
+            let crawl_state = retailer.crawl().await;
+            let results = retailer.get_results();
+
             debug!("{:?}", results);
 
-            match results {
-                Ok(result) => {
-                    let message = format!(
-                        "{:?} completed crawling ({} items)",
-                        retailer.get_retailer_name(),
-                        result.len()
-                    );
-                    discord.send_message(message).await;
+            if let Err(err) = crawl_state {
+                discord.send_error(retailer.get_retailer_name(), err).await;
+            }
 
-                    #[cfg(not(debug_assertions))]
-                    db.insert_many_results(result).await;
-                }
-                Err(err) => discord.send_error(retailer.get_retailer_name(), err).await,
-            };
+            let finished_message = format!(
+                "{:?} completed crawling ({} items)",
+                retailer.get_retailer_name(),
+                results.len()
+            );
+            discord.send_message(finished_message).await;
+
+            #[cfg(not(debug_assertions))]
+            db.insert_many_results(result).await;
         }));
     }
 

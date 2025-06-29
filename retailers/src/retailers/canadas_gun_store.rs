@@ -3,10 +3,7 @@ use common::result::{
     base::{CrawlResult, Price},
     enums::{Category, RetailerName},
 };
-use crawler::{
-    request::{Request, RequestBuilder},
-    unprotected::UnprotectedCrawler,
-};
+use crawler::request::{Request, RequestBuilder};
 use scraper::{Html, Selector};
 use tracing::{debug, error};
 
@@ -21,19 +18,16 @@ use crate::{
 
 // items per page is constant, for some reason
 const ITEM_PER_PAGE: u64 = 255;
-const PAGE_COOLDOWN: u64 = 10;
 const URL: &str = "https://www.canadasgunstore.ca/departments/{category}.html?top={count}";
 const BASE_URL: &str = "https://www.canadasgunstore.ca";
 
 pub struct CanadasGunStore {
-    crawler: UnprotectedCrawler,
     retailer: RetailerName,
 }
 
 impl CanadasGunStore {
     pub fn new() -> Self {
         Self {
-            crawler: UnprotectedCrawler::new(),
             retailer: RetailerName::CanadasGunStore,
         }
     }
@@ -174,13 +168,5 @@ impl Retailer for CanadasGunStore {
         };
 
         Ok(page_as_num)
-    }
-
-    fn get_crawler(&self) -> UnprotectedCrawler {
-        self.crawler
-    }
-
-    fn get_page_cooldown(&self) -> u64 {
-        PAGE_COOLDOWN
     }
 }

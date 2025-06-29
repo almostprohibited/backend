@@ -18,6 +18,7 @@ use urlencoding::encode;
 
 use crate::{
     errors::RetailerError,
+    pagination_client::CRAWL_COOLDOWN_SECS,
     traits::{Retailer, SearchTerm},
     utils::{
         conversions::price_to_cents,
@@ -26,7 +27,6 @@ use crate::{
     },
 };
 
-const PAGE_COOLDOWN: u64 = 10;
 const PAGE_LIMIT: u64 = 36;
 const AL_FLAHERTYS_KLEVU_API_KEY: &str = "klevu-170966446878517137";
 const MAIN_URL: &str = "https://uscs33v2.ksearchnet.com/cs/v2/search";
@@ -143,7 +143,7 @@ impl AlFlahertys {
                 product_id, model_key_name, model_id
             );
 
-            sleep(Duration::from_secs(self.get_page_cooldown())).await;
+            sleep(Duration::from_secs(CRAWL_COOLDOWN_SECS)).await;
 
             let Some(pref_value) = result.cookies.get("Shopper-Pref") else {
                 let message = "Failed to fetch main product correctly, response is missing Shopper-Pref cookie";
@@ -367,12 +367,5 @@ impl Retailer for AlFlahertys {
         };
 
         Ok(count / PAGE_LIMIT + 1)
-    }
-
-    fn get_crawler(&self) -> UnprotectedCrawler {
-        self.crawler
-    }
-    fn get_page_cooldown(&self) -> u64 {
-        PAGE_COOLDOWN
     }
 }

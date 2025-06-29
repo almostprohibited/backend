@@ -3,10 +3,7 @@ use common::result::{
     base::{CrawlResult, Price},
     enums::{Category, RetailerName},
 };
-use crawler::{
-    request::{Request, RequestBuilder},
-    unprotected::UnprotectedCrawler,
-};
+use crawler::request::{Request, RequestBuilder};
 use scraper::{ElementRef, Html, Selector};
 use tracing::{debug, warn};
 
@@ -19,20 +16,17 @@ use crate::{
     },
 };
 
-const PAGE_COOLDOWN: u64 = 10;
 const PAGE_LIMIT: u64 = 36;
 const URL: &str =
     "https://www.bullseyenorth.com/{category}/browse/perpage/{page_limit}/page/{page}";
 
 pub struct BullseyeNorth {
-    crawler: UnprotectedCrawler,
     retailer: RetailerName,
 }
 
 impl BullseyeNorth {
     pub fn new() -> Self {
         Self {
-            crawler: UnprotectedCrawler::new(),
             retailer: RetailerName::BullseyeNorth,
         }
     }
@@ -220,13 +214,5 @@ impl Retailer for BullseyeNorth {
         let max_page_count = element_extract_attr(max_pages_el, "data-max-pages")?;
 
         Ok(string_to_u64(max_page_count)?)
-    }
-
-    fn get_crawler(&self) -> UnprotectedCrawler {
-        self.crawler
-    }
-
-    fn get_page_cooldown(&self) -> u64 {
-        PAGE_COOLDOWN
     }
 }

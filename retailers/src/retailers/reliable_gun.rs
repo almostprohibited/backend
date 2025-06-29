@@ -3,7 +3,7 @@ use common::result::{
     base::{CrawlResult, Price},
     enums::{Category, RetailerName},
 };
-use crawler::{request::Request, unprotected::UnprotectedCrawler};
+use crawler::request::Request;
 use scraper::{ElementRef, Html, Selector};
 use tracing::{debug, error};
 
@@ -16,22 +16,17 @@ use crate::{
     },
 };
 
-const CRAWL_DELAY_SECS: u64 = 10; // https://www.reliablegun.com/robots.txt
 const PAGE_SIZE: u64 = 12; // Reliable Gun's site is slow
 const BASE_URL: &str = "https://www.reliablegun.com";
 const URL: &str = "https://www.reliablegun.com/{category}#/pageSize={page_size}&viewMode=grid&orderBy=0&pageNumber={page}";
 
 pub struct ReliableGun {
-    crawler: UnprotectedCrawler,
     retailer: RetailerName,
 }
 
 impl ReliableGun {
     pub fn new() -> ReliableGun {
         ReliableGun {
-            crawler: UnprotectedCrawler::new()
-                .with_min_secs_backoff(60)
-                .with_max_secs_backoff(120),
             retailer: RetailerName::ReliableGun,
         }
     }
@@ -205,13 +200,5 @@ impl Retailer for ReliableGun {
                 }
             }
         }
-    }
-
-    fn get_crawler(&self) -> UnprotectedCrawler {
-        self.crawler
-    }
-
-    fn get_page_cooldown(&self) -> u64 {
-        CRAWL_DELAY_SECS
     }
 }

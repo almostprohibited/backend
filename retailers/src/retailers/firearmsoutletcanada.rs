@@ -3,10 +3,7 @@ use common::result::{
     base::{CrawlResult, Price},
     enums::{Category, RetailerName},
 };
-use crawler::{
-    request::{Request, RequestBuilder},
-    unprotected::UnprotectedCrawler,
-};
+use crawler::request::{Request, RequestBuilder};
 use scraper::{ElementRef, Html, Selector};
 use tracing::{debug, error};
 
@@ -19,18 +16,15 @@ use crate::{
     },
 };
 
-const CRAWL_DELAY: u64 = 10;
 const URL: &str = "https://firearmsoutletcanada.com/{category}?in_stock=1&page={page}";
 
 pub struct FirearmsOutletCanada {
-    crawler: UnprotectedCrawler,
     retailer: RetailerName,
 }
 
 impl FirearmsOutletCanada {
     pub fn new() -> Self {
         Self {
-            crawler: UnprotectedCrawler::new(),
             retailer: RetailerName::FirearmsOutletCanada,
         }
     }
@@ -194,14 +188,6 @@ impl Retailer for FirearmsOutletCanada {
 
         // for some reason, each page returns a max of exactly 52 items
         Ok(in_stock_count / 52)
-    }
-
-    fn get_crawler(&self) -> UnprotectedCrawler {
-        self.crawler
-    }
-
-    fn get_page_cooldown(&self) -> u64 {
-        CRAWL_DELAY
     }
 
     fn get_retailer_name(&self) -> RetailerName {
