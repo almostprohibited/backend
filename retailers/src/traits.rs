@@ -1,13 +1,9 @@
-use std::time::Duration;
-
 use async_trait::async_trait;
 use common::result::{
     base::CrawlResult,
     enums::{Category, RetailerName},
 };
-use crawler::{request::Request, unprotected::UnprotectedCrawler};
-use tokio::time::sleep;
-use tracing::{debug, trace};
+use crawler::request::Request;
 
 use crate::errors::RetailerError;
 

@@ -5,7 +5,7 @@ use retailers::{
         al_flahertys::AlFlahertys, bullseye_north::BullseyeNorth,
         calgary_shooting_centre::CalgaryShootingCentre, canadas_gun_store::CanadasGunStore,
         firearmsoutletcanada::FirearmsOutletCanada, italian_sporting_goods::ItalianSportingGoods,
-        lever_arms::LeverArms, reliable_gun::ReliableGun,
+        lever_arms::LeverArms, reliable_gun::ReliableGun, theammosource::TheAmmoSource,
     },
 };
 use std::sync::Arc;
@@ -29,10 +29,12 @@ async fn main() {
         PaginationClient::new(Box::new(FirearmsOutletCanada::new())),
         PaginationClient::new(Box::new(CanadasGunStore::new())),
         PaginationClient::new(Box::new(ItalianSportingGoods::new())),
+        PaginationClient::new(Box::new(TheAmmoSource::new())),
     ];
 
     #[cfg(debug_assertions)]
-    let retailers: Vec<PaginationClient> = vec![PaginationClient::new(Box::new(LeverArms::new()))];
+    let retailers: Vec<PaginationClient> =
+        vec![PaginationClient::new(Box::new(TheAmmoSource::new()))];
 
     let mut handles: Vec<JoinHandle<()>> = Vec::new();
 
