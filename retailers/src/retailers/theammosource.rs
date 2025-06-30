@@ -115,78 +115,78 @@ impl Retailer for TheAmmoSource {
 
     fn get_search_terms(&self) -> Vec<SearchTerm> {
         Vec::from_iter([
-            // SearchTerm {
-            //     term: "modern-sporting-rifles".into(),
-            //     category: Category::Firearm,
-            // },
-            // SearchTerm {
-            //     term: "rimfire-rifles".into(),
-            //     category: Category::Firearm,
-            // },
-            // SearchTerm {
-            //     term: "shotguns-hunting".into(),
-            //     category: Category::Firearm,
-            // },
-            // SearchTerm {
-            //     term: "shotguns-tactical".into(),
-            //     category: Category::Firearm,
-            // },
-            // SearchTerm {
-            //     term: "sporting-rifles".into(),
-            //     category: Category::Firearm,
-            // },
-            // SearchTerm {
-            //     term: "surplus-rifles-pistols".into(),
-            //     category: Category::Firearm,
-            // },
-            // SearchTerm {
-            //     term: "used-non-restricted-firearms".into(),
-            //     category: Category::Firearm,
-            // },
-            // SearchTerm {
-            //     term: "used-restricted-firearms".into(),
-            //     category: Category::Firearm,
-            // },
-            // SearchTerm {
-            //     term: "target-rifles".into(),
-            //     category: Category::Firearm,
-            // },
-            // SearchTerm {
-            //     term: "black-powder".into(),
-            //     category: Category::Firearm,
-            // },
-            // SearchTerm {
-            //     term: "air-guns".into(),
-            //     category: Category::Firearm,
-            // },
-            // SearchTerm {
-            //     term: "antique-firearms".into(),
-            //     category: Category::Firearm,
-            // },
-            // SearchTerm {
-            //     term: "oem-replacement-parts".into(),
-            //     category: Category::Other,
-            // },
-            // SearchTerm {
-            //     term: "scope-mounts-rings".into(),
-            //     category: Category::Other,
-            // },
+            SearchTerm {
+                term: "modern-sporting-rifles".into(),
+                category: Category::Firearm,
+            },
+            SearchTerm {
+                term: "rimfire-rifles".into(),
+                category: Category::Firearm,
+            },
+            SearchTerm {
+                term: "shotguns-hunting".into(),
+                category: Category::Firearm,
+            },
+            SearchTerm {
+                term: "shotguns-tactical".into(),
+                category: Category::Firearm,
+            },
+            SearchTerm {
+                term: "sporting-rifles".into(),
+                category: Category::Firearm,
+            },
+            SearchTerm {
+                term: "surplus-rifles-pistols".into(),
+                category: Category::Firearm,
+            },
+            SearchTerm {
+                term: "used-non-restricted-firearms".into(),
+                category: Category::Firearm,
+            },
+            SearchTerm {
+                term: "used-restricted-firearms".into(),
+                category: Category::Firearm,
+            },
+            SearchTerm {
+                term: "target-rifles".into(),
+                category: Category::Firearm,
+            },
+            SearchTerm {
+                term: "black-powder".into(),
+                category: Category::Firearm,
+            },
+            SearchTerm {
+                term: "air-guns".into(),
+                category: Category::Firearm,
+            },
+            SearchTerm {
+                term: "antique-firearms".into(),
+                category: Category::Firearm,
+            },
+            SearchTerm {
+                term: "oem-replacement-parts".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "scope-mounts-rings".into(),
+                category: Category::Other,
+            },
             SearchTerm {
                 term: "scopes-optics-binos-and-sights".into(),
                 category: Category::Other,
             },
-            // SearchTerm {
-            //     term: "reloading-supplies".into(),
-            //     category: Category::Other,
-            // },
-            // SearchTerm {
-            //     term: "flashlights-batteries-illumination".into(),
-            //     category: Category::Other,
-            // },
-            // SearchTerm {
-            //     term: "firearms-accessories".into(),
-            //     category: Category::Other,
-            // },
+            SearchTerm {
+                term: "reloading-supplies".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "flashlights-batteries-illumination".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "firearms-accessories".into(),
+                category: Category::Other,
+            },
         ])
     }
 
