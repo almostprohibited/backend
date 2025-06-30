@@ -98,7 +98,7 @@ impl MongoDBConnector {
         }
     }
 
-    pub async fn insert_many_results(&self, results: Vec<CrawlResult>) {
+    pub async fn insert_many_results(&self, results: &Vec<CrawlResult>) {
         self.crawl_results_collection
             .insert_many(results)
             .await

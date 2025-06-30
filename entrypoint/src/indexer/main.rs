@@ -69,7 +69,7 @@ async fn main() {
             discord.send_message(finished_message).await;
 
             #[cfg(not(debug_assertions))]
-            db.insert_many_results(result).await;
+            db.insert_many_results(results).await;
         }));
     }
 
