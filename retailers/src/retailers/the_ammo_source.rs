@@ -83,7 +83,7 @@ impl Retailer for TheAmmoSource {
         for product in html.select(&product_selector) {
             let image_element =
                 extract_element_from_element(product, "a.image-link.desktop > img.card-image")?;
-            let image_url = element_extract_attr(image_element, "src")?;
+            let image_url = element_extract_attr(image_element, "data-src")?;
 
             let details_body_element = extract_element_from_element(product, "div.card-body")?;
             let link_element =
