@@ -5,7 +5,7 @@ use retailers::{
         al_flahertys::AlFlahertys, bullseye_north::BullseyeNorth,
         calgary_shooting_centre::CalgaryShootingCentre, canadas_gun_store::CanadasGunStore,
         firearmsoutletcanada::FirearmsOutletCanada, italian_sporting_goods::ItalianSportingGoods,
-        lever_arms::LeverArms, reliable_gun::ReliableGun, theammosource::TheAmmoSource,
+        lever_arms::LeverArms, reliable_gun::ReliableGun, the_ammo_source::TheAmmoSource,
     },
 };
 use std::sync::Arc;
@@ -68,7 +68,7 @@ async fn main() {
             );
             discord.send_message(finished_message).await;
 
-            #[cfg(not(debug_assertions))]
+            // #[cfg(not(debug_assertions))]
             db.insert_many_results(results).await;
         }));
     }
