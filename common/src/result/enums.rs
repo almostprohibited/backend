@@ -30,6 +30,7 @@ pub enum RetailerName {
     CanadasGunStore,
     FirearmsOutletCanada,
     TheAmmoSource,
+    Tenda,
 }
 
 #[derive(Deserialize, Serialize, Debug)]

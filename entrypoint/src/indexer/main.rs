@@ -1,12 +1,15 @@
+use common::result::enums::RetailerName;
 use mongodb_connector::connector::MongoDBConnector;
 use retailers::{
-    pagination_client::PaginationClient,
+    pagination_client::{self, PaginationClient},
     retailers::{
         al_flahertys::AlFlahertys, bullseye_north::BullseyeNorth,
         calgary_shooting_centre::CalgaryShootingCentre, canadas_gun_store::CanadasGunStore,
         firearmsoutletcanada::FirearmsOutletCanada, italian_sporting_goods::ItalianSportingGoods,
-        lever_arms::LeverArms, reliable_gun::ReliableGun, the_ammo_source::TheAmmoSource,
+        lever_arms::LeverArms, reliable_gun::ReliableGun, tenda::Tenda,
+        the_ammo_source::TheAmmoSource,
     },
+    traits::Retailer,
 };
 use std::sync::Arc;
 use tokio::task::JoinHandle;
@@ -20,21 +23,27 @@ async fn main() {
     let discord = Arc::new(IndexerWebhook::new().await);
 
     #[cfg(not(debug_assertions))]
-    let retailers: Vec<PaginationClient> = vec![
-        PaginationClient::new(Box::new(AlFlahertys::new())),
-        PaginationClient::new(Box::new(BullseyeNorth::new())),
-        PaginationClient::new(Box::new(CalgaryShootingCentre::new())),
-        PaginationClient::new(Box::new(ReliableGun::new())),
-        PaginationClient::new(Box::new(LeverArms::new())),
-        PaginationClient::new(Box::new(FirearmsOutletCanada::new())),
-        PaginationClient::new(Box::new(CanadasGunStore::new())),
-        PaginationClient::new(Box::new(ItalianSportingGoods::new())),
-        PaginationClient::new(Box::new(TheAmmoSource::new())),
+    let mut retailers: Vec<Box<dyn Retailer + Send + Sync>> = vec![
+        Box::new(AlFlahertys::new()),
+        Box::new(BullseyeNorth::new()),
+        Box::new(CalgaryShootingCentre::new()),
+        Box::new(ReliableGun::new()),
+        Box::new(LeverArms::new()),
+        Box::new(FirearmsOutletCanada::new()),
+        Box::new(CanadasGunStore::new()),
+        Box::new(ItalianSportingGoods::new()),
+        Box::new(TheAmmoSource::new()),
     ];
 
     #[cfg(debug_assertions)]
-    let retailers: Vec<PaginationClient> =
-        vec![PaginationClient::new(Box::new(TheAmmoSource::new()))];
+    let mut retailers: Vec<Box<dyn Retailer + Send + Sync>> = vec![];
+
+    // tenda requires a special cookie that must be created before
+    // any request is allowed through
+    match Tenda::new() {
+        Ok(tenda) => retailers.push(Box::new(tenda)),
+        Err(err) => discord.send_error(RetailerName::Tenda, err).await,
+    };
 
     let mut handles: Vec<JoinHandle<()>> = Vec::new();
 
@@ -44,26 +53,33 @@ async fn main() {
         .send_message("Starting crawling process".into())
         .await;
 
-    for mut retailer in retailers {
+    for retailer in retailers {
         let db = mongodb.clone();
         let discord = discord.clone();
 
         handles.push(tokio::spawn(async move {
-            let start_message = format!("{:?} started crawling", retailer.get_retailer_name());
+            let mut pagination_client = PaginationClient::new(retailer);
+
+            let start_message = format!(
+                "{:?} started crawling",
+                pagination_client.get_retailer_name()
+            );
             discord.send_message(start_message).await;
 
-            let crawl_state = retailer.crawl().await;
-            let results = retailer.get_results();
+            let crawl_state = pagination_client.crawl().await;
+            let results = pagination_client.get_results();
 
             debug!("{:?}", results);
 
             if let Err(err) = crawl_state {
-                discord.send_error(retailer.get_retailer_name(), err).await;
+                discord
+                    .send_error(pagination_client.get_retailer_name(), err)
+                    .await;
             }
 
             let finished_message = format!(
                 "{:?} completed crawling ({} items)",
-                retailer.get_retailer_name(),
+                pagination_client.get_retailer_name(),
                 results.len()
             );
             discord.send_message(finished_message).await;

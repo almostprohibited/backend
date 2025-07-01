@@ -16,7 +16,7 @@ use crate::{
     },
 };
 
-const URL: &str = "https://leverarms.com/product-category/{catagory}/page/{page}/";
+const URL: &str = "https://leverarms.com/product-category/{category}/page/{page}/";
 
 pub struct LeverArms {
     retailer: RetailerName,
@@ -42,7 +42,7 @@ impl Retailer for LeverArms {
         search_term: &SearchTerm,
     ) -> Result<Request, RetailerError> {
         let url = URL
-            .replace("{catagory}", &search_term.term)
+            .replace("{category}", &search_term.term)
             .replace("{page}", (page_num + 1).to_string().as_str());
 
         debug!("Setting page to {}", url);
