@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use async_trait::async_trait;
 use base64::{Engine, prelude::BASE64_STANDARD};
 use common::result::{
@@ -284,6 +286,186 @@ impl Retailer for Tenda {
             },
             SearchTerm {
                 term: "firearms/laser-training".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "accessories/magpul-section".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "accessories/gun-maintenance-tools".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "accessories/gun-maintenance-tools".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "accessories/gun-parts/mdt-parts".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "accessories/gun-parts/gun-stocks".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "accessories/gun-parts/for-shotgun".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "accessories/gun-parts/for-revolver".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "accessories/gun-parts/parts-for-ruger-1022".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "accessories/gun-parts/parts-for-glock".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "product-category/accessories/gun-parts/gun-barrels".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "accessories/gun-parts/ar-parts".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "accessories/gun-parts/cz-parts".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "accessories/gun-parts/upgrade-triggers".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "accessories/gun-parts/muzzle-brakes".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "accessories/gun-parts/sks-parts".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "accessories/bipod-grips-shooting-rest-sling".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "accessories/ipsc-3guns/holster".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "accessories/ipsc-3guns/trap-skeet".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "accessories/ipsc-3guns/pouch".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "accessories/ipsc-3guns/belt".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "accessories/storage-transport".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "accessories/shooting-protection".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "accessories/targets".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "accessories/magazines".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "reloading/gun-powders".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "reloading/primers/shotshell-primers".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "reloading/primers/pistol-primers".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "reloading/primers/rifle-primers".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "reloading/tools-accessories".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "reloading/dillon-precision".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "reloading/lee-precision".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "reloading/lyman-mark-7".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "reloading/dies-press".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "reloading/brass-bullet".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "reloading/brass-cleaning".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "optic/binocular-range-finder".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "optic/replacement-sights".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "optic/scope".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "optic/optic-accessories/ringsmount".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "optic/optic-accessories/scope-cover".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "optic/optic-accessories/clean-maintain".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "optic/red-dot".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "optic/nightforce-section/scope-nightforce-section".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "optic/nightforce-section/rings-mounts".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "optic/laser-flashlight".into(),
                 category: Category::Other,
             },
         ])
