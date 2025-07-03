@@ -241,7 +241,7 @@ impl Retailer for Tenda {
 
             let image_element =
                 extract_element_from_element(element, "figure.products-img > a > img")?;
-            let image_url = element_extract_attr(image_element, "src")?;
+            let image_url = element_extract_attr(image_element, "data-src")?;
 
             let result = CrawlResult::new(
                 product_name,
