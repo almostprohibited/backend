@@ -300,10 +300,6 @@ impl Retailer for AlFlahertys {
             let name = Self::value_to_string(item, "name")?;
             let image = Self::value_to_string(item, "imageUrl")?;
 
-            if !name.contains("Ruger American Rimfire Rifle") {
-                continue;
-            }
-
             let base_price_string = Self::value_to_string(item, "basePrice")?;
             let sale_price_string = Self::value_to_string(item, "salePrice")?;
 
@@ -357,31 +353,27 @@ impl Retailer for AlFlahertys {
                 term: "Shooting Supplies, Firearms & Ammunition;Firearms".into(),
                 category: Category::Firearm,
             },
-            // SearchTerm {
-            //     term: "Shooting Supplies, Firearms & Ammunition;Stocks, Parts, Barrels & Kits"
-            //         .into(),
-            //     category: Category::Other,
-            // },
-            // SearchTerm {
-            //     term: "Shooting Supplies, Firearms & Ammunition;Shooting Accessories".into(),
-            //     category: Category::Other,
-            // },
-            // SearchTerm {
-            //     term: "Shooting Supplies, Firearms & Ammunition;Storage & Transportation".into(),
-            //     category: Category::Other,
-            // },
-            // SearchTerm {
-            //     term: "Optics".into(),
-            //     category: Category::Other,
-            // },
+            SearchTerm {
+                term: "Shooting Supplies, Firearms & Ammunition;Stocks, Parts, Barrels & Kits"
+                    .into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "Shooting Supplies, Firearms & Ammunition;Shooting Accessories".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "Shooting Supplies, Firearms & Ammunition;Storage & Transportation".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "Optics".into(),
+                category: Category::Other,
+            },
         ])
     }
 
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {
-        if response.contains("Ruger American Rimfire Rifle") {
-            return Ok(0);
-        }
-
         let result = Self::get_result(response)?;
 
         let meta = json_get_object(&result, "meta".into())?;
