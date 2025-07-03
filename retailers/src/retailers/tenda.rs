@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use async_trait::async_trait;
 use base64::{Engine, prelude::BASE64_STANDARD};
 use common::result::{

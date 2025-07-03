@@ -1,4 +1,4 @@
-use std::{pin::Pin, time::Duration};
+use std::{collections::HashMap, pin::Pin, time::Duration};
 
 use async_trait::async_trait;
 use common::result::{
@@ -13,7 +13,7 @@ use crawler::{
 use scraper::{Html, Selector};
 use serde_json::Value;
 use tokio::time::sleep;
-use tracing::{error, info};
+use tracing::{debug, error, info};
 use urlencoding::encode;
 
 use crate::{
@@ -27,6 +27,7 @@ use crate::{
     },
 };
 
+const COOKIE_NAME: &str = "Shopper-Pref";
 const PAGE_LIMIT: u64 = 36;
 const AL_FLAHERTYS_KLEVU_API_KEY: &str = "klevu-170966446878517137";
 const MAIN_URL: &str = "https://uscs33v2.ksearchnet.com/cs/v2/search";
@@ -100,6 +101,18 @@ impl AlFlahertys {
         Ok(models)
     }
 
+    // the cookie rotates on each request, need to follow cookie crumbs
+    fn get_shopper_pref_cookie(cookies: &HashMap<String, String>) -> Result<String, RetailerError> {
+        let Some(pref_value) = cookies.get(COOKIE_NAME) else {
+            let message =
+                "Failed to fetch main product correctly, response is missing Shopper-Pref cookie";
+            error!(message);
+            return Err(RetailerError::ApiResponseInvalidShape(message.into()));
+        };
+
+        Ok(pref_value.clone())
+    }
+
     // alflahertys works weirdly
     // you need to set ?setCurrencyId=1 on the main product page
     // then you need to copy the Shopper-Pref cookie from the
@@ -137,6 +150,8 @@ impl AlFlahertys {
             (product_id, model_key_name)
         };
 
+        let mut shopper_cookie_value = Self::get_shopper_pref_cookie(&result.cookies)?;
+
         for (model_id, model_name) in models {
             let body = format!(
                 "action=add&product_id={}&{}={}&qty%5B%5D=1",
@@ -145,27 +160,33 @@ impl AlFlahertys {
 
             sleep(Duration::from_secs(CRAWL_COOLDOWN_SECS)).await;
 
-            let Some(pref_value) = result.cookies.get("Shopper-Pref") else {
-                let message = "Failed to fetch main product correctly, response is missing Shopper-Pref cookie";
-                error!(message);
-                return Err(RetailerError::ApiResponseInvalidShape(message.into()));
-            };
-
-            let cookie = format!("Shopper-Pref={pref_value};");
+            let cookie = format!("{COOKIE_NAME}={shopper_cookie_value};");
+            debug!("Using cookie {cookie}");
 
             let request = RequestBuilder::new()
                 .set_url(API_URL.replace("{product_id}", &product_id))
                 .set_method(HttpMethod::POST)
-                .set_headers(&[("Cookie".to_string(), cookie)].to_vec())
+                .set_headers(
+                    &[
+                        ("Cookie".to_string(), cookie),
+                        (
+                            "Content-Type".to_string(),
+                            "application/x-www-form-urlencoded".to_string(),
+                        ),
+                    ]
+                    .to_vec(),
+                )
                 .set_body(body)
                 .build();
 
-            let result = self.crawler.make_web_request(request).await?;
+            let nested_web_result = self.crawler.make_web_request(request).await?;
+            shopper_cookie_value = Self::get_shopper_pref_cookie(&nested_web_result.cookies)?;
 
-            let json = serde_json::from_str::<Value>(&result.body)?;
+            let json = serde_json::from_str::<Value>(&nested_web_result.body)?;
             let data = json_get_object(&json, "data".into())?;
 
-            if json_get_object(&data, "stock".into())? == "0" {
+            // boolean check since I am comparing against `Value`
+            if json_get_object(&data, "instock".into())? == false {
                 continue;
             }
 
@@ -279,6 +300,10 @@ impl Retailer for AlFlahertys {
             let name = Self::value_to_string(item, "name")?;
             let image = Self::value_to_string(item, "imageUrl")?;
 
+            if !name.contains("Ruger American Rimfire Rifle") {
+                continue;
+            }
+
             let base_price_string = Self::value_to_string(item, "basePrice")?;
             let sale_price_string = Self::value_to_string(item, "salePrice")?;
 
@@ -332,27 +357,31 @@ impl Retailer for AlFlahertys {
                 term: "Shooting Supplies, Firearms & Ammunition;Firearms".into(),
                 category: Category::Firearm,
             },
-            SearchTerm {
-                term: "Shooting Supplies, Firearms & Ammunition;Stocks, Parts, Barrels & Kits"
-                    .into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "Shooting Supplies, Firearms & Ammunition;Shooting Accessories".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "Shooting Supplies, Firearms & Ammunition;Storage & Transportation".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "Optics".into(),
-                category: Category::Other,
-            },
+            // SearchTerm {
+            //     term: "Shooting Supplies, Firearms & Ammunition;Stocks, Parts, Barrels & Kits"
+            //         .into(),
+            //     category: Category::Other,
+            // },
+            // SearchTerm {
+            //     term: "Shooting Supplies, Firearms & Ammunition;Shooting Accessories".into(),
+            //     category: Category::Other,
+            // },
+            // SearchTerm {
+            //     term: "Shooting Supplies, Firearms & Ammunition;Storage & Transportation".into(),
+            //     category: Category::Other,
+            // },
+            // SearchTerm {
+            //     term: "Optics".into(),
+            //     category: Category::Other,
+            // },
         ])
     }
 
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {
+        if response.contains("Ruger American Rimfire Rifle") {
+            return Ok(0);
+        }
+
         let result = Self::get_result(response)?;
 
         let meta = json_get_object(&result, "meta".into())?;

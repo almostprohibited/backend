@@ -1,7 +1,7 @@
 use common::result::enums::RetailerName;
 use mongodb_connector::connector::MongoDBConnector;
 use retailers::{
-    pagination_client::{self, PaginationClient},
+    pagination_client::PaginationClient,
     retailers::{
         al_flahertys::AlFlahertys, bullseye_north::BullseyeNorth,
         calgary_shooting_centre::CalgaryShootingCentre, canadas_gun_store::CanadasGunStore,
@@ -36,10 +36,11 @@ async fn main() {
     ];
 
     #[cfg(debug_assertions)]
-    let mut retailers: Vec<Box<dyn Retailer + Send + Sync>> = vec![];
+    let mut retailers: Vec<Box<dyn Retailer + Send + Sync>> = vec![Box::new(AlFlahertys::new())];
 
     // tenda requires a special cookie that must be created before
     // any request is allowed through
+    #[cfg(not(debug_assertions))]
     match Tenda::new() {
         Ok(tenda) => retailers.push(Box::new(tenda)),
         Err(err) => discord.send_error(RetailerName::Tenda, err).await,

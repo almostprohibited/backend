@@ -57,8 +57,8 @@ impl MatchStage {
     }
 
     fn relative_time_document(&self) -> Document {
-        // three days
-        let past_days: i64 = 3 * 24 * 60 * 60;
+        // two days
+        let past_days: i64 = 2 * 24 * 60 * 60;
 
         let current_time = SystemTime::now()
             .duration_since(UNIX_EPOCH)
