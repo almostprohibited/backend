@@ -1,12 +1,11 @@
-use common::result::enums::RetailerName;
 use mongodb_connector::connector::MongoDBConnector;
 use retailers::{
     pagination_client::PaginationClient,
     retailers::{
         al_flahertys::AlFlahertys, bullseye_north::BullseyeNorth,
         calgary_shooting_centre::CalgaryShootingCentre, canadas_gun_store::CanadasGunStore,
-        firearmsoutletcanada::FirearmsOutletCanada, italian_sporting_goods::ItalianSportingGoods,
-        lever_arms::LeverArms, reliable_gun::ReliableGun, tenda::Tenda,
+        firearms_outlet_canada::FirearmsOutletCanada, italian_sporting_goods::ItalianSportingGoods,
+        lever_arms::LeverArms, rdsc::Rdsc, reliable_gun::ReliableGun, tenda::Tenda,
         the_ammo_source::TheAmmoSource,
     },
     traits::Retailer,
@@ -33,10 +32,11 @@ async fn main() {
         Box::new(CanadasGunStore::new()),
         Box::new(ItalianSportingGoods::new()),
         Box::new(TheAmmoSource::new()),
+        Box::new(Rdsc::new()),
     ];
 
     #[cfg(debug_assertions)]
-    let mut retailers: Vec<Box<dyn Retailer + Send + Sync>> = vec![Box::new(AlFlahertys::new())];
+    let mut retailers: Vec<Box<dyn Retailer + Send + Sync>> = vec![Box::new(Rdsc::new())];
 
     // tenda requires a special cookie that must be created before
     // any request is allowed through
