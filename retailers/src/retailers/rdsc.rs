@@ -31,7 +31,20 @@ impl Rdsc {
     }
 
     fn is_in_stock(element: ElementRef) -> bool {
-        return extract_element_from_element(element, "button.action.tocart.primary").is_ok();
+        // we have "ADD TO CART" button
+        if extract_element_from_element(element, "button.action.tocart.primary").is_ok() {
+            return true;
+        }
+
+        // check for button text to make sure it says "View Options"
+        match extract_element_from_element(element, "a.view-button") {
+            Ok(view_button) => {
+                return element_to_text(view_button) == "View Options";
+            }
+            Err(_) => {
+                return false;
+            }
+        }
     }
 }
 
