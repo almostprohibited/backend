@@ -1,3 +1,4 @@
+use common::result::enums::RetailerName;
 use mongodb_connector::connector::MongoDBConnector;
 use retailers::{
     pagination_client::PaginationClient,
