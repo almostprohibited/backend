@@ -44,9 +44,6 @@ runs:
       run: |
         set -ueo pipefail
 
-        # echo "Stopping API service"
-        # sudo systemctl stop almostprohibited-backend-api-${{ inputs.stage }}.service || true
-
         echo "Replacing service definition file"
         sed -i -e "s|{binary_path}|${{ inputs.binary-path }}|g" .deployment/backend/almostprohibited-backend-api.service
         sed -i -e "s|{api_port}|${{ inputs.api-port }}|g" .deployment/backend/almostprohibited-backend-api.service
@@ -54,8 +51,8 @@ runs:
         
         sudo systemctl daemon-reload
 
-        # echo "Starting API service"
-        # sudo systemctl enable --now almostprohibited-backend-api-${{ inputs.stage }}.service
+        echo "Restarting API service"
+        sudo systemctl restart almostprohibited-backend-api-${{ inputs.stage }}.service
       shell: bash
     - name: Deploy indexer service
       if: inputs.stage == 'release'
