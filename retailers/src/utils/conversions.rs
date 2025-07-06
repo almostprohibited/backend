@@ -17,6 +17,12 @@ pub(crate) fn price_to_cents(price: String) -> Result<u64, RetailerError> {
 
     trimmed_price = trimmed_price.replace(",", "");
 
+    // lazily deal with missing cents
+    // turns "100" -> "100.00"
+    if !trimmed_price.contains(".") {
+        trimmed_price = trimmed_price + ".00";
+    }
+
     match trimmed_price.split_once(".") {
         Some((dollars, cents)) => {
             let parsed_dollars = string_to_u64(dollars.into())?;
