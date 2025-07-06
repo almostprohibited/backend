@@ -44,8 +44,8 @@ runs:
       run: |
         set -ueo pipefail
 
-        echo "Stopping API service"
-        sudo systemctl stop almostprohibited-backend-api-${{ inputs.stage }}.service || true
+        # echo "Stopping API service"
+        # sudo systemctl stop almostprohibited-backend-api-${{ inputs.stage }}.service || true
 
         echo "Replacing service definition file"
         sed -i -e "s|{binary_path}|${{ inputs.binary-path }}|g" .deployment/backend/almostprohibited-backend-api.service
@@ -54,16 +54,16 @@ runs:
         
         sudo systemctl daemon-reload
 
-        echo "Starting API service"
-        sudo systemctl enable --now almostprohibited-backend-api-${{ inputs.stage }}.service
+        # echo "Starting API service"
+        # sudo systemctl enable --now almostprohibited-backend-api-${{ inputs.stage }}.service
       shell: bash
     - name: Deploy indexer service
       if: inputs.stage == 'release'
       run: |
         set -ueo pipefail
 
-        echo "Stopping indexer service"
-        sudo systemctl stop almostprohibited-backend-indexer-${{ inputs.stage }}.timer || true
+        # echo "Stopping indexer service"
+        # sudo systemctl stop almostprohibited-backend-indexer-${{ inputs.stage }}.timer || true
 
         echo "Resetting service state"
         sudo systemctl reset-failed almostprohibited-backend-indexer-${{ inputs.stage }}.service || true
@@ -75,7 +75,7 @@ runs:
 
         sudo systemctl daemon-reload
 
-        echo "Enabling indexer timer"
-        sudo systemctl enable almostprohibited-backend-indexer-${{ inputs.stage }}.timer
-        sudo systemctl start almostprohibited-backend-indexer-${{ inputs.stage }}.timer
+        # echo "Enabling indexer timer"
+        # sudo systemctl enable almostprohibited-backend-indexer-${{ inputs.stage }}.timer
+        # sudo systemctl start almostprohibited-backend-indexer-${{ inputs.stage }}.timer
       shell: bash
