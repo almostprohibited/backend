@@ -32,6 +32,8 @@ pub enum RetailerName {
     TheAmmoSource,
     Tenda,
     Rdsc,
+    G4CGunStore,
+    Tillsonburg,
 }
 
 #[derive(Deserialize, Serialize, Debug)]

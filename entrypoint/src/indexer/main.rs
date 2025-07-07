@@ -5,9 +5,10 @@ use retailers::{
     retailers::{
         al_flahertys::AlFlahertys, bullseye_north::BullseyeNorth,
         calgary_shooting_centre::CalgaryShootingCentre, canadas_gun_store::CanadasGunStore,
-        firearms_outlet_canada::FirearmsOutletCanada, italian_sporting_goods::ItalianSportingGoods,
-        lever_arms::LeverArms, rdsc::Rdsc, reliable_gun::ReliableGun, tenda::Tenda,
-        the_ammo_source::TheAmmoSource,
+        firearms_outlet_canada::FirearmsOutletCanada, g4c_gun_store::G4CGunStore,
+        italian_sporting_goods::ItalianSportingGoods, lever_arms::LeverArms, rdsc::Rdsc,
+        reliable_gun::ReliableGun, tenda::Tenda, the_ammo_source::TheAmmoSource,
+        tillsonburg_gun_shop::Tillsonburg,
     },
     traits::Retailer,
 };
@@ -34,10 +35,12 @@ async fn main() {
         Box::new(ItalianSportingGoods::new()),
         Box::new(TheAmmoSource::new()),
         Box::new(Rdsc::new()),
+        Box::new(G4CGunStore::new()),
+        Box::new(Tillsonburg::new()),
     ];
 
     #[cfg(debug_assertions)]
-    let mut retailers: Vec<Box<dyn Retailer + Send + Sync>> = vec![Box::new(Rdsc::new())];
+    let mut retailers: Vec<Box<dyn Retailer + Send + Sync>> = vec![Box::new(Tillsonburg::new())];
 
     // tenda requires a special cookie that must be created before
     // any request is allowed through
@@ -49,6 +52,7 @@ async fn main() {
 
     let mut handles: Vec<JoinHandle<()>> = Vec::new();
 
+    #[cfg(not(debug_assertions))]
     let mongodb = Arc::new(MongoDBConnector::new().await);
 
     discord
@@ -56,6 +60,7 @@ async fn main() {
         .await;
 
     for retailer in retailers {
+        #[cfg(not(debug_assertions))]
         let db = mongodb.clone();
         let discord = discord.clone();
 
