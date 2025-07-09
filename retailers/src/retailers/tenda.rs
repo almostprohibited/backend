@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use base64::{Engine, prelude::BASE64_STANDARD};
 use common::result::{
-    base::{CrawlResult, Price},
+    base::CrawlResult,
     enums::{Category, RetailerName},
 };
 use crawler::{
@@ -10,14 +10,14 @@ use crawler::{
 };
 use futures::executor;
 use regex::Regex;
-use scraper::{ElementRef, Html, Selector};
+use scraper::{Html, Selector};
 use tracing::{debug, trace};
 
 use crate::{
     errors::RetailerError,
     traits::{Retailer, SearchTerm},
     utils::{
-        conversions::{price_to_cents, string_to_u64},
+        ecommerce::woocommerce::WooCommerce,
         html::{element_extract_attr, element_to_text, extract_element_from_element},
     },
 };
@@ -164,33 +164,6 @@ impl Tenda {
 
         Ok(format!("{}={};", cookie_name, cookie_value))
     }
-
-    fn get_price(element: ElementRef) -> Result<Price, RetailerError> {
-        let mut price = Price {
-            regular_price: 0,
-            sale_price: None,
-        };
-
-        let regular_non_sale_price =
-            extract_element_from_element(element, "span.price > span.amount > bdi");
-
-        match regular_non_sale_price {
-            Ok(regular_price_element) => {
-                price.regular_price = price_to_cents(element_to_text(regular_price_element))?;
-            }
-            Err(_) => {
-                let sale_price =
-                    extract_element_from_element(element, "span.price > ins > span.amount > bdi")?;
-                let previous_price =
-                    extract_element_from_element(element, "span.price > del > span.amount > bdi")?;
-
-                price.regular_price = price_to_cents(element_to_text(previous_price))?;
-                price.sale_price = Some(price_to_cents(element_to_text(sale_price))?);
-            }
-        }
-
-        Ok(price)
-    }
 }
 
 #[async_trait]
@@ -235,7 +208,7 @@ impl Retailer for Tenda {
             let product_url = element_extract_attr(title_element, "href")?;
             let product_name = element_to_text(title_element);
 
-            let price = Self::get_price(element)?;
+            let price = WooCommerce::parse_price(element)?;
 
             let image_element =
                 extract_element_from_element(element, "figure.products-img > a > img")?;
@@ -470,16 +443,6 @@ impl Retailer for Tenda {
     }
 
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {
-        let fragment = Html::parse_document(&response);
-        let page_number_selector =
-            Selector::parse("ul.page-numbers > li > a:not(.next):not(.prev).page-numbers").unwrap();
-
-        let page_links = fragment.select(&page_number_selector);
-
-        let Some(last_page_element) = page_links.last() else {
-            return Ok(0);
-        };
-
-        Ok(string_to_u64(element_to_text(last_page_element))?)
+        WooCommerce::parse_max_pages(response)
     }
 }

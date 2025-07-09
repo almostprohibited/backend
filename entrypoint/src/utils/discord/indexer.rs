@@ -4,7 +4,11 @@ use common::result::enums::RetailerName;
 use retailers::errors::RetailerError;
 use serenity::all::{CreateEmbed, ExecuteWebhook, Http, Webhook};
 
+#[cfg(not(debug_assertions))]
 const INDEXER_WEBHOOK: &str = "https://discord.com/api/webhooks/1375013817091625032/2uqBwCzQGPbzHiHWvDBfY_xK7DyeFoyZ3WC40FxxwW1tD4EEDf2gYY3RzaM4vDYGiIbx";
+
+#[cfg(debug_assertions)]
+const INDEXER_WEBHOOK: &str = "https://discord.com/api/webhooks/1391665667987607592/qnLZbWGvfojAeLKUbspu59EMUxLL9aL8kkl76apvzl1oIk2vJ6VXYS0ZXF0pimlqUaQQ";
 
 pub struct IndexerWebhook {
     http: Arc<Http>,

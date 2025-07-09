@@ -5,10 +5,11 @@ use retailers::{
     retailers::{
         al_flahertys::AlFlahertys, bullseye_north::BullseyeNorth,
         calgary_shooting_centre::CalgaryShootingCentre, canadas_gun_store::CanadasGunStore,
-        firearms_outlet_canada::FirearmsOutletCanada, g4c_gun_store::G4CGunStore,
-        italian_sporting_goods::ItalianSportingGoods, lever_arms::LeverArms, rdsc::Rdsc,
-        reliable_gun::ReliableGun, tenda::Tenda, the_ammo_source::TheAmmoSource,
-        tillsonburg_gun_shop::Tillsonburg,
+        dante_sports::DanteSports, firearms_outlet_canada::FirearmsOutletCanada,
+        g4c_gun_store::G4CGunStore, italian_sporting_goods::ItalianSportingGoods,
+        lever_arms::LeverArms, rdsc::Rdsc, reliable_gun::ReliableGun,
+        select_shooting_supplies::SelectShootingSupplies, tenda::Tenda,
+        the_ammo_source::TheAmmoSource, tillsonburg_gun_shop::Tillsonburg,
     },
     traits::Retailer,
 };
@@ -37,10 +38,13 @@ async fn main() {
         Box::new(Rdsc::new()),
         Box::new(G4CGunStore::new()),
         Box::new(Tillsonburg::new()),
+        Box::new(DanteSports::new()),
+        Box::new(SelectShootingSupplies::new()),
     ];
 
     #[cfg(debug_assertions)]
-    let mut retailers: Vec<Box<dyn Retailer + Send + Sync>> = vec![Box::new(Tillsonburg::new())];
+    let mut retailers: Vec<Box<dyn Retailer + Send + Sync>> =
+        vec![Box::new(SelectShootingSupplies::new())];
 
     // tenda requires a special cookie that must be created before
     // any request is allowed through
@@ -66,12 +70,6 @@ async fn main() {
 
         handles.push(tokio::spawn(async move {
             let mut pagination_client = PaginationClient::new(retailer);
-
-            let start_message = format!(
-                "{:?} started crawling",
-                pagination_client.get_retailer_name()
-            );
-            discord.send_message(start_message).await;
 
             let crawl_state = pagination_client.crawl().await;
             let results = pagination_client.get_results();

@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use common::result::{
-    base::{CrawlResult, Price},
+    base::CrawlResult,
     enums::{Category, RetailerName},
 };
 use crawler::request::{Request, RequestBuilder};
@@ -10,8 +10,8 @@ use crate::{
     errors::RetailerError,
     traits::{Retailer, SearchTerm},
     utils::{
-        conversions::{price_to_cents, string_to_u64},
-        html::{element_extract_attr, element_to_text, extract_element_from_element},
+        ecommerce::bigcommerce::BigCommerce,
+        html::{element_to_text, extract_element_from_element},
     },
 };
 
@@ -28,29 +28,15 @@ impl TheAmmoSource {
         }
     }
 
-    fn get_price(element: ElementRef) -> Result<Price, RetailerError> {
-        let main_price_element = extract_element_from_element(
-            element,
-            "div.price-section.price-section--withoutTax.current-price > span.price",
-        )?;
-        let main_price_text = element_to_text(main_price_element);
+    // SFRC has these sticker/lottery draws that aren't
+    // products and shouldn't be included
+    fn is_sticker_draw(element: ElementRef) -> Result<bool, RetailerError> {
+        let details_body_element = extract_element_from_element(element, "div.card-body")?;
+        let link_element = extract_element_from_element(details_body_element, "h4.card-title > a")?;
 
-        let mut price = Price {
-            regular_price: price_to_cents(main_price_text)?,
-            sale_price: None,
-        };
+        let product_name = element_to_text(link_element);
 
-        if let Ok(non_sale_element) = extract_element_from_element(
-            element,
-            "div.price-section.price-section--withoutTax.non-sale-price > span.price",
-        ) {
-            price.sale_price = Some(price.regular_price);
-
-            let non_sale_text = element_to_text(non_sale_element);
-            price.regular_price = price_to_cents(non_sale_text)?;
-        }
-
-        Ok(price)
+        Ok(product_name.contains("Sticker Draw"))
     }
 }
 
@@ -81,33 +67,17 @@ impl Retailer for TheAmmoSource {
         let product_selector = Selector::parse("ul.productGrid > li.product").unwrap();
 
         for product in html.select(&product_selector) {
-            let image_element =
-                extract_element_from_element(product, "a.image-link.desktop > img.card-image")?;
-            let image_url = element_extract_attr(image_element, "data-src")?;
-
-            let details_body_element = extract_element_from_element(product, "div.card-body")?;
-            let link_element =
-                extract_element_from_element(details_body_element, "h4.card-title > a")?;
-
-            let product_link = element_extract_attr(link_element, "href")?;
-            let product_name = element_to_text(link_element);
-
-            if product_name.contains("Sticker Draw") {
+            if Self::is_sticker_draw(product)? {
                 continue;
             }
 
-            let price = Self::get_price(details_body_element)?;
-
-            let new_result = CrawlResult::new(
-                product_name,
-                product_link,
-                price,
+            let result = BigCommerce::parse_product(
+                product,
                 self.get_retailer_name(),
                 search_term.category,
-            )
-            .with_image_url(image_url);
+            )?;
 
-            results.push(new_result);
+            results.push(result);
         }
 
         Ok(results)
@@ -191,21 +161,7 @@ impl Retailer for TheAmmoSource {
     }
 
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {
-        let html = Html::parse_document(response);
-
-        let selector =
-            Selector::parse("li:not(.pagination-item--next).pagination-item > a.pagination-link")
-                .unwrap();
-
-        let pagination_elements = html.select(&selector);
-
-        let Some(last_page_element) = pagination_elements.last() else {
-            return Ok(0);
-        };
-
-        let last_page_text = element_to_text(last_page_element);
-
-        Ok(string_to_u64(last_page_text)?)
+        BigCommerce::parse_max_pages(response)
     }
 
     fn get_retailer_name(&self) -> RetailerName {

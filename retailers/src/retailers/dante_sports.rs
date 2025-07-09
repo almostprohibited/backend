@@ -4,7 +4,7 @@ use common::result::{
     enums::{Category, RetailerName},
 };
 use crawler::request::{Request, RequestBuilder};
-use scraper::{ElementRef, Html, Selector};
+use scraper::{Html, Selector};
 use tracing::debug;
 
 use crate::{
@@ -17,36 +17,22 @@ use crate::{
 };
 
 const MAX_PER_PAGE: &str = "48";
-const URL: &str =
-    "https://g4cgunstore.com/product-category/{category}/page/{page}/?per_page={max_per_page}";
+const URL: &str = "https://www.dantesports.com/en/product-category/{category}/page/{page}/?per_page={max_per_page}&availability=in-stock";
 
-pub struct G4CGunStore {
+pub struct DanteSports {
     retailer: RetailerName,
 }
 
-impl G4CGunStore {
+impl DanteSports {
     pub fn new() -> Self {
         Self {
-            retailer: RetailerName::G4CGunStore,
+            retailer: RetailerName::DanteSports,
         }
-    }
-
-    fn is_in_stock(element: ElementRef) -> bool {
-        return extract_element_from_element(element, "div.product-element-bottom > div.in-stock")
-            .is_ok();
-    }
-
-    fn is_dead_page(element: ElementRef) -> bool {
-        return extract_element_from_element(
-            element,
-            "div.product-element-bottom > div.out-of-stock",
-        )
-        .is_ok();
     }
 }
 
 #[async_trait]
-impl Retailer for G4CGunStore {
+impl Retailer for DanteSports {
     fn get_retailer_name(&self) -> RetailerName {
         self.retailer
     }
@@ -59,7 +45,7 @@ impl Retailer for G4CGunStore {
         let url = URL
             .replace("{category}", &search_term.term)
             .replace("{page}", &(page_num + 1).to_string())
-            .replace("{max_per_page}", MAX_PER_PAGE);
+            .replace("{max_per_page", MAX_PER_PAGE);
 
         debug!("Setting page to {}", url);
 
@@ -78,34 +64,30 @@ impl Retailer for G4CGunStore {
         let html = Html::parse_document(&response);
 
         let product_selector =
-            Selector::parse("div.products > div.product > div.product-wrapper").unwrap();
+            Selector::parse("ul#products > li.product > div > a.woocommerce-LoopProduct-link")
+                .unwrap();
 
         for product in html.select(&product_selector) {
-            if !Self::is_in_stock(product) {
-                // break instead of continue since products are in order
-                // of in stock first, then all out of stock after
-                break;
-            }
+            let link = element_extract_attr(product, "href")?;
 
             let image_element =
-                extract_element_from_element(product, "a.product-image-link > img")?;
-            let image_url = element_extract_attr(image_element, "src")?;
+                extract_element_from_element(product, "div.product-loop-thumbnail > img")?;
+            let image_link = element_extract_attr(image_element, "src")?;
 
-            let title_element =
-                extract_element_from_element(product, "div.product-element-bottom > h3 > a")?;
-            let name = element_to_text(title_element);
-            let url = element_extract_attr(title_element, "href")?;
+            let name_element =
+                extract_element_from_element(product, "h2.woocommerce-loop-product__title")?;
+            let name = element_to_text(name_element);
 
-            let new_product = CrawlResult::new(
+            let new_result = CrawlResult::new(
                 name,
-                url,
+                link,
                 WooCommerce::parse_price(product)?,
                 self.get_retailer_name(),
                 search_term.category,
             )
-            .with_image_url(image_url);
+            .with_image_url(image_link);
 
-            results.push(new_product);
+            results.push(new_result);
         }
 
         Ok(results)
@@ -118,7 +100,19 @@ impl Retailer for G4CGunStore {
                 category: Category::Firearm,
             },
             SearchTerm {
-                term: "sights-optics".into(),
+                term: "riflescopes-optics".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "accessories".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "reloading".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "storage".into(),
                 category: Category::Other,
             },
             SearchTerm {
@@ -129,13 +123,6 @@ impl Retailer for G4CGunStore {
     }
 
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {
-        let html = Html::parse_document(&response);
-        let root_element = html.root_element();
-
-        if Self::is_dead_page(root_element) {
-            return Ok(0);
-        }
-
         WooCommerce::parse_max_pages(response)
     }
 }

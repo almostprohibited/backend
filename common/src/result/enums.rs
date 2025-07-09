@@ -34,6 +34,8 @@ pub enum RetailerName {
     Rdsc,
     G4CGunStore,
     Tillsonburg,
+    DanteSports,
+    SelectShootingSupplies,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
