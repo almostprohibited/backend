@@ -130,51 +130,50 @@ impl Retailer for SelectShootingSupplies {
                 term: "firearms".into(),
                 category: Category::Firearm,
             },
-            // SearchTerm {
-            //     term: "firearm-parts-and-upgrades".into(),
-            //     category: Category::Other,
-            // },
-            // SearchTerm {
-            //     term: "flashlights-and-laser-combos".into(),
-            //     category: Category::Other,
-            // },
-            // SearchTerm {
-            //     term: "holsters-mag-pouches-and-speed-belts".into(),
-            //     category: Category::Other,
-            // },
-            // SearchTerm {
-            //     term: "optics-sights-and-mounts".into(),
-            //     category: Category::Other,
-            // },
-            // SearchTerm {
-            //     term: "range-gear".into(),
-            //     category: Category::Other,
-            // },
-            // SearchTerm {
-            //     term: "reloading-1".into(),
-            //     category: Category::Other,
-            // },
-            // SearchTerm {
-            //     term: "safety-personal-protection".into(),
-            //     category: Category::Other,
-            // },
-            // SearchTerm {
-            //     term: "tools".into(),
-            //     category: Category::Other,
-            // },
-            // SearchTerm {
-            //     term: "targets".into(),
-            //     category: Category::Other,
-            // },
-            // SearchTerm {
-            //     term: "training-systems".into(),
-            //     category: Category::Other,
-            // },
+            SearchTerm {
+                term: "firearm-parts-and-upgrades".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "flashlights-and-laser-combos".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "holsters-mag-pouches-and-speed-belts".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "optics-sights-and-mounts".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "range-gear".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "reloading-1".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "safety-personal-protection".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "tools".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "targets".into(),
+                category: Category::Other,
+            },
+            SearchTerm {
+                term: "training-systems".into(),
+                category: Category::Other,
+            },
         ])
     }
 
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {
-        return Ok(0);
         BigCommerce::parse_max_pages(response)
     }
 }
