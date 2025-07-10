@@ -10,10 +10,7 @@ use tracing::debug;
 use crate::{
     errors::RetailerError,
     traits::{Retailer, SearchTerm},
-    utils::{
-        ecommerce::woocommerce::WooCommerce,
-        html::{element_extract_attr, element_to_text, extract_element_from_element},
-    },
+    utils::{ecommerce::woocommerce::WooCommerce, html::extract_element_from_element},
 };
 
 const MAX_PER_PAGE: &str = "48";
@@ -87,25 +84,13 @@ impl Retailer for G4CGunStore {
                 break;
             }
 
-            let image_element =
-                extract_element_from_element(product, "a.product-image-link > img")?;
-            let image_url = element_extract_attr(image_element, "src")?;
-
-            let title_element =
-                extract_element_from_element(product, "div.product-element-bottom > h3 > a")?;
-            let name = element_to_text(title_element);
-            let url = element_extract_attr(title_element, "href")?;
-
-            let new_product = CrawlResult::new(
-                name,
-                url,
-                WooCommerce::parse_price(product)?,
+            let result = WooCommerce::parse_product(
+                product,
                 self.get_retailer_name(),
                 search_term.category,
-            )
-            .with_image_url(image_url);
+            )?;
 
-            results.push(new_product);
+            results.push(result);
         }
 
         Ok(results)

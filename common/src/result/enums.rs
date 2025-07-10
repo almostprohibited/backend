@@ -36,6 +36,7 @@ pub enum RetailerName {
     Tillsonburg,
     DanteSports,
     SelectShootingSupplies,
+    RangeviewSports,
 }
 
 #[derive(Deserialize, Serialize, Debug)]

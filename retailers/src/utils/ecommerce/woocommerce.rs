@@ -1,11 +1,14 @@
-use common::result::base::Price;
+use common::result::{
+    base::{CrawlResult, Price},
+    enums::{Category, RetailerName},
+};
 use scraper::{ElementRef, Html, Selector};
 
 use crate::{
     errors::RetailerError,
     utils::{
         conversions::{price_to_cents, string_to_u64},
-        html::{element_to_text, extract_element_from_element},
+        html::{element_extract_attr, element_to_text, extract_element_from_element},
     },
 };
 
@@ -51,5 +54,25 @@ impl WooCommerce {
         };
 
         Ok(string_to_u64(element_to_text(last_page_element))?)
+    }
+
+    pub(crate) fn parse_product(
+        element: ElementRef,
+        retailer: RetailerName,
+        category: Category,
+    ) -> Result<CrawlResult, RetailerError> {
+        let image_element = extract_element_from_element(element, "a.product-image-link > img")?;
+        let image_url = element_extract_attr(image_element, "src")?;
+
+        let title_element =
+            extract_element_from_element(element, "div.product-element-bottom > h3 > a")?;
+        let name = element_to_text(title_element);
+        let url = element_extract_attr(title_element, "href")?;
+
+        let new_product =
+            CrawlResult::new(name, url, Self::parse_price(element)?, retailer, category)
+                .with_image_url(image_url);
+
+        Ok(new_product)
     }
 }

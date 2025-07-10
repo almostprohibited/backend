@@ -44,7 +44,7 @@ impl BigCommerce {
         let html = Html::parse_document(response);
 
         let selector =
-            Selector::parse("li:not(.pagination-item--next).pagination-item > a.pagination-link")
+            Selector::parse("li:not(.pagination-item--next):not(.pagination-item--previous).pagination-item > a.pagination-link")
                 .unwrap();
 
         let pagination_elements = html.select(&selector);
@@ -73,7 +73,7 @@ impl BigCommerce {
         let product_link = element_extract_attr(link_element, "href")?;
         let product_name = element_to_text(link_element);
 
-        let price = BigCommerce::parse_price(details_body_element)?;
+        let price = Self::parse_price(details_body_element)?;
 
         let new_result = CrawlResult::new(product_name, product_link, price, retailer, category)
             .with_image_url(image_url);

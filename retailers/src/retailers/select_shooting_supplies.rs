@@ -1,3 +1,5 @@
+use std::pin::Pin;
+
 use async_trait::async_trait;
 use common::result::{
     base::CrawlResult,
@@ -10,9 +12,15 @@ use tracing::debug;
 use crate::{
     errors::RetailerError,
     traits::{Retailer, SearchTerm},
-    utils::ecommerce::bigcommerce::BigCommerce,
+    utils::{
+        ecommerce::{bigcommerce::BigCommerce, bigcommerce_nested::BigCommerceNested},
+        html::{element_extract_attr, element_to_text, extract_element_from_element},
+    },
 };
 
+const API_URL: &str =
+    "https://selectshootingsupplies.com/remote/v1/product-attributes/{product_id}";
+const CART_URL: &str = "https://selectshootingsupplies.com/cart.php";
 const URL: &str = "https://selectshootingsupplies.com/{category}/?in_stock=1&page={page}";
 
 pub struct SelectShootingSupplies {
@@ -56,11 +64,50 @@ impl Retailer for SelectShootingSupplies {
     ) -> Result<Vec<CrawlResult>, RetailerError> {
         let mut results: Vec<CrawlResult> = Vec::new();
 
-        let html = Html::parse_document(&response);
+        // commit another Rust sin, and clone the entire HTML
+        // as a string since scraper::ElementRef is not thread safe
+        // we'll recreate the Node later
+        let products = {
+            let html = Html::parse_document(response);
+            let product_selector = Selector::parse("ul.productGrid > li.product").unwrap();
+            html.select(&product_selector)
+                .map(|element| element.html().clone())
+                .collect::<Vec<_>>()
+        };
 
-        let product_selector = Selector::parse("ul.productGrid > li.product").unwrap();
+        let mut nested_handlers: Vec<
+            Pin<Box<dyn Future<Output = Result<Vec<CrawlResult>, RetailerError>> + Send>>,
+        > = Vec::new();
 
-        for product in html.select(&product_selector) {
+        for html_doc in products {
+            let product_inner = Html::parse_document(&html_doc);
+            let product = product_inner.root_element();
+
+            let price_element = extract_element_from_element(
+                product,
+                "div.price-section > span.price.price--withoutTax",
+            )?;
+
+            if element_to_text(price_element).contains("-") {
+                let title_element = extract_element_from_element(product, "h4.card-title > a")?;
+                let url = element_extract_attr(title_element, "href")?;
+
+                // this is a nested firearm, there are models inside
+                // the URL that have different prices
+                nested_handlers.push(Box::pin(
+                    BigCommerceNested::parse_nested(
+                        API_URL,
+                        url,
+                        CART_URL,
+                        self.get_retailer_name(),
+                        search_term.category,
+                    )
+                    .into_future(),
+                ));
+
+                continue;
+            }
+
             let result = BigCommerce::parse_product(
                 product,
                 self.get_retailer_name(),
@@ -68,6 +115,10 @@ impl Retailer for SelectShootingSupplies {
             )?;
 
             results.push(result);
+        }
+
+        for handler in nested_handlers {
+            results.append(&mut handler.await?);
         }
 
         Ok(results)
@@ -79,50 +130,51 @@ impl Retailer for SelectShootingSupplies {
                 term: "firearms".into(),
                 category: Category::Firearm,
             },
-            SearchTerm {
-                term: "firearm-parts-and-upgrades".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "flashlights-and-laser-combos".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "holsters-mag-pouches-and-speed-belts".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "optics-sights-and-mounts".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "range-gear".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "reloading-1".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "safety-personal-protection".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "tools".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "targets".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "training-systems".into(),
-                category: Category::Other,
-            },
+            // SearchTerm {
+            //     term: "firearm-parts-and-upgrades".into(),
+            //     category: Category::Other,
+            // },
+            // SearchTerm {
+            //     term: "flashlights-and-laser-combos".into(),
+            //     category: Category::Other,
+            // },
+            // SearchTerm {
+            //     term: "holsters-mag-pouches-and-speed-belts".into(),
+            //     category: Category::Other,
+            // },
+            // SearchTerm {
+            //     term: "optics-sights-and-mounts".into(),
+            //     category: Category::Other,
+            // },
+            // SearchTerm {
+            //     term: "range-gear".into(),
+            //     category: Category::Other,
+            // },
+            // SearchTerm {
+            //     term: "reloading-1".into(),
+            //     category: Category::Other,
+            // },
+            // SearchTerm {
+            //     term: "safety-personal-protection".into(),
+            //     category: Category::Other,
+            // },
+            // SearchTerm {
+            //     term: "tools".into(),
+            //     category: Category::Other,
+            // },
+            // SearchTerm {
+            //     term: "targets".into(),
+            //     category: Category::Other,
+            // },
+            // SearchTerm {
+            //     term: "training-systems".into(),
+            //     category: Category::Other,
+            // },
         ])
     }
 
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {
+        return Ok(0);
         BigCommerce::parse_max_pages(response)
     }
 }

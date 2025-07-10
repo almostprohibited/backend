@@ -4,7 +4,7 @@ use common::result::{
     enums::{Category, RetailerName},
 };
 use crawler::request::{Request, RequestBuilder};
-use scraper::{Html, Selector};
+use scraper::{ElementRef, Html, Selector};
 use tracing::debug;
 
 use crate::{
@@ -28,6 +28,27 @@ impl DanteSports {
         Self {
             retailer: RetailerName::DanteSports,
         }
+    }
+
+    // dante images are either under `data-src`, or `src` attributes
+    // we should be using the former if it exists first
+    fn get_image_url(image_element: ElementRef) -> Result<String, RetailerError> {
+        if let Ok(data_src) = element_extract_attr(image_element, "data-src")
+            && data_src.starts_with("https")
+        {
+            return Ok(data_src);
+        };
+
+        if let Ok(regular_src) = element_extract_attr(image_element, "src")
+            && regular_src.starts_with("https")
+        {
+            return Ok(regular_src);
+        }
+
+        return Err(RetailerError::HtmlElementMissingAttribute(
+            "'valid data-src or src'".into(),
+            element_to_text(image_element),
+        ));
     }
 }
 
@@ -72,7 +93,8 @@ impl Retailer for DanteSports {
 
             let image_element =
                 extract_element_from_element(product, "div.product-loop-thumbnail > img")?;
-            let image_link = element_extract_attr(image_element, "src")?;
+
+            let image_link = Self::get_image_url(image_element)?;
 
             let name_element =
                 extract_element_from_element(product, "h2.woocommerce-loop-product__title")?;

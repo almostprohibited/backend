@@ -22,6 +22,7 @@ use crate::{
     traits::{Retailer, SearchTerm},
     utils::{
         conversions::price_to_cents,
+        ecommerce::bigcommerce_nested::BigCommerceNested,
         html::{element_extract_attr, element_to_text, extract_element_from_element},
         json::{json_get_array, json_get_object},
     },
@@ -190,40 +191,7 @@ impl AlFlahertys {
                 continue;
             }
 
-            let mut price_obj = json_get_object(&data, "price".into())?;
-            price_obj = json_get_object(&price_obj, "without_tax".into())?;
-
-            let currency = json_get_object(&price_obj, "currency".into())?;
-            if let Some(currency_string) = currency.as_str()
-                && currency_string != "CAD"
-            {
-                let message = "Invalid pricing, API returned USD instead of CAD";
-                error!(message);
-                return Err(RetailerError::ApiResponseInvalidShape(message.into()));
-            };
-
-            let fomatted_price = json_get_object(&price_obj, "formatted".into())?;
-
-            let Some(price_str) = fomatted_price.as_str() else {
-                let message = format!("Failed to convert {} into a string", fomatted_price);
-                error!(message);
-                return Err(RetailerError::ApiResponseInvalidShape(message));
-            };
-
-            let Some((_, price_without_currency)) = price_str.split_once(" ") else {
-                let message = format!(
-                    "Expected price in format: 'CAD $1.23', got {} instead",
-                    price_str
-                );
-                error!(message);
-                return Err(RetailerError::ApiResponseInvalidShape(message));
-            };
-
-            let price = Price {
-                regular_price: price_to_cents(price_without_currency.into())?,
-                sale_price: None,
-            };
-
+            let price = BigCommerceNested::get_price_from_object(data)?;
             let formatted_name = format!("({}) - {}", model_name, name);
 
             let new_result = CrawlResult::new(
