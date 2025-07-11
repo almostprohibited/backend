@@ -311,7 +311,14 @@ impl BigCommerceNested {
             })
             .collect();
 
-        format!("{} - {}", item_name, combined_sub_names)
+        let name = format!("{item_name}{combined_sub_names}");
+
+        debug!(
+            "Transforming {:?} to '{}' for final name: {}",
+            variants, combined_sub_names, name
+        );
+
+        name
     }
 
     fn get_image_url(obj: &Value) -> Result<String, RetailerError> {
