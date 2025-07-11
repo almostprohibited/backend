@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{iter::zip, time::Duration};
 
 use common::result::{
     base::{CrawlResult, Price},
@@ -23,17 +23,41 @@ use crate::{
 const REPLACEMENT_PATTERN: &str = "{:size}";
 const REPLACEMENT_SIZE: &str = "300w";
 
-#[derive(Debug)]
-struct Model {
-    model_name: String,
-    model_id: String,
+#[derive(Debug, Clone)]
+struct FormValuePair {
+    form_id: String,
+    form_attr_id: String,
+    attr_name: String,
 }
 
 #[derive(Debug)]
-struct NestedModel {
-    api_key: String,
-    parent_id: String,
-    models: Vec<Model>,
+struct QueryParams {
+    form_pairs: Vec<Vec<FormValuePair>>,
+}
+
+impl QueryParams {
+    fn new() -> Self {
+        Self {
+            form_pairs: Vec::new(),
+        }
+    }
+
+    fn apply(&mut self, form_pairs: Vec<FormValuePair>) {
+        if self.form_pairs.len() == 0 {
+            for pair in form_pairs {
+                let mut new_vec: Vec<FormValuePair> = Vec::new();
+                new_vec.push(pair);
+
+                self.form_pairs.push(new_vec);
+            }
+        } else {
+            for new_pair in form_pairs {
+                for current_pairs in &mut self.form_pairs {
+                    current_pairs.push(new_pair.clone());
+                }
+            }
+        }
+    }
 }
 
 pub(crate) struct BigCommerceNested {}
@@ -102,10 +126,10 @@ impl BigCommerceNested {
     }
 
     // cursed method that parses JSON "manually" with serde
-    fn get_in_stock_models(root_element: ElementRef) -> Result<Vec<String>, RetailerError> {
+    fn get_in_stock_attributes(root_element: ElementRef) -> Result<Vec<String>, RetailerError> {
         let script_selector = Selector::parse("script[type='text/javascript']").unwrap();
 
-        let mut model_ids_in_stock: Vec<String> = Vec::new();
+        let mut attributes_in_stock: Vec<String> = Vec::new();
 
         // I could get the model IDs in a single go, but more reliable
         // to parse the JSON instead of checking if the option says
@@ -142,135 +166,152 @@ impl BigCommerceNested {
                     return Err(RetailerError::GeneralError(message));
                 };
 
-                model_ids_in_stock.push(id.to_string());
+                attributes_in_stock.push(id.to_string());
             }
 
             break;
         }
 
-        Ok(model_ids_in_stock)
+        Ok(attributes_in_stock)
     }
 
-    fn get_models_radio_buttons(
-        element: ElementRef,
-        in_stock: &Vec<String>,
-        cart_url: impl Into<String>,
-    ) -> Result<NestedModel, RetailerError> {
-        let mut models: Vec<Model> = Vec::new();
-
-        let api_key_el = extract_element_from_element(element, "input.form-radio")?;
-        let api_key = element_extract_attr(api_key_el, "name")?;
+    fn get_product_id(html: &String) -> Result<String, RetailerError> {
+        let parsed_html = Html::parse_document(html);
+        let element = parsed_html.root_element();
 
         let parent_id_el = extract_element_from_element(element, "input[name=product_id]")?;
         let parent_id = element_extract_attr(parent_id_el, "value")?;
 
+        Ok(parent_id)
+    }
+
+    fn get_pairs_radio_buttons(
+        element: ElementRef,
+        in_stock_attr: &Vec<String>,
+    ) -> Result<Vec<FormValuePair>, RetailerError> {
+        let mut attrs: Vec<FormValuePair> = Vec::new();
+
+        let form_key_el = extract_element_from_element(element, "input.form-radio")?;
+        let form_key = element_extract_attr(form_key_el, "name")?;
+
         let selector = Selector::parse("label.form-option").unwrap();
 
-        let root_el = extract_element_from_element(
-            element,
-            format!("form[action='{}'] div.form-field", cart_url.into()),
-        )?;
+        for option in element.select(&selector) {
+            let attr_id = element_extract_attr(option, "data-product-attribute-value")?;
 
-        for option in root_el.select(&selector) {
-            let model_id = element_extract_attr(option, "data-product-attribute-value")?;
-
-            if !in_stock.contains(&model_id) {
+            if !in_stock_attr.contains(&attr_id) {
                 continue;
             }
 
             let span_el = extract_element_from_element(option, "span.form-option-variant")?;
-            let model_name =
+            let attr_name =
                 element_extract_attr(span_el, "title").unwrap_or_else(|_| element_to_text(span_el));
 
-            models.push(Model {
-                model_name,
-                model_id,
+            attrs.push(FormValuePair {
+                form_id: form_key.clone(),
+                form_attr_id: attr_id,
+                attr_name: attr_name,
             });
         }
 
-        Ok(NestedModel {
-            api_key,
-            parent_id,
-            models,
-        })
+        Ok(attrs)
     }
 
-    fn get_models_dropdown(
+    fn get_pairs_dropdown(
         element: ElementRef,
-        in_stock: &Vec<String>,
-    ) -> Result<NestedModel, RetailerError> {
-        let mut models: Vec<Model> = Vec::new();
+        in_stock_attr: &Vec<String>,
+    ) -> Result<Vec<FormValuePair>, RetailerError> {
+        let mut attrs: Vec<FormValuePair> = Vec::new();
 
-        let api_key_el =
+        let form_key_id =
             extract_element_from_element(element, "select.form-select.form-select--small")?;
-        let api_key = element_extract_attr(api_key_el, "name")?;
-
-        let parent_id_el = extract_element_from_element(element, "input[name=product_id]")?;
-        let parent_id = element_extract_attr(parent_id_el, "value")?;
+        let form_key = element_extract_attr(form_key_id, "name")?;
 
         let selector =
             Selector::parse("select.form-select--small > option[data-product-attribute-value]")
                 .unwrap();
 
         for option in element.select(&selector) {
-            let model_name = element_to_text(option);
-            let model_id = element_extract_attr(option, "data-product-attribute-value")?;
+            let attr_name = element_to_text(option);
+            let attr_id = element_extract_attr(option, "data-product-attribute-value")?;
 
-            if !in_stock.contains(&model_id) {
+            if !in_stock_attr.contains(&attr_id) {
                 continue;
             }
 
-            models.push(Model {
-                model_name,
-                model_id,
+            attrs.push(FormValuePair {
+                form_id: form_key.clone(),
+                form_attr_id: attr_id,
+                attr_name: attr_name,
             });
         }
 
-        Ok(NestedModel {
-            api_key,
-            parent_id,
-            models,
-        })
+        Ok(attrs)
     }
 
-    fn get_models(html: String, cart_url: impl Into<String>) -> Result<NestedModel, RetailerError> {
-        let parsed_html = Html::parse_document(&html);
+    fn get_models(
+        html: &String,
+        cart_url: impl Into<String>,
+    ) -> Result<QueryParams, RetailerError> {
+        let parsed_html = Html::parse_document(html);
         let element = parsed_html.root_element();
 
-        let in_stock_model_ids = Self::get_in_stock_models(element)?;
-        debug!("Models in stock: {:?}", in_stock_model_ids);
+        let in_stock_attr_ids = Self::get_in_stock_attributes(element)?;
+        debug!("Variants in stock: {:?}", in_stock_attr_ids);
 
-        let models = [
-            Self::get_models_dropdown(element, &in_stock_model_ids),
-            Self::get_models_radio_buttons(element, &in_stock_model_ids, cart_url),
-        ];
+        let selector = format!(
+            "form[action='{}'] div.form-field[data-product-attribute]",
+            cart_url.into()
+        );
+        let variant_selector = Selector::parse(&selector).unwrap();
 
-        for result in models {
-            if let Ok(models_data) = result
-                && models_data.models.len() > 0
-            {
-                info!("Returning model info: {:?}", models_data);
+        /*
+           [
+               [form1-option1, form1-option2],
+               [form2-option1, form2-option2]
+           ]
+        */
+        let mut form_options: Vec<Vec<FormValuePair>> = Vec::new();
 
-                return Ok(models_data);
+        for variant in element.select(&variant_selector) {
+            let form_value_pairs = match extract_element_from_element(
+                variant,
+                "select.form-select.form-select--small",
+            ) {
+                Ok(_) => Self::get_pairs_dropdown(variant, &in_stock_attr_ids)?,
+                Err(_) => Self::get_pairs_radio_buttons(variant, &in_stock_attr_ids)?,
             };
+
+            form_options.push(form_value_pairs);
         }
 
-        Err(RetailerError::GeneralError(
-            "Missing nested model information".into(),
-        ))
+        /*
+           [
+                (form1-option1, form2-option1),
+                (form1-option1, form2-option2),
+                (form1-option2, form2-option1),
+                (form1-option2, form2-option2)
+           ]
+        */
+        let mut query_params: QueryParams = QueryParams::new();
+
+        for option in form_options {
+            query_params.apply(option);
+        }
+
+        Ok(query_params)
     }
 
-    fn get_name(obj: &Value, model: Model) -> Result<String, RetailerError> {
-        let image_obj = json_get_object(&obj, "image".into())?;
-        let product_name_value = json_get_object(&image_obj, "alt".into())?;
+    fn get_name(item_name: &String, variants: &Vec<FormValuePair>) -> String {
+        let combined_sub_names: String = variants
+            .iter()
+            .flat_map(|pair| {
+                let name = format!(" - {}", pair.attr_name);
+                name.chars().collect::<Vec<_>>()
+            })
+            .collect();
 
-        let Some(product_name_base) = product_name_value.as_str() else {
-            return Err(RetailerError::ApiResponseInvalidShape(
-                "Expected img.alt to be a string".into(),
-            ));
-        };
-
-        Ok(format!("{} - {}", product_name_base, model.model_name).to_string())
+        format!("{} - {}", item_name, combined_sub_names)
     }
 
     fn get_image_url(obj: &Value) -> Result<String, RetailerError> {
@@ -292,11 +333,13 @@ impl BigCommerceNested {
         retailer_cart_url: impl Into<String>,
         retailer: RetailerName,
         category: Category,
+        item_name: String,
+        fallback_image_url: String,
     ) -> Result<Vec<CrawlResult>, RetailerError> {
         let crawler = UnprotectedCrawler::new();
 
-        let api_url_string = api_url.into();
-        let item_url_string = item_url.into();
+        let api_url_string: String = api_url.into();
+        let item_url_string: String = item_url.into();
 
         let mut nested_results: Vec<CrawlResult> = Vec::new();
 
@@ -305,18 +348,23 @@ impl BigCommerceNested {
             .build();
         let result = crawler.make_web_request(request).await?;
 
-        let nested_models = Self::get_models(result.body, retailer_cart_url.into())?;
+        let product_id = Self::get_product_id(&result.body)?;
+        let nested_variants = Self::get_models(&result.body, retailer_cart_url.into())?;
 
-        for model in nested_models.models {
-            let body = format!(
-                "action=add&{}={}&product_id={}",
-                nested_models.api_key, model.model_id, nested_models.parent_id
-            );
+        for variants in nested_variants.form_pairs {
+            let combined_attrs: String = variants
+                .iter()
+                .flat_map(|pair| {
+                    let attr = format!("&{}={}", pair.form_id, pair.form_attr_id);
+                    attr.chars().collect::<Vec<_>>()
+                })
+                .collect();
+            let body = format!("action=add&product_id={product_id}{combined_attrs}");
 
             debug!("Sending subrequest with {}", body);
 
             let request = RequestBuilder::new()
-                .set_url(api_url_string.replace("{product_id}", &nested_models.parent_id))
+                .set_url(api_url_string.replace("{product_id}", &product_id))
                 .set_method(HttpMethod::POST)
                 .set_headers(
                     &[(
@@ -333,10 +381,15 @@ impl BigCommerceNested {
             let json = serde_json::from_str::<Value>(&result.body)?;
             let data = json_get_object(&json, "data".into())?;
 
+            if json_get_object(&data, "instock".into())? == false {
+                info!("Skipping out of stock {combined_attrs}");
+                continue;
+            }
+
             let price = Self::get_price_from_object(data)?;
 
-            let name = Self::get_name(&data, model)?;
-            let image = Self::get_image_url(&data)?;
+            let name = Self::get_name(&item_name, &variants);
+            let image = Self::get_image_url(&data).unwrap_or(fallback_image_url.clone());
 
             let new_result =
                 CrawlResult::new(name, item_url_string.clone(), price, retailer, category)

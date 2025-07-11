@@ -58,20 +58,60 @@ impl BigCommerce {
         Ok(string_to_u64(last_page_text)?)
     }
 
+    pub(crate) fn get_image_url(element: ElementRef) -> Result<String, RetailerError> {
+        let image_element =
+            extract_element_from_element(element, "figure.card-figure img.card-image")?;
+
+        if let Ok(data_src) = element_extract_attr(image_element, "data-src")
+            && data_src.starts_with("https")
+        {
+            return Ok(data_src);
+        };
+
+        if let Ok(regular_src) = element_extract_attr(image_element, "src")
+            && regular_src.starts_with("https")
+        {
+            return Ok(regular_src);
+        }
+
+        return Err(RetailerError::HtmlElementMissingAttribute(
+            "'valid data-src or src'".into(),
+            element_to_text(image_element),
+        ));
+    }
+
+    fn get_title_element(element: ElementRef) -> Result<ElementRef, RetailerError> {
+        let details_body_element = extract_element_from_element(element, "div.card-body")?;
+        let link_element = extract_element_from_element(details_body_element, "h4.card-title > a")?;
+
+        Ok(link_element)
+    }
+
+    pub(crate) fn get_item_name(element: ElementRef) -> Result<String, RetailerError> {
+        let link_element = Self::get_title_element(element)?;
+        let product_name = element_to_text(link_element);
+
+        Ok(product_name)
+    }
+
+    pub(crate) fn get_item_link(element: ElementRef) -> Result<String, RetailerError> {
+        let link_element = Self::get_title_element(element)?;
+        let product_link = element_extract_attr(link_element, "href")?;
+
+        Ok(product_link)
+    }
+
     pub(crate) fn parse_product(
         element: ElementRef,
         retailer: RetailerName,
         category: Category,
     ) -> Result<CrawlResult, RetailerError> {
-        let image_element =
-            extract_element_from_element(element, "a.image-link.desktop > img.card-image")?;
-        let image_url = element_extract_attr(image_element, "data-src")?;
+        let image_url = Self::get_image_url(element)?;
 
         let details_body_element = extract_element_from_element(element, "div.card-body")?;
-        let link_element = extract_element_from_element(details_body_element, "h4.card-title > a")?;
 
-        let product_link = element_extract_attr(link_element, "href")?;
-        let product_name = element_to_text(link_element);
+        let product_link = Self::get_item_link(element)?;
+        let product_name = Self::get_item_name(element)?;
 
         let price = Self::parse_price(details_body_element)?;
 

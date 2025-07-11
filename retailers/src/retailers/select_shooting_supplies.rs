@@ -101,6 +101,8 @@ impl Retailer for SelectShootingSupplies {
                         CART_URL,
                         self.get_retailer_name(),
                         search_term.category,
+                        BigCommerce::get_item_name(product)?,
+                        BigCommerce::get_image_url(product)?,
                     )
                     .into_future(),
                 ));

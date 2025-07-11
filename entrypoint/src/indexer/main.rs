@@ -44,7 +44,7 @@ async fn main() {
 
     #[cfg(debug_assertions)]
     let mut retailers: Vec<Box<dyn Retailer + Send + Sync>> =
-        vec![Box::new(SelectShootingSupplies::new())];
+        vec![Box::new(CalgaryShootingCentre::new())];
 
     // tenda requires a special cookie that must be created before
     // any request is allowed through

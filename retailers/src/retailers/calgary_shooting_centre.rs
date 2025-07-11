@@ -111,7 +111,7 @@ impl Retailer for CalgaryShootingCentre {
         > = Vec::new();
 
         for doc in products {
-            let product_inner = Html::parse_document(&doc);
+            let product_inner = Html::parse_fragment(&doc);
             let product = product_inner.root_element();
 
             let name_link_element = extract_element_from_element(product, "h4.card-title > a")?;
@@ -135,6 +135,8 @@ impl Retailer for CalgaryShootingCentre {
                         CART_URL,
                         self.get_retailer_name(),
                         search_term.category,
+                        BigCommerce::get_item_name(product)?,
+                        BigCommerce::get_image_url(product)?,
                     )
                     .into_future(),
                 ));
