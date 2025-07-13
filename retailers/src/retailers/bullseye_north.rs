@@ -16,6 +16,7 @@ use crate::{
     },
 };
 
+const MAIN_URL: &str = "https://www.bullseyenorth.com";
 const PAGE_LIMIT: u64 = 36;
 const URL: &str =
     "https://www.bullseyenorth.com/{category}/browse/perpage/{page_limit}/page/{page}";
@@ -112,7 +113,11 @@ impl Retailer for BullseyeNorth {
 
             let url = element_extract_attr(product, "href")?;
             let name = element_to_text(name_element);
-            let image = element_extract_attr(image_element, "src")?;
+            let mut image = element_extract_attr(image_element, "src")?;
+
+            if image.starts_with("/") {
+                image = format!("{MAIN_URL}{image}");
+            }
 
             if extract_element_from_element(product, "span.stock").is_err() {
                 debug!("Skipping not in stock product {}", name);
