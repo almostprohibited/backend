@@ -200,7 +200,7 @@ impl Retailer for Tenda {
 
         let fragment = Html::parse_document(&response);
 
-        let product_selector = Selector::parse("ul.products > li.product").unwrap();
+        let product_selector = Selector::parse("ul.products > li.product.instock").unwrap();
 
         for element in fragment.select(&product_selector) {
             let title_element = extract_element_from_element(element, "h3.products-title > a")?;
