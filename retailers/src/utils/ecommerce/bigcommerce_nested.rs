@@ -1,4 +1,4 @@
-use std::{iter::zip, time::Duration};
+use std::time::Duration;
 
 use common::result::{
     base::{CrawlResult, Price},

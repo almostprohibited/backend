@@ -7,8 +7,8 @@ use retailers::{
         calgary_shooting_centre::CalgaryShootingCentre, canadas_gun_store::CanadasGunStore,
         dante_sports::DanteSports, firearms_outlet_canada::FirearmsOutletCanada,
         g4c_gun_store::G4CGunStore, italian_sporting_goods::ItalianSportingGoods,
-        lever_arms::LeverArms, rdsc::Rdsc, reliable_gun::ReliableGun,
-        select_shooting_supplies::SelectShootingSupplies, tenda::Tenda,
+        lever_arms::LeverArms, rangeview_sports::RangeviewSports, rdsc::Rdsc,
+        reliable_gun::ReliableGun, select_shooting_supplies::SelectShootingSupplies, tenda::Tenda,
         the_ammo_source::TheAmmoSource, tillsonburg_gun_shop::Tillsonburg,
     },
     traits::Retailer,
@@ -40,11 +40,12 @@ async fn main() {
         Box::new(Tillsonburg::new()),
         Box::new(DanteSports::new()),
         Box::new(SelectShootingSupplies::new()),
+        Box::new(RangeviewSports::new()),
     ];
 
     #[cfg(debug_assertions)]
     let mut retailers: Vec<Box<dyn Retailer + Send + Sync>> =
-        vec![Box::new(CalgaryShootingCentre::new())];
+        vec![Box::new(RangeviewSports::new())];
 
     // tenda requires a special cookie that must be created before
     // any request is allowed through

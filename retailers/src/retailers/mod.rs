@@ -7,7 +7,7 @@ pub mod firearms_outlet_canada; // why is FOC so bloated it uses so much memory 
 pub mod g4c_gun_store;
 pub mod italian_sporting_goods; // they have arsenalforce in their robots.txt
 pub mod lever_arms;
-// pub mod rangeview_sports;
+pub mod rangeview_sports;
 pub mod rdsc;
 pub mod reliable_gun;
 pub mod select_shooting_supplies;
