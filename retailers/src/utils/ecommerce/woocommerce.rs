@@ -56,18 +56,40 @@ impl WooCommerce {
         Ok(string_to_u64(element_to_text(last_page_element))?)
     }
 
+    fn get_image_url(element: ElementRef) -> Result<String, RetailerError> {
+        let image_element = extract_element_from_element(element, "a.product-image-link > img")?;
+
+        if let Ok(data_src) = element_extract_attr(image_element, "data-src")
+            && data_src.starts_with("https")
+            && !data_src.contains("lazy")
+        {
+            return Ok(data_src);
+        };
+
+        if let Ok(regular_src) = element_extract_attr(image_element, "src")
+            && regular_src.starts_with("https")
+            && !regular_src.contains("lazy")
+        {
+            return Ok(regular_src);
+        }
+
+        return Err(RetailerError::HtmlElementMissingAttribute(
+            "'valid data-src or src'".into(),
+            element_to_text(image_element),
+        ));
+    }
+
     pub(crate) fn parse_product(
         element: ElementRef,
         retailer: RetailerName,
         category: Category,
     ) -> Result<CrawlResult, RetailerError> {
-        let image_element = extract_element_from_element(element, "a.product-image-link > img")?;
-        let image_url = element_extract_attr(image_element, "src")?;
-
         let title_element =
             extract_element_from_element(element, "div.product-element-bottom > h3 > a")?;
         let name = element_to_text(title_element);
         let url = element_extract_attr(title_element, "href")?;
+
+        let image_url = Self::get_image_url(element)?;
 
         let new_product =
             CrawlResult::new(name, url, Self::parse_price(element)?, retailer, category)
