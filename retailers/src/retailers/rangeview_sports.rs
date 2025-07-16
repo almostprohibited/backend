@@ -117,7 +117,7 @@ impl RangeviewSports {
         let mut attribute_names: Vec<String> = Vec::new();
 
         for (variation_attr_key, variation_attr_value) in &variation.attributes {
-            if variation_attr_key.is_empty() && variation_attr_value.is_empty() {
+            if variation_attr_key.is_empty() || variation_attr_value.is_empty() {
                 continue;
             }
 
