@@ -128,9 +128,14 @@ impl RangeviewSports {
             };
 
             let Some(attr_name) = mapping.get(variation_attr_value) else {
-                return Err(RetailerError::HtmlMissingElement(format!(
-                    "'attribute {variation_attr_key} is missing value {variation_attr_value}'"
-                )));
+                // return Err(RetailerError::HtmlMissingElement(format!(
+                //     "'attribute {variation_attr_key} is missing value {variation_attr_value}'"
+                // )));
+
+                // oddly enough, Rangeview Sports will include items
+                // in their API response that are "in stock", but
+                // don't show up on the website
+                continue;
             };
 
             attribute_names.push(attr_name.clone());
