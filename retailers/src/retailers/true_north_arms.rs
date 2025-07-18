@@ -1,0 +1,199 @@
+use std::pin::Pin;
+
+use async_trait::async_trait;
+use common::result::{
+    base::CrawlResult,
+    enums::{Category, RetailerName},
+};
+use crawler::request::{Request, RequestBuilder};
+use scraper::{Html, Selector};
+use tracing::debug;
+
+use crate::{
+    errors::RetailerError,
+    traits::{Retailer, SearchTerm},
+    utils::{
+        ecommerce::{bigcommerce::BigCommerce, bigcommerce_nested::BigCommerceNested},
+        html::{element_extract_attr, element_to_text, extract_element_from_element},
+    },
+};
+
+const API_URL: &str = "https://truenortharms.com/remote/v1/product-attributes/{product_id}";
+const CART_URL: &str = "https://truenortharms.com/cart.php";
+const URL: &str = "https://truenortharms.com/{category}/?page={page}&in_stock=1";
+
+pub struct TrueNorthArms {
+    retailer: RetailerName,
+}
+
+impl TrueNorthArms {
+    pub fn new() -> Self {
+        Self {
+            retailer: RetailerName::TrueNorthArms,
+        }
+    }
+}
+
+#[async_trait]
+impl Retailer for TrueNorthArms {
+    fn get_retailer_name(&self) -> RetailerName {
+        self.retailer
+    }
+
+    async fn build_page_request(
+        &self,
+        page_num: u64,
+        search_term: &SearchTerm,
+    ) -> Result<Request, RetailerError> {
+        let url = URL
+            .replace("{category}", &search_term.term)
+            .replace("{page}", &(page_num + 1).to_string());
+
+        debug!("Setting page to {}", url);
+
+        let request = RequestBuilder::new().set_url(url).build();
+
+        Ok(request)
+    }
+
+    async fn parse_response(
+        &self,
+        response: &String,
+        search_term: &SearchTerm,
+    ) -> Result<Vec<CrawlResult>, RetailerError> {
+        let mut results: Vec<CrawlResult> = Vec::new();
+
+        // commit another Rust sin, and clone the entire HTML
+        // as a string since scraper::ElementRef is not thread safe
+        // we'll recreate the Node later
+        let products = {
+            let html = Html::parse_document(response);
+            let product_selector =
+                Selector::parse("ul.productGrid > li.product > article.card").unwrap();
+            html.select(&product_selector)
+                .map(|element| element.html().clone())
+                .collect::<Vec<_>>()
+        };
+
+        let mut nested_handlers: Vec<
+            Pin<Box<dyn Future<Output = Result<Vec<CrawlResult>, RetailerError>> + Send>>,
+        > = Vec::new();
+
+        for html_doc in products {
+            let product_inner = Html::parse_document(&html_doc);
+            let product = product_inner.root_element();
+
+            let price_element = extract_element_from_element(
+                product,
+                "div.price-section > span.price.price--withoutTax",
+            )?;
+
+            let title_element = extract_element_from_element(product, "h4.card-title > a")?;
+
+            if element_to_text(title_element).contains("Custom Magpul") {
+                continue;
+            }
+
+            if element_to_text(price_element).contains("-") {
+                let url = element_extract_attr(title_element, "href")?;
+
+                // this is a nested firearm, there are models inside
+                // the URL that have different prices
+                nested_handlers.push(Box::pin(
+                    BigCommerceNested::parse_nested(
+                        API_URL,
+                        url,
+                        CART_URL,
+                        self.get_retailer_name(),
+                        search_term.category,
+                        BigCommerce::get_item_name(product)?,
+                        BigCommerce::get_image_url(product)?,
+                    )
+                    .into_future(),
+                ));
+
+                continue;
+            }
+
+            let result = BigCommerce::parse_product(
+                product,
+                self.get_retailer_name(),
+                search_term.category,
+            )?;
+
+            results.push(result);
+        }
+
+        for handler in nested_handlers {
+            results.append(&mut handler.await?);
+        }
+
+        Ok(results)
+    }
+
+    fn get_search_terms(&self) -> Vec<SearchTerm> {
+        let mut terms = Vec::from_iter([SearchTerm {
+            term: "firearms/non-restricted".into(),
+            category: Category::Firearm,
+        }]);
+
+        let other = [
+            "ar-15-magazines/magazines",
+            "magazines/mag-unloaders",
+            "ar-15-magazines/mag-accessories",
+            "ar-15-magazines/mag-adapters",
+            "ar-15-magazines/mag-couplers",
+            "ar-15-magazines/magazine-loaders-clips",
+            "ar-15-magazines/magazine-parts",
+            "glock/magazines/magazine-catch",
+            "glock/magazines/mag-springs-insets",
+            "glock/magazines/magazine-accessories",
+            "glock/magazines/magazines",
+            "glock/magazines/magwells",
+            "reloading/reloading-components/pistol-rifle-reloading/brass-casings",
+            "reloading/reloading-components/pistol-rifle-reloading/bullets-projectiles",
+            "reloading/reloading-components/pistol-rifle-reloading/powders",
+            "reloading/reloading-components/pistol-rifle-reloading/primers",
+            "reloading/tools-equipment",
+            "ar-15-ar-308/accessories/targets",
+            "ar-15-ar-308/accessories/sling-mounts",
+            "ar-15-ar-308/accessories/slings",
+            "accessories/scope-accessories/boresights",
+            "accessories/scope-accessories/bubble-levels",
+            "accessories/scope-accessories/mounts-risers",
+            "accessories/scope-accessories/scope-rings",
+            "ar-15-ar-308/accessories/safety",
+            "ar-15-ar-308/accessories/range-accessories",
+            "ar-15-ar-308/accessories/rail-adapters",
+            "ar-15-ar-308/accessories/rail-covers",
+            "ar-15-ar-308/accessories/optics-red-dots",
+            "tools-accessories/accessories/knives-bayonets/",
+            "accessories/tools-accessories/gear-armour/",
+            "ar-15-ar-308/accessories/flashlights-mounts",
+            "ar-15-ar-308/accessories/bipods",
+            "tools/wrenches",
+            "tools/vice-blocks-fixtures",
+            "tools/misc-modifications",
+            "tools/machine-tools-bits",
+            "tools/hand-tools",
+            "tools/hammers-punches",
+            "tools/grease-lube-oil",
+            "tools/gauges-measurement",
+            "tools/boresnakes",
+            "tools/armourers-kits",
+        ];
+
+        for other_term in other {
+            terms.push(SearchTerm {
+                term: other_term.into(),
+                category: Category::Other,
+            });
+        }
+
+        return terms;
+    }
+
+    fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {
+        BigCommerce::parse_max_pages(response)
+    }
+}
