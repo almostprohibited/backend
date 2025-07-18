@@ -76,3 +76,20 @@ runs:
         # sudo systemctl enable almostprohibited-backend-indexer-${{ inputs.stage }}.timer
         # sudo systemctl start almostprohibited-backend-indexer-${{ inputs.stage }}.timer
       shell: bash
+    - name: Deploy backup service
+      if: inputs.stage == 'release'
+      run: |
+        set -ueo pipefail
+
+        mkdir -p ${{ inputs.binary-path }}
+
+        echo "Replacing backup script"
+        mv ./.deployment/backend/mongodb-backup.sh ${{ inputs.binary-path }}
+
+        echo "Replacing service definition file"
+        sed -i -e "s|{binary_path}|${{ inputs.binary-path }}|g" ./.deployment/backend/almostprohibited-backend-mongodb-backup.service
+        sudo cp ./.deployment/backend/almostprohibited-backend-mongodb-backup.service /etc/systemd/system/almostprohibited-backend-mongodb-backup-${{ inputs.stage }}.service
+        sudo cp ./.deployment/backend/almostprohibited-backend-mongodb-backup.timer /etc/systemd/system/almostprohibited-backend-mongodb-backup-${{ inputs.stage }}.timer
+
+        sudo systemctl daemon-reload
+      shell: bash
