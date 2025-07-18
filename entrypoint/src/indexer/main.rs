@@ -5,10 +5,11 @@ use retailers::{
     retailers::{
         al_flahertys::AlFlahertys, bullseye_north::BullseyeNorth,
         calgary_shooting_centre::CalgaryShootingCentre, canadas_gun_store::CanadasGunStore,
-        dante_sports::DanteSports, firearms_outlet_canada::FirearmsOutletCanada,
-        g4c_gun_store::G4CGunStore, italian_sporting_goods::ItalianSportingGoods,
-        lever_arms::LeverArms, rangeview_sports::RangeviewSports, rdsc::Rdsc,
-        reliable_gun::ReliableGun, select_shooting_supplies::SelectShootingSupplies, tenda::Tenda,
+        dante_sports::DanteSports, dominion_outdoors::DominionOutdoors,
+        firearms_outlet_canada::FirearmsOutletCanada, g4c_gun_store::G4CGunStore,
+        italian_sporting_goods::ItalianSportingGoods, lever_arms::LeverArms,
+        rangeview_sports::RangeviewSports, rdsc::Rdsc, reliable_gun::ReliableGun,
+        select_shooting_supplies::SelectShootingSupplies, tenda::Tenda,
         the_ammo_source::TheAmmoSource, tillsonburg_gun_shop::Tillsonburg,
         true_north_arms::TrueNorthArms,
     },
@@ -43,10 +44,12 @@ async fn main() {
         Box::new(SelectShootingSupplies::new()),
         Box::new(RangeviewSports::new()),
         Box::new(TrueNorthArms::new()),
+        Box::new(DominionOutdoors::new()),
     ];
 
     #[cfg(debug_assertions)]
-    let mut retailers: Vec<Box<dyn Retailer + Send + Sync>> = vec![Box::new(TrueNorthArms::new())];
+    let mut retailers: Vec<Box<dyn Retailer + Send + Sync>> =
+        vec![Box::new(DominionOutdoors::new())];
 
     // tenda requires a special cookie that must be created before
     // any request is allowed through
