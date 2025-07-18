@@ -109,11 +109,13 @@ impl RangeviewSports {
         Ok(results)
     }
 
+    // I don't like how this returns a Result<Option<String>>
+    // this is "temporary" to fix extra product issue
     fn format_nested_name(
         product_title: &String,
         variation: &ProductVariation,
         attribute_mapping: &HashMap<String, HashMap<String, String>>,
-    ) -> Result<String, RetailerError> {
+    ) -> Result<Option<String>, RetailerError> {
         let mut attribute_names: Vec<String> = Vec::new();
 
         for (variation_attr_key, variation_attr_value) in &variation.attributes {
@@ -135,7 +137,7 @@ impl RangeviewSports {
                 // oddly enough, Rangeview Sports will include items
                 // in their API response that are "in stock", but
                 // don't show up on the website
-                continue;
+                return Ok(None);
             };
 
             attribute_names.push(attr_name.clone());
@@ -143,7 +145,7 @@ impl RangeviewSports {
 
         let flat_attr_names = attribute_names.join(" - ");
 
-        Ok(format!("{product_title} - {flat_attr_names}"))
+        Ok(Some(format!("{product_title} - {flat_attr_names}")))
     }
 
     async fn parse_nested(
@@ -183,7 +185,13 @@ impl RangeviewSports {
                 },
             };
 
-            let name = Self::format_nested_name(&product_title, &variation, &attribute_mapping)?;
+            let Some(name) =
+                Self::format_nested_name(&product_title, &variation, &attribute_mapping)?
+            else {
+                // none indicating extra product that is not
+                // shown to public
+                continue;
+            };
 
             let new_result =
                 CrawlResult::new(name, url.clone(), price, self.get_retailer_name(), category)
