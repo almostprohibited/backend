@@ -1,4 +1,7 @@
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::{
+    hash::{Hash, Hasher},
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 use serde::{Deserialize, Serialize};
 
@@ -7,7 +10,7 @@ use crate::result::{
     metadata::Metadata,
 };
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Eq, PartialEq)]
 pub struct Price {
     pub regular_price: u64,
     pub sale_price: Option<u64>,
@@ -25,6 +28,30 @@ pub struct CrawlResult {
     pub image_url: Option<String>,
     pub metadata: Option<Metadata>,
 }
+
+// TNA forced my hand because they have so many products
+// that are duplicated in their categories, now I need a hashing method
+//
+// I saw the same orange screwdriver set appear in 4 different categories
+impl Hash for CrawlResult {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.name.hash(state);
+        self.url.hash(state);
+        self.price.regular_price.hash(state);
+
+        if let Some(sale_price) = self.price.sale_price {
+            sale_price.hash(state);
+        }
+    }
+}
+
+impl PartialEq for CrawlResult {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name && self.url == other.url && self.price == other.price
+    }
+}
+
+impl Eq for CrawlResult {}
 
 impl CrawlResult {
     pub fn new(

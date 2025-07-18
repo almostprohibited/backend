@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{collections::HashSet, time::Duration};
 
 use common::result::{base::CrawlResult, enums::RetailerName};
 use crawler::{request::Request, unprotected::UnprotectedCrawler};
@@ -16,7 +16,7 @@ pub struct PaginationClient {
     retailer: Box<dyn Retailer + Send + Sync>,
     max_pages: u64,
     crawler: UnprotectedCrawler,
-    results: Vec<CrawlResult>,
+    results: HashSet<CrawlResult>,
 }
 
 impl PaginationClient {
@@ -25,7 +25,7 @@ impl PaginationClient {
             retailer,
             max_pages: 1,
             crawler: UnprotectedCrawler::new(),
-            results: Vec::new(),
+            results: HashSet::new(),
         }
     }
 
@@ -41,8 +41,8 @@ impl PaginationClient {
         Ok(())
     }
 
-    pub fn get_results(&self) -> &Vec<CrawlResult> {
-        &self.results
+    pub fn get_results(&self) -> Vec<&CrawlResult> {
+        self.results.iter().collect()
     }
 
     pub fn get_retailer_name(&self) -> RetailerName {
@@ -66,8 +66,11 @@ impl PaginationClient {
             self.update_max_pages(self.retailer.get_num_pages(&response)?);
             debug!("Changing max pages to {}", self.max_pages);
 
-            let mut inner_results = self.retailer.parse_response(&response, &term).await?;
-            self.results.append(&mut inner_results);
+            let inner_results = self.retailer.parse_response(&response, &term).await?;
+
+            for inner in inner_results {
+                self.results.insert(inner);
+            }
 
             current_page = current_page + 1;
 

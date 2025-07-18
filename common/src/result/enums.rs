@@ -37,6 +37,8 @@ pub enum RetailerName {
     DanteSports,
     SelectShootingSupplies,
     RangeviewSports,
+    TrueNorthArms,
+    DominionOutdoors,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
