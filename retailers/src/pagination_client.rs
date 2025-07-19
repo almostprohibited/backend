@@ -69,7 +69,15 @@ impl PaginationClient {
             let inner_results = self.retailer.parse_response(&response, &term).await?;
 
             for inner in inner_results {
-                self.results.insert(inner);
+                let name = inner.name.clone();
+
+                let insert_result = self.results.insert(inner);
+
+                if !insert_result {
+                    debug!("Failed to insert '{name}', hashed entry exists");
+                } else {
+                    debug!("Inserted '{name}'");
+                }
             }
 
             current_page = current_page + 1;

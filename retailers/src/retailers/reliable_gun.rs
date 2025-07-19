@@ -3,8 +3,9 @@ use common::result::{
     base::{CrawlResult, Price},
     enums::{Category, RetailerName},
 };
-use crawler::request::Request;
+use crawler::{request::Request, traits::HttpMethod};
 use scraper::{ElementRef, Html, Selector};
+use serde::Serialize;
 use tracing::{debug, error};
 
 use crate::{
@@ -16,9 +17,59 @@ use crate::{
     },
 };
 
-const PAGE_SIZE: u64 = 12; // Reliable Gun's site is slow
+#[derive(Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+struct ReliablePayload {
+    category_id: String,
+    manufacturer_id: String,
+    vendor_id: String,
+    page_number: String,
+    orderby: String,
+    viewmode: String,
+    pagesize: String,
+    query_string: String,
+    should_not_start_from_first_page: bool,
+    keyword: String,
+    search_category_id: String,
+    search_manufacturer_id: String,
+    search_vendor_id: String,
+    price_from: String,
+    price_to: String,
+    include_subcategories: String,
+    search_in_product_descriptions: String,
+    advanced_search: String,
+    is_on_search_page: String,
+}
+
+impl ReliablePayload {
+    fn new(category_id: String, page: u64) -> Self {
+        Self {
+            category_id,
+            manufacturer_id: "0".into(),
+            vendor_id: "0".into(),
+            page_number: (page + 1).to_string(),
+            orderby: "0".into(),
+            viewmode: "grid".into(),
+            pagesize: PAGE_SIZE.to_string(),
+            query_string: "".into(),
+            should_not_start_from_first_page: true,
+            keyword: "".into(),
+            search_category_id: "0".into(),
+            search_manufacturer_id: "0".into(),
+            search_vendor_id: "0".into(),
+            price_from: "".into(),
+            price_to: "".into(),
+            include_subcategories: "False".into(),
+            search_in_product_descriptions: "False".into(),
+            advanced_search: "False".into(),
+            is_on_search_page: "False".into(),
+        }
+    }
+}
+
+const PAGE_SIZE: &str = "24"; // Reliable Gun's site is slow
 const BASE_URL: &str = "https://www.reliablegun.com";
-const URL: &str = "https://www.reliablegun.com/{category}#/pageSize={page_size}&viewMode=grid&orderBy=0&pageNumber={page}";
+const URL: &str = "https://www.reliablegun.com/getFilteredProducts";
 
 pub struct ReliableGun {
     retailer: RetailerName,
@@ -78,16 +129,13 @@ impl Retailer for ReliableGun {
         page_num: u64,
         search_term: &SearchTerm,
     ) -> Result<Request, RetailerError> {
-        let url = URL
-            .replace("{category}", &search_term.term)
-            .replace("{page}", (page_num + 1).to_string().as_str())
-            .replace("{page_size}", PAGE_SIZE.to_string().as_str());
-
-        debug!("Setting URL to {}", URL);
+        let payload = ReliablePayload::new(search_term.term.clone(), page_num + 1);
 
         let request_builder = Request::builder()
-            .set_url(url)
-            .set_headers(&[("User-Agent".into(), "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36".into())].to_vec());
+            .set_url(URL)
+            .set_method(HttpMethod::POST)
+            .set_json_body(serde_json::to_value(payload)?)
+            .set_headers(&[("Content-Type".into(), "application/json".into())].to_vec());
 
         Ok(request_builder.build())
     }
@@ -130,32 +178,37 @@ impl Retailer for ReliableGun {
     }
 
     fn get_search_terms(&self) -> Vec<SearchTerm> {
-        Vec::from_iter([
-            SearchTerm {
-                term: "firearms".into(),
-                category: Category::Firearm,
-            },
-            SearchTerm {
-                term: "used-guns-non-restricted".into(),
-                category: Category::Firearm,
-            },
-            SearchTerm {
-                term: "optics".into(),
+        let mut terms = Vec::from_iter([SearchTerm {
+            term: "1007".into(), // https://www.reliablegun.com/firearms
+            category: Category::Firearm,
+        }]);
+
+        let other_terms = [
+            "407",  // https://www.reliablegun.com/used-guns-non-restricted
+            "680",  // https://www.reliablegun.com/used-optics
+            "1012", // https://www.reliablegun.com/optics
+            "1013", // https://www.reliablegun.com/reloading
+            "1014", // https://www.reliablegun.com/safes-and-cases
+            "1015", // https://www.reliablegun.com/shooting-accessories
+            "810",  // https://www.reliablegun.com/safety-glasses
+            "1008", // https://www.reliablegun.com/gun-parts
+            "1004", //https://www.reliablegun.com/books
+            "1005", // https://www.reliablegun.com/cleaning-accessories
+            "806",  // https://www.reliablegun.com/hearing-protection
+            "602",  // https://www.reliablegun.com/flash-lights
+            "610",  // https://www.reliablegun.com/tools
+            "467",  // https://www.reliablegun.com/magazines
+            "469",  // https://www.reliablegun.com/muzzle-brakes
+        ];
+
+        for other in other_terms {
+            terms.push(SearchTerm {
+                term: other.to_string(),
                 category: Category::Other,
-            },
-            SearchTerm {
-                term: "reloading".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "used-optics".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "accessories".into(),
-                category: Category::Other,
-            },
-        ])
+            });
+        }
+
+        terms
     }
 
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {
