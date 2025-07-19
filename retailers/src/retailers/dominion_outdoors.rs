@@ -48,15 +48,7 @@ impl DominionOutdoors {
     }
 
     fn is_in_stock(element: ElementRef) -> bool {
-        let Ok(in_stock_element) = extract_element_from_element(element, "span.in-stock") else {
-            return false;
-        };
-
-        // element_to_text(in_stock_element).to_lowercase() == "in stock"
-
-        // going to trust that if the element has the class name `in-stock`
-        // its probably in stock
-        true
+        extract_element_from_element(element, "span.in-stock").is_ok()
     }
 
     async fn parse_page(
