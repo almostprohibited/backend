@@ -316,29 +316,26 @@ impl Retailer for AlFlahertys {
     }
 
     fn get_search_terms(&self) -> Vec<SearchTerm> {
-        Vec::from_iter([
-            SearchTerm {
-                term: "Shooting Supplies, Firearms & Ammunition;Firearms".into(),
-                category: Category::Firearm,
-            },
-            SearchTerm {
-                term: "Shooting Supplies, Firearms & Ammunition;Stocks, Parts, Barrels & Kits"
-                    .into(),
+        let mut terms = Vec::from_iter([SearchTerm {
+            term: "Shooting Supplies, Firearms & Ammunition;Firearms".into(),
+            category: Category::Firearm,
+        }]);
+
+        let other_terms = [
+            "Shooting Supplies, Firearms & Ammunition;Stocks, Parts, Barrels & Kits",
+            "Shooting Supplies, Firearms & Ammunition;Shooting Accessories",
+            "Shooting Supplies, Firearms & Ammunition;Storage & Transportation",
+            "Optics",
+        ];
+
+        for other in other_terms {
+            terms.push(SearchTerm {
+                term: other.into(),
                 category: Category::Other,
-            },
-            SearchTerm {
-                term: "Shooting Supplies, Firearms & Ammunition;Shooting Accessories".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "Shooting Supplies, Firearms & Ammunition;Storage & Transportation".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "Optics".into(),
-                category: Category::Other,
-            },
-        ])
+            });
+        }
+
+        terms
     }
 
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {

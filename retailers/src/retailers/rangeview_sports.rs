@@ -302,7 +302,7 @@ impl Retailer for RangeviewSports {
     }
 
     fn get_search_terms(&self) -> Vec<SearchTerm> {
-        Vec::from_iter([
+        let mut terms = Vec::from_iter([
             SearchTerm {
                 term: "firearms".into(),
                 category: Category::Firearm,
@@ -311,23 +311,23 @@ impl Retailer for RangeviewSports {
                 term: "preowned".into(),
                 category: Category::Firearm,
             },
-            SearchTerm {
-                term: "reloading".into(),
+        ]);
+
+        let other_terms = [
+            "reloading",
+            "optics",
+            "firearm-accessories",
+            "shooting-range-accessories",
+        ];
+
+        for other in other_terms {
+            terms.push(SearchTerm {
+                term: other.into(),
                 category: Category::Other,
-            },
-            SearchTerm {
-                term: "optics".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "firearm-accessories".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "shooting-range-accessories".into(),
-                category: Category::Other,
-            },
-        ])
+            });
+        }
+
+        terms
     }
 
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {

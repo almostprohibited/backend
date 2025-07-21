@@ -113,24 +113,25 @@ impl Retailer for CanadasGunStore {
     }
 
     fn get_search_terms(&self) -> Vec<SearchTerm> {
-        Vec::from_iter([
-            SearchTerm {
-                term: "firearms-%7C30%7CFA".into(),
-                category: Category::Firearm,
-            },
-            SearchTerm {
-                term: "optics-%7C30%7COPT".into(),
+        let mut terms = Vec::from_iter([SearchTerm {
+            term: "firearms-%7C30%7CFA".into(),
+            category: Category::Firearm,
+        }]);
+
+        let other_terms = [
+            "optics-%7C30%7COPT",
+            "shooting-%7C30%7CSHO",
+            "optics-%7C30%7COPT",
+        ];
+
+        for other in other_terms {
+            terms.push(SearchTerm {
+                term: other.into(),
                 category: Category::Other,
-            },
-            SearchTerm {
-                term: "shooting-%7C30%7CSHO".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "optics-%7C30%7COPT".into(),
-                category: Category::Other,
-            },
-        ])
+            });
+        }
+
+        terms
     }
 
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {

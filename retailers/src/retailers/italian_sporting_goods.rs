@@ -120,36 +120,28 @@ impl Retailer for ItalianSportingGoods {
     }
 
     fn get_search_terms(&self) -> Vec<SearchTerm> {
-        Vec::from_iter([
-            SearchTerm {
-                term: "firearms".into(),
-                category: Category::Firearm,
-            },
-            SearchTerm {
-                term: "optics".into(),
+        let mut terms = Vec::from_iter([SearchTerm {
+            term: "firearms".into(),
+            category: Category::Firearm,
+        }]);
+
+        let other_terms = [
+            "optics",
+            "reloading",
+            "shooting",
+            "ar-accessories",
+            "gun-care",
+            "gun-cases-and-storage",
+        ];
+
+        for other in other_terms {
+            terms.push(SearchTerm {
+                term: other.into(),
                 category: Category::Other,
-            },
-            SearchTerm {
-                term: "reloading".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "shooting".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "ar-accessories".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "gun-care".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "gun-cases-and-storage".into(),
-                category: Category::Other,
-            },
-        ])
+            });
+        }
+
+        terms
     }
 
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {

@@ -118,68 +118,44 @@ impl Retailer for Rdsc {
     }
 
     fn get_search_terms(&self) -> Vec<SearchTerm> {
-        Vec::from_iter([
-            SearchTerm {
-                term: "firearms-ammunition/pump-shotguns".into(),
+        let mut terms = Vec::from_iter([]);
+
+        let firearm_terms = [
+            "firearms-ammunition/pump-shotguns",
+            "firearms-ammunition/semi-auto-rifles",
+            "firearms-ammunition/bolt-action-rifles",
+            "firearms-ammunition/revolvers",
+            "firearms-ammunition/semi-auto-shotguns",
+            "firearms-ammunition/lever-action-rifles",
+            // "firearms-ammunition/semi-auto-handguns",
+        ];
+
+        for firearm in firearm_terms {
+            terms.push(SearchTerm {
+                term: firearm.into(),
                 category: Category::Firearm,
-            },
-            SearchTerm {
-                term: "firearms-ammunition/semi-auto-rifles".into(),
-                category: Category::Firearm,
-            },
-            SearchTerm {
-                term: "firearms-ammunition/bolt-action-rifles".into(),
-                category: Category::Firearm,
-            },
-            SearchTerm {
-                term: "firearms-ammunition/revolvers".into(),
-                category: Category::Firearm,
-            },
-            SearchTerm {
-                term: "firearms-ammunition/semi-auto-shotguns".into(),
-                category: Category::Firearm,
-            },
-            SearchTerm {
-                term: "firearms-ammunition/lever-action-rifles".into(),
-                category: Category::Firearm,
-            },
-            // SearchTerm {
-            //     term: "firearms-ammunition/semi-auto-handguns".into(),
-            //     category: Category::Firearm,
-            // },
-            SearchTerm {
-                term: "optics-mounts".into(),
+            });
+        }
+
+        let other_terms = [
+            "optics-mounts",
+            "handgun-parts",
+            "semi-auto-rifle-parts",
+            "precision-rifle-parts",
+            "lever-action-parts",
+            "shotgun-parts",
+            "gear-kit",
+            "clean-maintain",
+        ];
+
+        for other in other_terms {
+            terms.push(SearchTerm {
+                term: other.into(),
                 category: Category::Other,
-            },
-            SearchTerm {
-                term: "handgun-parts".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "semi-auto-rifle-parts".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "precision-rifle-parts".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "lever-action-parts".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "shotgun-parts".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "gear-kit".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "clean-maintain".into(),
-                category: Category::Other,
-            },
-        ])
+            });
+        }
+
+        terms
     }
 
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {

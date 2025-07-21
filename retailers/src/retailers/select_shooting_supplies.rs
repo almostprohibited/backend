@@ -127,52 +127,32 @@ impl Retailer for SelectShootingSupplies {
     }
 
     fn get_search_terms(&self) -> Vec<SearchTerm> {
-        Vec::from_iter([
-            SearchTerm {
-                term: "firearms".into(),
-                category: Category::Firearm,
-            },
-            SearchTerm {
-                term: "firearm-parts-and-upgrades".into(),
+        let mut terms = Vec::from_iter([SearchTerm {
+            term: "firearms".into(),
+            category: Category::Firearm,
+        }]);
+
+        let other_terms = [
+            "firearm-parts-and-upgrades",
+            "flashlights-and-laser-combos",
+            "holsters-mag-pouches-and-speed-belts",
+            "optics-sights-and-mounts",
+            "range-gear",
+            "reloading-1",
+            "safety-personal-protection",
+            "tools",
+            "targets",
+            "training-systems",
+        ];
+
+        for other in other_terms {
+            terms.push(SearchTerm {
+                term: other.into(),
                 category: Category::Other,
-            },
-            SearchTerm {
-                term: "flashlights-and-laser-combos".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "holsters-mag-pouches-and-speed-belts".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "optics-sights-and-mounts".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "range-gear".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "reloading-1".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "safety-personal-protection".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "tools".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "targets".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "training-systems".into(),
-                category: Category::Other,
-            },
-        ])
+            });
+        }
+
+        terms
     }
 
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {

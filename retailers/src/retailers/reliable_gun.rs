@@ -6,7 +6,6 @@ use common::result::{
 use crawler::{request::Request, traits::HttpMethod};
 use scraper::{ElementRef, Html, Selector};
 use serde::Serialize;
-use tracing::{debug, error};
 
 use crate::{
     errors::RetailerError,
@@ -176,7 +175,7 @@ impl Retailer for ReliableGun {
             "1015", // https://www.reliablegun.com/shooting-accessories
             "810",  // https://www.reliablegun.com/safety-glasses
             "1008", // https://www.reliablegun.com/gun-parts
-            "1004", //https://www.reliablegun.com/books
+            "1004", // https://www.reliablegun.com/books
             "1005", // https://www.reliablegun.com/cleaning-accessories
             "806",  // https://www.reliablegun.com/hearing-protection
             "602",  // https://www.reliablegun.com/flash-lights

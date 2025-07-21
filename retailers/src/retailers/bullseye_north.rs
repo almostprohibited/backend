@@ -142,68 +142,39 @@ impl Retailer for BullseyeNorth {
     }
 
     fn get_search_terms(&self) -> Vec<SearchTerm> {
-        Vec::from_iter([
-            SearchTerm {
-                term: "firearms".into(),
-                category: Category::Firearm,
-            },
-            SearchTerm {
-                term: "magazines".into(),
+        let mut terms = Vec::from_iter([SearchTerm {
+            term: "firearms".into(),
+            category: Category::Firearm,
+        }]);
+
+        let other_terms = [
+            "magazines",
+            "reloading",
+            "storage",
+            "optics",
+            "accessories-cleaning-supplies",
+            "accessories-eye-ear-protection",
+            "accessories-gun-parts",
+            "accessories-flashlights",
+            "accessories-gunsmithing-tools",
+            "accessories-holsters-magazine-pouches",
+            "accessories-reference-manuals",
+            "accessories-shooting-gear",
+            "accessories-stock-bipod-sling",
+            "accessories-targets",
+            "optics",
+            "optics",
+            "optics",
+        ];
+
+        for other in other_terms {
+            terms.push(SearchTerm {
+                term: other.into(),
                 category: Category::Other,
-            },
-            SearchTerm {
-                term: "reloading".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "storage".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "optics".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "accessories-cleaning-supplies".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "accessories-eye-ear-protection".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "accessories-gun-parts".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "accessories-flashlights".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "accessories-gunsmithing-tools".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "accessories-holsters-magazine-pouches".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "accessories-reference-manuals".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "accessories-shooting-gear".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "accessories-stock-bipod-sling".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "accessories-targets".into(),
-                category: Category::Other,
-            },
-        ])
+            });
+        }
+
+        terms
     }
 
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {

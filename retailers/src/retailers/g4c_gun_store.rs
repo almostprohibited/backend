@@ -97,20 +97,21 @@ impl Retailer for G4CGunStore {
     }
 
     fn get_search_terms(&self) -> Vec<SearchTerm> {
-        Vec::from_iter([
-            SearchTerm {
-                term: "firearms".into(),
-                category: Category::Firearm,
-            },
-            SearchTerm {
-                term: "sights-optics".into(),
+        let mut terms = Vec::from_iter([SearchTerm {
+            term: "firearms".into(),
+            category: Category::Firearm,
+        }]);
+
+        let other_terms = ["sights-optics", "accessories"];
+
+        for other in other_terms {
+            terms.push(SearchTerm {
+                term: other.into(),
                 category: Category::Other,
-            },
-            SearchTerm {
-                term: "accessories".into(),
-                category: Category::Other,
-            },
-        ])
+            });
+        }
+
+        terms
     }
 
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {

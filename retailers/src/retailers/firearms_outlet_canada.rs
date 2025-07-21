@@ -106,48 +106,36 @@ impl Retailer for FirearmsOutletCanada {
     }
 
     fn get_search_terms(&self) -> Vec<SearchTerm> {
-        Vec::from_iter([
+        let mut terms = Vec::from_iter([
             SearchTerm {
                 term: "firearms".into(),
                 category: Category::Firearm,
             },
-            SearchTerm {
-                term: "airguns".into(),
+            // SearchTerm {
+            //     term: "airguns".into(),
+            //     category: Category::Firearm,
+            // },
+        ]);
+
+        let other_terms = [
+            "optics",
+            "pistol-parts",
+            "rifle-parts",
+            "shotgun-parts",
+            "magazines-clips",
+            "reloading",
+            "gear-kit",
+            "storage-maintenance",
+        ];
+
+        for other in other_terms {
+            terms.push(SearchTerm {
+                term: other.into(),
                 category: Category::Other,
-            },
-            SearchTerm {
-                term: "optics".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "pistol-parts".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "rifle-parts".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "shotgun-parts".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "magazines-clips".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "reloading".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "gear-kit".into(),
-                category: Category::Other,
-            },
-            SearchTerm {
-                term: "storage-maintenance".into(),
-                category: Category::Other,
-            },
-        ])
+            });
+        }
+
+        terms
     }
 
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {
