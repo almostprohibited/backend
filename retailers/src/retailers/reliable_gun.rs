@@ -100,22 +100,6 @@ impl ReliableGun {
 
         Ok(price)
     }
-
-    fn extract_page_num_from_href(element: ElementRef) -> Result<u64, RetailerError> {
-        let href = element_extract_attr(element, "href")?;
-
-        let Some((_, page_num)) = href.split_once("?pagenumber=") else {
-            let message = format!("href element is missing pagenumber query: {}", href);
-
-            error!(message);
-
-            return Err(RetailerError::GeneralError(message));
-        };
-
-        let max_pages = string_to_u64(page_num.to_string())?;
-
-        Ok(max_pages)
-    }
 }
 
 #[async_trait]
@@ -212,46 +196,17 @@ impl Retailer for ReliableGun {
     }
 
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {
-        // <li class="last-page"><a href="/getFilteredProducts?pagenumber=22">Last</a></li>
-
         let html = Html::parse_fragment(response);
-        let last_page_selector = Selector::parse("li.last-page > a").unwrap();
-        let individual_page_selector = Selector::parse("li.individual-page > a").unwrap();
+        let page_selector = Selector::parse("div.pager > div > ul > li").unwrap();
+        let page_links = html.select(&page_selector);
 
-        // the reliable gun pagination elements behave weird
-        match html.select(&last_page_selector).next() {
-            Some(final_page_element) => {
-                debug!("Extracting last page button");
+        let Some(last_page_element) = page_links.last() else {
+            return Ok(0);
+        };
 
-                let max_pages = Self::extract_page_num_from_href(final_page_element)?;
-
-                debug!("Extracted final page number: {}", max_pages);
-
-                Ok(max_pages)
-            }
-            None => {
-                debug!("Missing last page element, checking for complete page links");
-                // <ul>
-                //<li class="current-page"><span>1</span></li>
-                //<li class="individual-page"><a href="/getFilteredProducts?pagenumber=2">2</a></li>
-                //<li class="individual-page"><a href="/getFilteredProducts?pagenumber=3">3</a></li>
-                //<li class="next-page"><a href="/getFilteredProducts?pagenumber=2">Next</a></li>
-                //</ul>
-                match html.select(&individual_page_selector).last() {
-                    Some(max_page) => {
-                        let max_pages_count = Self::extract_page_num_from_href(max_page)?;
-
-                        debug!("Extracted non last page element: {}", max_pages_count);
-
-                        Ok(max_pages_count)
-                    }
-                    None => {
-                        debug!("Catagory only has a single page");
-
-                        Ok(0)
-                    }
-                }
-            }
-        }
+        Ok(string_to_u64(element_extract_attr(
+            last_page_element,
+            "data-pagenumber",
+        )?)?)
     }
 }
