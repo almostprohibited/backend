@@ -321,11 +321,27 @@ impl Retailer for AlFlahertys {
             category: Category::Firearm,
         }]);
 
+        let ammo_terms = [
+            "Shooting Supplies, Firearms & Ammunition;Ammunition;Bulk Ammo",
+            "Shooting Supplies, Firearms & Ammunition;Ammunition;Centerfire Ammunition",
+            "Shooting Supplies, Firearms & Ammunition;Ammunition;Ammunition;Rimfire Ammunition",
+            "Shooting Supplies, Firearms & Ammunition;Ammunition;Shotgun Ammunition",
+        ];
+
+        for ammo in ammo_terms {
+            terms.push(SearchTerm {
+                term: ammo.into(),
+                category: Category::Ammunition,
+            });
+        }
+
         let other_terms = [
             "Shooting Supplies, Firearms & Ammunition;Stocks, Parts, Barrels & Kits",
             "Shooting Supplies, Firearms & Ammunition;Shooting Accessories",
             "Shooting Supplies, Firearms & Ammunition;Storage & Transportation",
             "Optics",
+            "Shooting Supplies, Firearms & Ammunition;Ammunition;Reloading - Uncontrolled Items",
+            "Shooting Supplies, Firearms & Ammunition;Ammunition;Reloading - Powders and Primers",
         ];
 
         for other in other_terms {

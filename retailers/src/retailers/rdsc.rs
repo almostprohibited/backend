@@ -118,7 +118,10 @@ impl Retailer for Rdsc {
     }
 
     fn get_search_terms(&self) -> Vec<SearchTerm> {
-        let mut terms = Vec::from_iter([]);
+        let mut terms = Vec::from_iter([SearchTerm {
+            term: "firearms-ammunition/ammunition".into(),
+            category: Category::Ammunition,
+        }]);
 
         let firearm_terms = [
             "firearms-ammunition/pump-shotguns",
@@ -146,6 +149,7 @@ impl Retailer for Rdsc {
             "shotgun-parts",
             "gear-kit",
             "clean-maintain",
+            "firearms-ammunition/ammunition/gun-powder-primers",
         ];
 
         for other in other_terms {

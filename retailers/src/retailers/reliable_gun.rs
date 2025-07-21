@@ -161,10 +161,16 @@ impl Retailer for ReliableGun {
     }
 
     fn get_search_terms(&self) -> Vec<SearchTerm> {
-        let mut terms = Vec::from_iter([SearchTerm {
-            term: "1007".into(), // https://www.reliablegun.com/firearms
-            category: Category::Firearm,
-        }]);
+        let mut terms = Vec::from_iter([
+            SearchTerm {
+                term: "1007".into(), // https://www.reliablegun.com/firearms
+                category: Category::Firearm,
+            },
+            SearchTerm {
+                term: "1002".into(), // https://www.reliablegun.com/ammunition
+                category: Category::Ammunition,
+            },
+        ]);
 
         let other_terms = [
             "407",  // https://www.reliablegun.com/used-guns-non-restricted

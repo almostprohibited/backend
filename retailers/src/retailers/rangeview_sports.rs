@@ -313,6 +313,21 @@ impl Retailer for RangeviewSports {
             },
         ]);
 
+        let ammo_terms = [
+            "ammo/rimfire-ammo",
+            "ammo/rifle-ammo",
+            "ammo/handgun-ammo",
+            "ammo/shotgun-ammo",
+            "ammo/bulk-ammo",
+        ];
+
+        for ammo in ammo_terms {
+            terms.push(SearchTerm {
+                term: ammo.into(),
+                category: Category::Ammunition,
+            });
+        }
+
         let other_terms = [
             "reloading",
             "optics",

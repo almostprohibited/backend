@@ -113,10 +113,16 @@ impl Retailer for CanadasGunStore {
     }
 
     fn get_search_terms(&self) -> Vec<SearchTerm> {
-        let mut terms = Vec::from_iter([SearchTerm {
-            term: "firearms-%7C30%7CFA".into(),
-            category: Category::Firearm,
-        }]);
+        let mut terms = Vec::from_iter([
+            SearchTerm {
+                term: "firearms-%7C30%7CFA".into(),
+                category: Category::Firearm,
+            },
+            SearchTerm {
+                term: "ammunition-%7C30%7CAMM".into(),
+                category: Category::Ammunition,
+            },
+        ]);
 
         let other_terms = [
             "optics-%7C30%7COPT",

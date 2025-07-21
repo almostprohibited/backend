@@ -1,6 +1,9 @@
 use std::{collections::HashSet, time::Duration};
 
-use common::result::{base::CrawlResult, enums::RetailerName};
+use common::result::{
+    base::CrawlResult,
+    enums::{Category, RetailerName},
+};
 use crawler::{request::Request, unprotected::UnprotectedCrawler};
 use tokio::time::sleep;
 use tracing::{debug, trace};
@@ -35,6 +38,10 @@ impl PaginationClient {
 
     pub async fn crawl(&mut self) -> Result<(), RetailerError> {
         for term in self.retailer.get_search_terms() {
+            if term.category == Category::Ammunition {
+                continue;
+            }
+
             self.paginate_calls(term).await?;
         }
 

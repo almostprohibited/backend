@@ -111,6 +111,10 @@ impl Retailer for FirearmsOutletCanada {
                 term: "firearms".into(),
                 category: Category::Firearm,
             },
+            SearchTerm {
+                term: "ammo".into(),
+                category: Category::Ammunition,
+            },
             // SearchTerm {
             //     term: "airguns".into(),
             //     category: Category::Firearm,

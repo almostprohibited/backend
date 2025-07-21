@@ -84,7 +84,10 @@ impl Retailer for TheAmmoSource {
     }
 
     fn get_search_terms(&self) -> Vec<SearchTerm> {
-        let mut terms = Vec::from_iter([]);
+        let mut terms = Vec::from_iter([SearchTerm {
+            term: "ammunition".into(),
+            category: Category::Ammunition,
+        }]);
 
         let firearm_terms = [
             "modern-sporting-rifles",
