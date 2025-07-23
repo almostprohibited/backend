@@ -4,18 +4,18 @@ on:
     branches: [main]
   workflow_dispatch:
 env:
-  BINARY_PATH: "/home/ubuntu/almostprohibited/backend"
   STAGE: "release"
-  API_PORT: "3001"
 jobs:
   build:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Build
         uses: ./.github/actions/build
         with:
-          binary-path: ${{ env.BINARY_PATH }}
+          deployment-package-token: ${{ secrets.DEPLOYMENT_ACCESS }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          deployment-stage: ${{ env.STAGE }}
   deploy:
     needs: [build]
     runs-on: self-hosted
@@ -24,7 +24,6 @@ jobs:
       - name: Deploy
         uses: ./.github/actions/deploy
         with:
-          binary-path: ${{ env.BINARY_PATH }}
-          stage: ${{ env.STAGE }}
-          token: ${{ secrets.DEPLOYMENT_ACCESS }}
-          api-port: ${{ env.API_PORT }}
+          deployment-package-token: ${{ secrets.DEPLOYMENT_ACCESS }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          deployment-stage: ${{ env.STAGE }}

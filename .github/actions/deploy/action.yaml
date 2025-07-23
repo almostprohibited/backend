@@ -1,22 +1,18 @@
 name: Deploy
 inputs:
-  binary-path:
+  deployment-package-token:
     type: string
     required: true
-    description: "The path on the machine to where the binaries should be installed"
-  api-port:
+    description: "Github PAT for accessing the deployment repo"
+  github-token:
     type: string
     required: true
-    description: "The port to launch the API on"
-  stage:
+    description: "Github Actions token"
+  deployment-stage:
     type: choice
     required: true
     description: "The environment to install the systemd services into"
     options: ["release", "beta"]
-  token:
-    type: string
-    required: true
-    description: "Github PAT for accessing the deployment repo"
 runs:
   using: 'composite'
   steps:
@@ -25,71 +21,32 @@ runs:
       with:
         repository: almostprohibited/deployment
         ref: main
-        token: ${{ inputs.token }}
+        token: ${{ inputs.deployment-package-token }}
         path: ./.deployment
-    - name: Deploy Docker containers
-      if: inputs.stage == 'release'
-      run: |
-        set -ueo pipefail
-
-        mkdir -p ${{ inputs.binary-path }}
-        mv .deployment/backend/docker-compose.yaml ${{ inputs.binary-path }}
-
-        docker compose down
-        docker compose pull
-        docker compose up -d
-        docker image prune -f
+    - name: Login to ghcr.io
+      run: echo ${{ inputs.github-token }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       shell: bash
-    - name: Deploy API service
+    - name: Update and deploy MongoDB
+      if: inputs.deployment-stage == 'release'
       run: |
         set -ueo pipefail
 
-        echo "Replacing service definition file"
-        sed -i -e "s|{binary_path}|${{ inputs.binary-path }}|g" .deployment/backend/almostprohibited-backend-api.service
-        sed -i -e "s|{api_port}|${{ inputs.api-port }}|g" .deployment/backend/almostprohibited-backend-api.service
-        sudo cp .deployment/backend/almostprohibited-backend-api.service /etc/systemd/system/almostprohibited-backend-api-${{ inputs.stage }}.service
+        cd ./.deployment/backend
+
+        docker compose -f docker-compose.yaml pull mongo mongo-express
+        docker compose -f docker-compose.yaml down mongo mongo-express
+        docker compose -f docker-compose.yaml up -d mongo mongo-express
+      shell: bash
+    - name: Update and deploy backend
+      run: |
+        set -ueo pipefail
         
-        sudo systemctl daemon-reload
+        cd ./.deployment/backend
 
-        echo "Restarting API service"
-        sudo systemctl restart almostprohibited-backend-api-${{ inputs.stage }}.service
+        docker compose -f docker-compose.yaml pull backend-${{ inputs.deployment-stage }}
+        docker compose -f docker-compose.yaml down backend-${{ inputs.deployment-stage }}
+        docker compose -f docker-compose.yaml up -d backend-${{ inputs.deployment-stage }}
       shell: bash
-    - name: Deploy indexer service
-      if: inputs.stage == 'release'
-      run: |
-        set -ueo pipefail
-
-        # echo "Stopping indexer service"
-        # sudo systemctl stop almostprohibited-backend-indexer-${{ inputs.stage }}.timer || true
-
-        echo "Resetting service state"
-        sudo systemctl reset-failed almostprohibited-backend-indexer-${{ inputs.stage }}.service || true
-
-        echo "Replacing service definition file"
-        sed -i -e "s|{binary_path}|${{ inputs.binary-path }}|g" .deployment/backend/almostprohibited-backend-indexer.service
-        sudo cp .deployment/backend/almostprohibited-backend-indexer.service /etc/systemd/system/almostprohibited-backend-indexer-${{ inputs.stage }}.service
-        sudo cp .deployment/backend/almostprohibited-backend-indexer.timer /etc/systemd/system/almostprohibited-backend-indexer-${{ inputs.stage }}.timer
-
-        sudo systemctl daemon-reload
-
-        # echo "Enabling indexer timer"
-        # sudo systemctl enable almostprohibited-backend-indexer-${{ inputs.stage }}.timer
-        # sudo systemctl start almostprohibited-backend-indexer-${{ inputs.stage }}.timer
-      shell: bash
-    - name: Deploy backup service
-      if: inputs.stage == 'release'
-      run: |
-        set -ueo pipefail
-
-        mkdir -p ${{ inputs.binary-path }}
-
-        echo "Replacing backup script"
-        mv ./.deployment/backend/mongodb-backup.sh ${{ inputs.binary-path }}
-
-        echo "Replacing service definition file"
-        sed -i -e "s|{binary_path}|${{ inputs.binary-path }}|g" ./.deployment/backend/almostprohibited-backend-mongodb-backup.service
-        sudo cp ./.deployment/backend/almostprohibited-backend-mongodb-backup.service /etc/systemd/system/almostprohibited-backend-mongodb-backup-${{ inputs.stage }}.service
-        sudo cp ./.deployment/backend/almostprohibited-backend-mongodb-backup.timer /etc/systemd/system/almostprohibited-backend-mongodb-backup-${{ inputs.stage }}.timer
-
-        sudo systemctl daemon-reload
+    - name: Clean images
+      run: docker image prune -f
       shell: bash

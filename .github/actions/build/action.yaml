@@ -1,26 +1,82 @@
 name: Build
 inputs:
-  binary-path:
+  deployment-package-token:
     type: string
     required: true
-    description: "The path on the machine to where the binaries should be installed"
+    description: "Github PAT for accessing the deployment repo"
+  github-token:
+    type: string
+    required: true
+    description: "Github Actions token"
+  deployment-stage:
+    type: choice
+    required: true
+    description: "The environment to install the systemd services into"
+    options: ["release", "beta"]
+  rust-target:
+    type: string
+    required: false
+    description: "Rust build target"
+    default: aarch64-unknown-linux-musl
 runs:
-  using: 'composite'
+  using: composite
   steps:
+    # this is not a typo, first checkout checkouts this backend repo
+    # the other checkout grabs the deployment package
     - uses: actions/checkout@v4
+    - uses: actions/checkout@v4
+      with:
+        repository: almostprohibited/deployment
+        ref: main
+        token: ${{ inputs.deployment-package-token }}
+        path: ./.deployment
+    # use actions-rust-lang/setup-rust-toolchain since they setup a cache
+    # for me properly and I am too lazy to do it myself
     - uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
+        target: ${{ inputs.rust-target }}
         rustflags: ""
-    - name: Build
+    - name: Build Rust binaries
+      run: |
+        set -ueo pipefail
+
+        cargo +stable install --locked cross
+        cross build --release --bins --target ${{ inputs.rust-target }}
+      shell: bash
+    - name: Build Docker image
       run: |
         set -ueo pipefail
         
-        cargo build --profile release --bins
+        docker run --privileged --rm tonistiigi/binfmt --install arm64
 
-        echo "Using binary path: ${{ inputs.binary-path }}"
-        mkdir -p ${{ inputs.binary-path }}
+        docker_target=""
 
-        echo "Moving binaries"
-        mv target/release/api ${{ inputs.binary-path }}
-        mv target/release/indexer ${{ inputs.binary-path }}
+        if [ "${{ inputs.deployment-stage }}" = "release" ]; then
+          docker_target="--target release"
+        fi
+
+        docker build \
+          $docker_target \
+          --build-arg API_BINARY_NAME=api \
+          --build-arg INDEXER_BINARY_NAME=indexer \
+          --platform=linux/arm64 \
+          -f ./.deployment/backend/Dockerfile-backend.dockerfile \
+          -t ghcr.io/almostprohibited/backend:${{ inputs.deployment-stage }} \
+          target/${{ inputs.rust-target }}/release
       shell: bash
+    - name: Upload Docker image
+      run: |
+        set -ueo pipefail
+
+        echo ${{ inputs.github-token }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+        docker push ghcr.io/almostprohibited/backend:${{ inputs.deployment-stage }}
+      shell: bash
+    - name: Clean old package versions
+      uses: actions/delete-package-versions@v5
+      with:
+        owner: almostprohibited
+        package-name: backend
+        package-type: container
+        min-versions-to-keep: 3
+        delete-only-untagged-versions: true
