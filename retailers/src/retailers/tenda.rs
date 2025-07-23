@@ -79,10 +79,7 @@ impl Tenda {
             cookie_name_parts.push(individual_char.to_string());
         }
 
-        Ok(cookie_name_parts.join(
-            "
-",
-        ))
+        Ok(cookie_name_parts.join(""))
     }
 
     fn get_cookie_value(haystack: &str) -> Result<String, RetailerError> {
@@ -130,10 +127,7 @@ impl Tenda {
             reconstructed_parts.push(parsed_char.to_string());
         }
 
-        Ok(reconstructed_parts.join(
-            "
-",
-        ))
+        Ok(reconstructed_parts.join(""))
     }
 
     // SecURI's wordpress "firewall" might as well not be there
