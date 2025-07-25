@@ -58,7 +58,13 @@ async fn main() {
     #[cfg(not(debug_assertions))]
     match Tenda::new() {
         Ok(tenda) => retailers.push(Box::new(tenda)),
-        Err(err) => discord_webhook.send_error(RetailerName::Tenda, err).await,
+        Err(err) => {
+            discord_webhook
+                .lock()
+                .await
+                .send_error(RetailerName::Tenda, err)
+                .await
+        }
     };
 
     let mut handles: Vec<JoinHandle<()>> = Vec::new();
