@@ -1,6 +1,6 @@
-use std::time::{SystemTime, UNIX_EPOCH};
-
 use serde::Serialize;
+
+use crate::utils::get_current_time;
 
 #[derive(Serialize, Clone)]
 pub struct Message {
@@ -21,10 +21,7 @@ impl Message {
         Self {
             body,
             ip_address,
-            timestamp: SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap() // this should not fail since the current time is always > UNIX_EPOCH
-                .as_secs(),
+            timestamp: get_current_time(),
             subject,
             email,
         }

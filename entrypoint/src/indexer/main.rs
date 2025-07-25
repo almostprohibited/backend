@@ -16,7 +16,7 @@ use retailers::{
     traits::Retailer,
 };
 use std::sync::Arc;
-use tokio::task::JoinHandle;
+use tokio::{sync::Mutex, task::JoinHandle};
 use tracing::debug;
 use utils::{discord::indexer::IndexerWebhook, logger::configure_logger};
 
@@ -24,7 +24,7 @@ use utils::{discord::indexer::IndexerWebhook, logger::configure_logger};
 async fn main() {
     configure_logger();
 
-    let discord = Arc::new(IndexerWebhook::new().await);
+    let discord_webhook = Arc::new(Mutex::new(IndexerWebhook::new().await));
 
     #[cfg(not(debug_assertions))]
     let mut retailers: Vec<Box<dyn Retailer + Send + Sync>> = vec![
@@ -48,7 +48,10 @@ async fn main() {
     ];
 
     #[cfg(debug_assertions)]
-    let mut retailers: Vec<Box<dyn Retailer + Send + Sync>> = vec![Box::new(ReliableGun::new())];
+    let mut retailers: Vec<Box<dyn Retailer + Send + Sync>> = vec![
+        Box::new(LeverArms::new()),
+        Box::new(SelectShootingSupplies::new()),
+    ];
 
     // tenda requires a special cookie that must be created before
     // any request is allowed through
@@ -63,16 +66,19 @@ async fn main() {
     #[cfg(not(debug_assertions))]
     let mongodb = Arc::new(MongoDBConnector::new().await);
 
-    discord
-        .send_message("Starting crawling process".into())
-        .await;
-
     for retailer in retailers {
         #[cfg(not(debug_assertions))]
         let db = mongodb.clone();
-        let discord = discord.clone();
+        let discord_webhook = discord_webhook.clone();
 
         handles.push(tokio::spawn(async move {
+            let retailer_name = retailer.get_retailer_name().clone();
+
+            discord_webhook
+                .lock()
+                .await
+                .register_retailer(retailer_name);
+
             let mut pagination_client = PaginationClient::new(retailer);
 
             let crawl_state = pagination_client.crawl().await;
@@ -81,26 +87,33 @@ async fn main() {
             debug!("{:?}", results);
 
             if let Err(err) = crawl_state {
-                discord
+                discord_webhook
+                    .lock()
+                    .await
                     .send_error(pagination_client.get_retailer_name(), err)
                     .await;
             }
 
-            let finished_message = format!(
-                "{:?} completed crawling ({} items)",
-                pagination_client.get_retailer_name(),
-                results.len()
-            );
-            discord.send_message(finished_message).await;
+            discord_webhook
+                .lock()
+                .await
+                .finish_retailer(retailer_name, &results, pagination_client.total_bytes_tx)
+                .await;
 
             #[cfg(not(debug_assertions))]
             db.insert_many_results(results).await;
         }));
     }
 
+    discord_webhook.lock().await.update_main_message().await;
+
     for handle in handles {
         let _ = handle.await;
     }
 
-    discord.send_message("Process complete".into()).await;
+    discord_webhook
+        .lock()
+        .await
+        .send_message("Process complete".into())
+        .await;
 }

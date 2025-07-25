@@ -1,6 +1,4 @@
-use std::time::{SystemTime, UNIX_EPOCH};
-
-use common::result::enums::Category;
+use common::{result::enums::Category, utils::get_current_time};
 use mongodb::bson::{Document, doc};
 use tracing::trace;
 
@@ -60,10 +58,7 @@ impl MatchStage {
         // two days
         let past_days: i64 = 2 * 24 * 60 * 60;
 
-        let current_time = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap() // this should not fail since the current time is always > UNIX_EPOCH
-            .as_secs() as i64;
+        let current_time = get_current_time() as i64;
 
         doc! {
             "$gte": current_time - past_days

@@ -1,13 +1,13 @@
-use std::{
-    hash::{Hash, Hasher},
-    time::{SystemTime, UNIX_EPOCH},
-};
+use std::hash::{Hash, Hasher};
 
 use serde::{Deserialize, Serialize};
 
-use crate::result::{
-    enums::{Category, RetailerName},
-    metadata::Metadata,
+use crate::{
+    result::{
+        enums::{Category, RetailerName},
+        metadata::Metadata,
+    },
+    utils::get_current_time,
 };
 
 #[derive(Deserialize, Serialize, Debug, Eq, PartialEq)]
@@ -61,10 +61,7 @@ impl CrawlResult {
         retailer: RetailerName,
         category: Category,
     ) -> Self {
-        let time = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap() // this should not fail since the current time is always > UNIX_EPOCH
-            .as_secs();
+        let time = get_current_time();
 
         Self {
             name,

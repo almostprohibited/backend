@@ -20,6 +20,7 @@ pub struct PaginationClient {
     max_pages: u64,
     crawler: UnprotectedCrawler,
     results: HashSet<CrawlResult>,
+    pub total_bytes_tx: u64,
 }
 
 impl PaginationClient {
@@ -29,6 +30,7 @@ impl PaginationClient {
             max_pages: 1,
             crawler: UnprotectedCrawler::new(),
             results: HashSet::new(),
+            total_bytes_tx: 0,
         }
     }
 
@@ -95,7 +97,19 @@ impl PaginationClient {
         Ok(())
     }
 
-    async fn send_request(&self, request: Request) -> Result<String, RetailerError> {
-        Ok(self.crawler.make_web_request(request).await?.body)
+    async fn send_request(&mut self, request: Request) -> Result<String, RetailerError> {
+        let response = self.crawler.make_web_request(request).await?;
+
+        // nest these in `if let` statements instead of early exist since
+        // thats more clean than several `return Ok()` statements
+        if let Some(content_length_header) = response.headers.get("Content-Length") {
+            if let Ok(content_length_str) = content_length_header.to_str() {
+                if let Ok(content_length_u64) = content_length_str.parse::<u64>() {
+                    self.total_bytes_tx += content_length_u64;
+                }
+            }
+        };
+
+        Ok(response.body)
     }
 }

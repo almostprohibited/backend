@@ -382,6 +382,8 @@ version = "0.1.0"
 dependencies = [
  "serde",
  "serde_json",
+ "strum",
+ "strum_macros",
  "tokio",
 ]
 
@@ -719,6 +721,7 @@ dependencies = [
  "serde_json",
  "serde_with",
  "serenity",
+ "strum",
  "thiserror 2.0.12",
  "tokio",
  "tower",

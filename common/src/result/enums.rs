@@ -1,6 +1,7 @@
 use std::fmt::{Display, Formatter, Result};
 
 use serde::{Deserialize, Serialize};
+use strum_macros::EnumIter;
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, Default, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -19,7 +20,7 @@ impl Display for Category {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, Hash, Eq, PartialEq, EnumIter)]
 pub enum RetailerName {
     ReliableGun,
     LeverArms,

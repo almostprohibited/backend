@@ -14,3 +14,5 @@ doc = false
 serde.workspace = true
 serde_json.workspace = true
 tokio = { workspace = true, features = ["full"] }
+strum = "0.27.1"
+strum_macros = "0.27.1"
