@@ -56,13 +56,6 @@ impl IndexerWebhook {
         let client = Arc::new(Http::new("this does not appear to matter"));
         let webhook = Arc::new(Webhook::from_url(&client, INDEXER_WEBHOOK).await.unwrap());
 
-        // let mut retailers: HashMap<String, RetailerStats> = HashMap::new();
-
-        // // insert all retailers now to maintain order
-        // for retailer in RetailerName::iter() {
-        //     retailers.insert(format!("{retailer:?}"), RetailerStats::new());
-        // }
-
         Self {
             http: client.clone(),
             webhook: webhook.clone(),
@@ -73,9 +66,6 @@ impl IndexerWebhook {
 
     pub fn register_retailer(&mut self, retailer: RetailerName) {
         self.retailers.insert(retailer, RetailerStats::new());
-        // if let Some(retailer_stats) = self.retailers.get_mut(&format!("{retailer:?}")) {
-        //     retailer_stats.start_time = Some(get_current_time());
-        // };
     }
 
     pub async fn finish_retailer(
