@@ -9,7 +9,6 @@ use common::{
 };
 use retailers::errors::RetailerError;
 use serenity::all::{CreateEmbed, EditWebhookMessage, ExecuteWebhook, Http, MessageId, Webhook};
-use strum::IntoEnumIterator;
 use tracing::debug;
 
 #[cfg(not(debug_assertions))]
@@ -18,6 +17,7 @@ const INDEXER_WEBHOOK: &str = "https://discord.com/api/webhooks/1375013817091625
 #[cfg(debug_assertions)]
 const INDEXER_WEBHOOK: &str = "https://discord.com/api/webhooks/1391665667987607592/qnLZbWGvfojAeLKUbspu59EMUxLL9aL8kkl76apvzl1oIk2vJ6VXYS0ZXF0pimlqUaQQ";
 
+#[derive(Debug)]
 struct RetailerStats {
     start_time: Option<u64>,
     end_time: Option<u64>,
@@ -47,7 +47,7 @@ impl RetailerStats {
 pub struct IndexerWebhook {
     http: Arc<Http>,
     webhook: Arc<Webhook>,
-    retailers: HashMap<String, RetailerStats>,
+    retailers: HashMap<RetailerName, RetailerStats>,
     main_message: Option<MessageId>,
 }
 
@@ -56,25 +56,26 @@ impl IndexerWebhook {
         let client = Arc::new(Http::new("this does not appear to matter"));
         let webhook = Arc::new(Webhook::from_url(&client, INDEXER_WEBHOOK).await.unwrap());
 
-        let mut retailers: HashMap<String, RetailerStats> = HashMap::new();
+        // let mut retailers: HashMap<String, RetailerStats> = HashMap::new();
 
-        // insert all retailers now to maintain order
-        for retailer in RetailerName::iter() {
-            retailers.insert(format!("{retailer:?}"), RetailerStats::new());
-        }
+        // // insert all retailers now to maintain order
+        // for retailer in RetailerName::iter() {
+        //     retailers.insert(format!("{retailer:?}"), RetailerStats::new());
+        // }
 
         Self {
             http: client.clone(),
             webhook: webhook.clone(),
-            retailers,
+            retailers: HashMap::new(),
             main_message: None,
         }
     }
 
     pub fn register_retailer(&mut self, retailer: RetailerName) {
-        if let Some(retailer_stats) = self.retailers.get_mut(&format!("{retailer:?}")) {
-            retailer_stats.start_time = Some(get_current_time());
-        };
+        self.retailers.insert(retailer, RetailerStats::new());
+        // if let Some(retailer_stats) = self.retailers.get_mut(&format!("{retailer:?}")) {
+        //     retailer_stats.start_time = Some(get_current_time());
+        // };
     }
 
     pub async fn finish_retailer(
@@ -83,7 +84,7 @@ impl IndexerWebhook {
         results: &Vec<&CrawlResult>,
         bytes_tx: u64,
     ) {
-        let Some(retailer_stats) = self.retailers.get_mut(&format!("{retailer:?}")) else {
+        let Some(retailer_stats) = self.retailers.get_mut(&retailer) else {
             return;
         };
 
@@ -117,7 +118,7 @@ impl IndexerWebhook {
             messages.push(format!("{retailer:?}\n{counts:<20}{:>10}", stats.bytes_tx));
         }
 
-        let final_message = format!("```{}```", messages.join("\n\n"));
+        let final_message = format!("```\n{}\n```", messages.join("\n\n"));
 
         if let Some(ref message) = self.main_message {
             debug!("Replaying message {}", message);
