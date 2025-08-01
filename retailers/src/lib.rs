@@ -1,5 +1,4 @@
 pub mod errors;
-pub mod pagination_client;
 pub mod retailers;
-pub mod traits;
+pub mod structures;
 pub(crate) mod utils;

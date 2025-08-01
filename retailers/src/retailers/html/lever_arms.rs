@@ -9,7 +9,7 @@ use tracing::{debug, error};
 
 use crate::{
     errors::RetailerError,
-    traits::{Retailer, SearchTerm},
+    structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
     utils::{
         conversions::{price_to_cents, string_to_u64},
         html::{element_extract_attr, element_to_text, extract_element_from_element},
@@ -18,28 +18,28 @@ use crate::{
 
 const URL: &str = "https://leverarms.com/product-category/{category}/page/{page}/";
 
-pub struct LeverArms {
-    retailer: RetailerName,
-}
+pub struct LeverArms;
 
 impl LeverArms {
     pub fn new() -> Self {
-        Self {
-            retailer: RetailerName::LeverArms,
-        }
+        Self {}
+    }
+}
+
+impl HtmlRetailerSuper for LeverArms {}
+
+impl Retailer for LeverArms {
+    fn get_retailer_name(&self) -> RetailerName {
+        RetailerName::LeverArms
     }
 }
 
 #[async_trait]
-impl Retailer for LeverArms {
-    fn get_retailer_name(&self) -> RetailerName {
-        self.retailer
-    }
-
+impl HtmlRetailer for LeverArms {
     async fn build_page_request(
         &self,
         page_num: u64,
-        search_term: &SearchTerm,
+        search_term: &HtmlSearchQuery,
     ) -> Result<Request, RetailerError> {
         let url = URL
             .replace("{category}", &search_term.term)
@@ -55,7 +55,7 @@ impl Retailer for LeverArms {
     async fn parse_response(
         &self,
         response: &String,
-        search_term: &SearchTerm,
+        search_term: &HtmlSearchQuery,
     ) -> Result<Vec<CrawlResult>, RetailerError> {
         let mut results: Vec<CrawlResult> = Vec::new();
 
@@ -113,32 +113,32 @@ impl Retailer for LeverArms {
         Ok(results)
     }
 
-    fn get_search_terms(&self) -> Vec<SearchTerm> {
+    fn get_search_terms(&self) -> Vec<HtmlSearchQuery> {
         Vec::from_iter([
-            SearchTerm {
+            HtmlSearchQuery {
                 term: "guns/rifles".into(),
                 category: Category::Firearm,
             },
-            SearchTerm {
+            HtmlSearchQuery {
                 term: "guns/shotguns".into(),
                 category: Category::Firearm,
             },
-            SearchTerm {
+            HtmlSearchQuery {
                 term: "guns/used".into(),
                 category: Category::Firearm,
             },
-            SearchTerm {
+            HtmlSearchQuery {
                 term: "ammo/surplus-ammo".into(),
                 category: Category::Ammunition,
             },
-            SearchTerm {
+            HtmlSearchQuery {
                 term: "ammo/factory-ammo".into(),
                 category: Category::Ammunition,
             },
             // don't bother parsing their other categories
             // they add products into more than one category
             // I'll parse out what I don't need later
-            SearchTerm {
+            HtmlSearchQuery {
                 term: "kit".into(),
                 category: Category::Other,
             },

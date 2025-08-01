@@ -1,8 +1,11 @@
 use std::time::Duration;
 
-use common::result::{
-    base::{CrawlResult, Price},
-    enums::{Category, RetailerName},
+use common::{
+    result::{
+        base::{CrawlResult, Price},
+        enums::{Category, RetailerName},
+    },
+    utils::CRAWL_COOLDOWN_SECS,
 };
 use crawler::{request::RequestBuilder, traits::HttpMethod, unprotected::UnprotectedCrawler};
 use scraper::{ElementRef, Html, Selector};
@@ -12,7 +15,6 @@ use tracing::{debug, error, info};
 
 use crate::{
     errors::RetailerError,
-    pagination_client::CRAWL_COOLDOWN_SECS,
     utils::{
         conversions::price_to_cents,
         html::{element_extract_attr, element_to_text, extract_element_from_element},

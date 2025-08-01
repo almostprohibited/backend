@@ -9,7 +9,7 @@ use tracing::debug;
 
 use crate::{
     errors::RetailerError,
-    traits::{Retailer, SearchTerm},
+    structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
     utils::{
         ecommerce::woocommerce::WooCommerce,
         html::{element_extract_attr, element_to_text, extract_element_from_element},
@@ -19,15 +19,11 @@ use crate::{
 const MAX_PER_PAGE: &str = "48";
 const URL: &str = "https://www.dantesports.com/en/product-category/{category}/page/{page}/?per_page={max_per_page}&availability=in-stock";
 
-pub struct DanteSports {
-    retailer: RetailerName,
-}
+pub struct DanteSports;
 
 impl DanteSports {
     pub fn new() -> Self {
-        Self {
-            retailer: RetailerName::DanteSports,
-        }
+        Self {}
     }
 
     // dante images are either under `data-src`, or `src` attributes
@@ -52,16 +48,20 @@ impl DanteSports {
     }
 }
 
-#[async_trait]
+impl HtmlRetailerSuper for DanteSports {}
+
 impl Retailer for DanteSports {
     fn get_retailer_name(&self) -> RetailerName {
-        self.retailer
+        RetailerName::DanteSports
     }
+}
 
+#[async_trait]
+impl HtmlRetailer for DanteSports {
     async fn build_page_request(
         &self,
         page_num: u64,
-        search_term: &SearchTerm,
+        search_term: &HtmlSearchQuery,
     ) -> Result<Request, RetailerError> {
         let url = URL
             .replace("{category}", &search_term.term)
@@ -78,7 +78,7 @@ impl Retailer for DanteSports {
     async fn parse_response(
         &self,
         response: &String,
-        search_term: &SearchTerm,
+        search_term: &HtmlSearchQuery,
     ) -> Result<Vec<CrawlResult>, RetailerError> {
         let mut results: Vec<CrawlResult> = Vec::new();
 
@@ -115,13 +115,13 @@ impl Retailer for DanteSports {
         Ok(results)
     }
 
-    fn get_search_terms(&self) -> Vec<SearchTerm> {
+    fn get_search_terms(&self) -> Vec<HtmlSearchQuery> {
         let mut terms = Vec::from_iter([
-            SearchTerm {
+            HtmlSearchQuery {
                 term: "firearms".into(),
                 category: Category::Firearm,
             },
-            SearchTerm {
+            HtmlSearchQuery {
                 term: "ammunition".into(),
                 category: Category::Ammunition,
             },
@@ -130,7 +130,7 @@ impl Retailer for DanteSports {
         let other_terms = ["riflescopes-optics", "accessories", "reloading", "storage"];
 
         for other in other_terms {
-            terms.push(SearchTerm {
+            terms.push(HtmlSearchQuery {
                 term: other.into(),
                 category: Category::Other,
             });

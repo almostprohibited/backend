@@ -1,44 +1,33 @@
 use std::{collections::HashSet, time::Duration};
 
-use common::result::{
-    base::CrawlResult,
-    enums::{Category, RetailerName},
+use async_trait::async_trait;
+use common::{
+    result::{
+        base::CrawlResult,
+        enums::{Category, RetailerName},
+    },
+    utils::CRAWL_COOLDOWN_SECS,
 };
 use crawler::{request::Request, unprotected::UnprotectedCrawler};
+use retailers::{
+    errors::RetailerError,
+    structures::{HtmlRetailerSuper, HtmlSearchQuery},
+};
 use tokio::time::sleep;
 use tracing::{debug, trace};
 
-use crate::{
-    errors::RetailerError,
-    traits::{Retailer, SearchTerm},
-};
+use crate::clients::base::Client;
 
-pub const CRAWL_COOLDOWN_SECS: u64 = 10;
-
-pub struct PaginationClient {
-    retailer: Box<dyn Retailer + Send + Sync>,
+pub(crate) struct PaginationClient {
+    retailer: Box<dyn HtmlRetailerSuper>,
     max_pages: u64,
     crawler: UnprotectedCrawler,
     results: HashSet<CrawlResult>,
-    pub total_bytes_tx: u64,
 }
 
-impl PaginationClient {
-    pub fn new(retailer: Box<dyn Retailer + Send + Sync>) -> Self {
-        Self {
-            retailer,
-            max_pages: 1,
-            crawler: UnprotectedCrawler::new(),
-            results: HashSet::new(),
-            total_bytes_tx: 0,
-        }
-    }
-
-    pub fn update_max_pages(&mut self, max_page: u64) {
-        self.max_pages = max_page;
-    }
-
-    pub async fn crawl(&mut self) -> Result<(), RetailerError> {
+#[async_trait]
+impl Client for PaginationClient {
+    async fn crawl(&mut self) -> Result<(), RetailerError> {
         for term in self.retailer.get_search_terms() {
             if term.category == Category::Ammunition {
                 continue;
@@ -50,15 +39,30 @@ impl PaginationClient {
         Ok(())
     }
 
-    pub fn get_results(&self) -> Vec<&CrawlResult> {
+    fn get_results(&self) -> Vec<&CrawlResult> {
         self.results.iter().collect()
     }
 
-    pub fn get_retailer_name(&self) -> RetailerName {
+    fn get_retailer_name(&self) -> RetailerName {
         self.retailer.get_retailer_name()
     }
+}
 
-    async fn paginate_calls(&mut self, term: SearchTerm) -> Result<(), RetailerError> {
+impl PaginationClient {
+    pub(crate) fn new(retailer: Box<dyn HtmlRetailerSuper>) -> Self {
+        Self {
+            retailer,
+            max_pages: 1,
+            crawler: UnprotectedCrawler::new(),
+            results: HashSet::new(),
+        }
+    }
+
+    pub(crate) fn update_max_pages(&mut self, max_page: u64) {
+        self.max_pages = max_page;
+    }
+
+    async fn paginate_calls(&mut self, term: HtmlSearchQuery) -> Result<(), RetailerError> {
         self.update_max_pages(1);
         let mut current_page: u64 = 0;
 
@@ -98,18 +102,6 @@ impl PaginationClient {
     }
 
     async fn send_request(&mut self, request: Request) -> Result<String, RetailerError> {
-        let response = self.crawler.make_web_request(request).await?;
-
-        // nest these in `if let` statements instead of early exist since
-        // thats more clean than several `return Ok()` statements
-        if let Some(content_length_header) = response.headers.get("Content-Length") {
-            if let Ok(content_length_str) = content_length_header.to_str() {
-                if let Ok(content_length_u64) = content_length_str.parse::<u64>() {
-                    self.total_bytes_tx += content_length_u64;
-                }
-            }
-        };
-
-        Ok(response.body)
+        Ok(self.crawler.make_web_request(request).await?.body)
     }
 }

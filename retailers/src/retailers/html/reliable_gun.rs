@@ -9,7 +9,7 @@ use serde::Serialize;
 
 use crate::{
     errors::RetailerError,
-    traits::{Retailer, SearchTerm},
+    structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
     utils::{
         conversions::{price_to_cents, string_to_u64},
         html::{element_extract_attr, element_to_text, extract_element_from_element},
@@ -70,15 +70,11 @@ const PAGE_SIZE: &str = "24"; // Reliable Gun's site is slow
 const BASE_URL: &str = "https://www.reliablegun.com";
 const URL: &str = "https://www.reliablegun.com/getFilteredProducts";
 
-pub struct ReliableGun {
-    retailer: RetailerName,
-}
+pub struct ReliableGun;
 
 impl ReliableGun {
-    pub fn new() -> ReliableGun {
-        ReliableGun {
-            retailer: RetailerName::ReliableGun,
-        }
+    pub fn new() -> Self {
+        Self {}
     }
 
     fn find_prices(element: ElementRef) -> Result<Price, RetailerError> {
@@ -101,16 +97,20 @@ impl ReliableGun {
     }
 }
 
-#[async_trait]
+impl HtmlRetailerSuper for ReliableGun {}
+
 impl Retailer for ReliableGun {
     fn get_retailer_name(&self) -> RetailerName {
-        self.retailer
+        RetailerName::ReliableGun
     }
+}
 
+#[async_trait]
+impl HtmlRetailer for ReliableGun {
     async fn build_page_request(
         &self,
         page_num: u64,
-        search_term: &SearchTerm,
+        search_term: &HtmlSearchQuery,
     ) -> Result<Request, RetailerError> {
         let payload = ReliablePayload::new(search_term.term.clone(), page_num + 1);
 
@@ -126,7 +126,7 @@ impl Retailer for ReliableGun {
     async fn parse_response(
         &self,
         response: &String,
-        search_term: &SearchTerm,
+        search_term: &HtmlSearchQuery,
     ) -> Result<Vec<CrawlResult>, RetailerError> {
         let mut results: Vec<CrawlResult> = Vec::new();
 
@@ -160,13 +160,13 @@ impl Retailer for ReliableGun {
         Ok(results)
     }
 
-    fn get_search_terms(&self) -> Vec<SearchTerm> {
+    fn get_search_terms(&self) -> Vec<HtmlSearchQuery> {
         let mut terms = Vec::from_iter([
-            SearchTerm {
+            HtmlSearchQuery {
                 term: "1007".into(), // https://www.reliablegun.com/firearms
                 category: Category::Firearm,
             },
-            SearchTerm {
+            HtmlSearchQuery {
                 term: "1002".into(), // https://www.reliablegun.com/ammunition
                 category: Category::Ammunition,
             },
@@ -191,7 +191,7 @@ impl Retailer for ReliableGun {
         ];
 
         for other in other_terms {
-            terms.push(SearchTerm {
+            terms.push(HtmlSearchQuery {
                 term: other.to_string(),
                 category: Category::Other,
             });

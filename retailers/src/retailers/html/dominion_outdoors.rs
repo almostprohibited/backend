@@ -15,7 +15,7 @@ use tracing::debug;
 
 use crate::{
     errors::RetailerError,
-    traits::{Retailer, SearchTerm},
+    structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
     utils::{
         conversions::{price_to_cents, string_to_u64},
         html::{element_extract_attr, element_to_text, extract_element_from_element},
@@ -26,14 +26,12 @@ const CRAWL_COOLDOWN_SECS: u64 = 3;
 const URL: &str = "https://www.dominionoutdoors.ca/{category}/page{page}.html";
 
 pub struct DominionOutdoors {
-    retailer: RetailerName,
     crawler: UnprotectedCrawler,
 }
 
 impl DominionOutdoors {
     pub fn new() -> Self {
         Self {
-            retailer: RetailerName::DominionOutdoors,
             crawler: UnprotectedCrawler::new(),
         }
     }
@@ -97,16 +95,20 @@ impl DominionOutdoors {
     }
 }
 
-#[async_trait]
+impl HtmlRetailerSuper for DominionOutdoors {}
+
 impl Retailer for DominionOutdoors {
     fn get_retailer_name(&self) -> RetailerName {
-        self.retailer
+        RetailerName::DominionOutdoors
     }
+}
 
+#[async_trait]
+impl HtmlRetailer for DominionOutdoors {
     async fn build_page_request(
         &self,
         page_num: u64,
-        search_term: &SearchTerm,
+        search_term: &HtmlSearchQuery,
     ) -> Result<Request, RetailerError> {
         let url = URL
             .replace("{category}", &search_term.term)
@@ -122,7 +124,7 @@ impl Retailer for DominionOutdoors {
     async fn parse_response(
         &self,
         response: &String,
-        search_term: &SearchTerm,
+        search_term: &HtmlSearchQuery,
     ) -> Result<Vec<CrawlResult>, RetailerError> {
         let mut results: Vec<CrawlResult> = Vec::new();
 
@@ -164,8 +166,8 @@ impl Retailer for DominionOutdoors {
         Ok(results)
     }
 
-    fn get_search_terms(&self) -> Vec<SearchTerm> {
-        let mut terms = Vec::from_iter([SearchTerm {
+    fn get_search_terms(&self) -> Vec<HtmlSearchQuery> {
+        let mut terms = Vec::from_iter([HtmlSearchQuery {
             term: "firearms".into(),
             category: Category::Firearm,
         }]);
@@ -179,7 +181,7 @@ impl Retailer for DominionOutdoors {
         ];
 
         for other in other_terms {
-            terms.push(SearchTerm {
+            terms.push(HtmlSearchQuery {
                 term: other.into(),
                 category: Category::Other,
             });

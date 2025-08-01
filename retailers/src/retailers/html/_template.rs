@@ -9,7 +9,7 @@ use tracing::{debug, error};
 
 use crate::{
     errors::RetailerError,
-    traits::{Retailer, SearchTerm},
+    traits::{HtmlRetailer, HtmlSearchQuery},
     utils::{
         conversions::{price_to_cents, string_to_u64},
         html::{element_extract_attr, element_to_text, extract_element_from_element},
@@ -31,7 +31,7 @@ impl aaa {
 }
 
 #[async_trait]
-impl Retailer for aaa {
+impl HtmlRetailer for aaa {
     fn get_retailer_name(&self) -> RetailerName {
         self.retailer
     }
@@ -39,7 +39,7 @@ impl Retailer for aaa {
     async fn build_page_request(
         &self,
         page_num: u64,
-        search_term: &SearchTerm,
+        search_term: &HtmlSearchQuery,
     ) -> Result<Request, RetailerError> {
         let url = URL
             .replace("{category}", &search_term.term)
@@ -55,7 +55,7 @@ impl Retailer for aaa {
     async fn parse_response(
         &self,
         response: &String,
-        search_term: &SearchTerm,
+        search_term: &HtmlSearchQuery,
     ) -> Result<Vec<CrawlResult>, RetailerError> {
         let mut results: Vec<CrawlResult> = Vec::new();
 
@@ -68,8 +68,8 @@ impl Retailer for aaa {
         Ok(results)
     }
 
-    fn get_search_terms(&self) -> Vec<SearchTerm> {
-        Vec::from_iter([SearchTerm {
+    fn get_search_terms(&self) -> Vec<HtmlSearchQuery> {
+        Vec::from_iter([HtmlSearchQuery {
             term: "a".into(),
             category: Category::Firearm,
         }])

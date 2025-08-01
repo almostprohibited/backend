@@ -15,10 +15,11 @@ use tracing::{debug, trace};
 
 use crate::{
     errors::RetailerError,
-    traits::{Retailer, SearchTerm},
+    structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
     utils::{
         ecommerce::woocommerce::WooCommerce,
         html::{element_extract_attr, element_to_text, extract_element_from_element},
+        regex::unwrap_regex_capture,
     },
 };
 
@@ -26,7 +27,6 @@ const BASE_URL: &str = "https://www.gotenda.com/";
 const URL: &str = "https://www.gotenda.com/product-category/{category}/page/{page}/?stock=instock";
 
 pub struct Tenda {
-    retailer: RetailerName,
     securi_cookie: String,
 }
 
@@ -37,35 +37,15 @@ impl Tenda {
         debug!("Using cookie: {cookie}");
 
         Ok(Self {
-            retailer: RetailerName::Tenda,
             securi_cookie: cookie,
         })
-    }
-
-    fn unwrap_regex_capture(regex: &Regex, haystack: &str) -> Result<String, RetailerError> {
-        let Some(captures) = regex.captures(haystack) else {
-            return Err(RetailerError::GeneralError(format!(
-                "Failed to search for {} inside of {}",
-                regex.as_str(),
-                haystack
-            )));
-        };
-
-        let Some(result) = captures.get(1) else {
-            return Err(RetailerError::GeneralError(format!(
-                "Invalid return capture group (should not be possible) for {}",
-                regex.as_str()
-            )));
-        };
-
-        Ok(result.as_str().to_string())
     }
 
     fn get_cookie_name(haystack: &str) -> Result<String, RetailerError> {
         let cookie_name_regex = Regex::new(r##";document\.cookie=(.*?)\+\s*\"=\"\s*\+"##)
             .expect("Regex should compile as nothing has changed");
 
-        let cookie_name_obfuscated = Self::unwrap_regex_capture(&cookie_name_regex, &haystack)?;
+        let cookie_name_obfuscated = unwrap_regex_capture(&cookie_name_regex, &haystack)?;
         let mut cookie_name_parts: Vec<String> = Vec::new();
 
         for cooke_name_part in cookie_name_obfuscated.split("+") {
@@ -90,15 +70,14 @@ impl Tenda {
 
         // the JS starts with `i=<string parts>;cookie`
         // I want the inside parts
-        let cookie_value_obfuscated =
-            Self::unwrap_regex_capture(&obfuscated_string_regex, haystack)?;
+        let cookie_value_obfuscated = unwrap_regex_capture(&obfuscated_string_regex, haystack)?;
 
         let mut reconstructed_parts: Vec<String> = Vec::new();
 
         let char_code_parts: Vec<&str> = cookie_value_obfuscated.split(" + ").collect();
 
         for part in char_code_parts {
-            let Ok(char_code) = Self::unwrap_regex_capture(&char_code_regex, part) else {
+            let Ok(char_code) = unwrap_regex_capture(&char_code_regex, part) else {
                 let Some(individual_char) = part.get(1..2) else {
                     return Err(RetailerError::GeneralError(format!(
                         "Captured non String.fromCharCode, but failed to map to char: {}",
@@ -142,7 +121,7 @@ impl Tenda {
 
         let result = crawler.make_web_request(request).await?;
 
-        let base64 = Self::unwrap_regex_capture(&base64_regex, &result.body)?;
+        let base64 = unwrap_regex_capture(&base64_regex, &result.body)?;
 
         trace!("{base64}");
 
@@ -166,16 +145,20 @@ impl Tenda {
     }
 }
 
-#[async_trait]
+impl HtmlRetailerSuper for Tenda {}
+
 impl Retailer for Tenda {
     fn get_retailer_name(&self) -> RetailerName {
-        self.retailer
+        RetailerName::Tenda
     }
+}
 
+#[async_trait]
+impl HtmlRetailer for Tenda {
     async fn build_page_request(
         &self,
         page_num: u64,
-        search_term: &SearchTerm,
+        search_term: &HtmlSearchQuery,
     ) -> Result<Request, RetailerError> {
         let url = URL
             .replace("{category}", &search_term.term)
@@ -194,7 +177,7 @@ impl Retailer for Tenda {
     async fn parse_response(
         &self,
         response: &String,
-        search_term: &SearchTerm,
+        search_term: &HtmlSearchQuery,
     ) -> Result<Vec<CrawlResult>, RetailerError> {
         let mut results: Vec<CrawlResult> = Vec::new();
 
@@ -229,8 +212,8 @@ impl Retailer for Tenda {
         Ok(results)
     }
 
-    fn get_search_terms(&self) -> Vec<SearchTerm> {
-        let mut terms = Vec::from_iter([SearchTerm {
+    fn get_search_terms(&self) -> Vec<HtmlSearchQuery> {
+        let mut terms = Vec::from_iter([HtmlSearchQuery {
             term: "ammunition".into(),
             category: Category::Ammunition,
         }]);
@@ -245,7 +228,7 @@ impl Retailer for Tenda {
         ];
 
         for firearm in firearm_terms {
-            terms.push(SearchTerm {
+            terms.push(HtmlSearchQuery {
                 term: firearm.into(),
                 category: Category::Firearm,
             });
@@ -301,7 +284,7 @@ impl Retailer for Tenda {
         ];
 
         for other in other_terms {
-            terms.push(SearchTerm {
+            terms.push(HtmlSearchQuery {
                 term: other.into(),
                 category: Category::Other,
             });

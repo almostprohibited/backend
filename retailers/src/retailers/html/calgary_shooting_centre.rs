@@ -10,7 +10,7 @@ use scraper::{ElementRef, Html, Selector};
 
 use crate::{
     errors::RetailerError,
-    traits::{Retailer, SearchTerm},
+    structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
     utils::{
         conversions::price_to_cents,
         ecommerce::{bigcommerce::BigCommerce, bigcommerce_nested::BigCommerceNested},
@@ -25,15 +25,11 @@ const API_URL: &str =
     "https://store.theshootingcentre.com/remote/v1/product-attributes/{product_id}";
 const CART_URL: &str = "https://store.theshootingcentre.com/cart.php";
 
-pub struct CalgaryShootingCentre {
-    retailer: RetailerName,
-}
+pub struct CalgaryShootingCentre;
 
 impl CalgaryShootingCentre {
     pub fn new() -> Self {
-        Self {
-            retailer: RetailerName::CalgaryShootingCentre,
-        }
+        Self {}
     }
 
     /// For regular parcing using HTML elements
@@ -65,16 +61,20 @@ impl CalgaryShootingCentre {
     }
 }
 
-#[async_trait]
+impl HtmlRetailerSuper for CalgaryShootingCentre {}
+
 impl Retailer for CalgaryShootingCentre {
     fn get_retailer_name(&self) -> RetailerName {
-        self.retailer
+        RetailerName::CalgaryShootingCentre
     }
+}
 
+#[async_trait]
+impl HtmlRetailer for CalgaryShootingCentre {
     async fn build_page_request(
         &self,
         page_num: u64,
-        search_term: &SearchTerm,
+        search_term: &HtmlSearchQuery,
     ) -> Result<Request, RetailerError> {
         let request: Request = RequestBuilder::new()
             .set_url(
@@ -91,7 +91,7 @@ impl Retailer for CalgaryShootingCentre {
     async fn parse_response(
         &self,
         response: &String,
-        search_term: &SearchTerm,
+        search_term: &HtmlSearchQuery,
     ) -> Result<Vec<CrawlResult>, RetailerError> {
         let mut results: Vec<CrawlResult> = Vec::new();
 
@@ -165,13 +165,13 @@ impl Retailer for CalgaryShootingCentre {
         Ok(results)
     }
 
-    fn get_search_terms(&self) -> Vec<SearchTerm> {
+    fn get_search_terms(&self) -> Vec<HtmlSearchQuery> {
         let mut terms = Vec::from_iter([
-            SearchTerm {
+            HtmlSearchQuery {
                 term: "firearms".into(),
                 category: Category::Firearm,
             },
-            SearchTerm {
+            HtmlSearchQuery {
                 term: "ammunition".into(),
                 category: Category::Ammunition,
             },
@@ -185,7 +185,7 @@ impl Retailer for CalgaryShootingCentre {
         ];
 
         for other in other_terms {
-            terms.push(SearchTerm {
+            terms.push(HtmlSearchQuery {
                 term: other.into(),
                 category: Category::Other,
             });

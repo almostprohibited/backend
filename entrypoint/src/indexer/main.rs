@@ -1,15 +1,20 @@
 use clap::Parser;
 use common::result::enums::RetailerName;
 use mongodb_connector::connector::MongoDBConnector;
-use retailers::pagination_client::PaginationClient;
 use std::{sync::Arc, time::Duration};
 use tokio::{sync::Mutex, task::JoinHandle, time::sleep};
 use tracing::{debug, info};
 use utils::{discord::indexer::IndexerWebhook, logger::configure_logger};
 
-use crate::retailer_helpers::get_retailers;
+use crate::retailers::get_retailers;
 
-mod retailer_helpers;
+mod clients;
+mod retailers;
+
+// https://nickb.dev/blog/default-musl-allocator-considered-harmful-to-performance
+#[cfg(target_env = "musl")]
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 #[derive(Parser)]
 #[command(version)]
@@ -31,7 +36,7 @@ async fn main() {
     #[cfg(not(debug_assertions))]
     let mongodb = Arc::new(MongoDBConnector::new().await);
 
-    for retailer in get_retailers(args.retailers) {
+    for mut retailer in get_retailers(args.retailers) {
         #[cfg(not(debug_assertions))]
         let db = mongodb.clone();
         let discord_webhook = discord_webhook.clone();
@@ -45,10 +50,8 @@ async fn main() {
                 .await
                 .register_retailer(retailer_name);
 
-            let mut pagination_client = PaginationClient::new(retailer);
-
-            let crawl_state = pagination_client.crawl().await;
-            let results = pagination_client.get_results();
+            let crawl_state = retailer.crawl().await;
+            let results = retailer.get_results();
 
             debug!("{:?}", results);
 
@@ -56,14 +59,14 @@ async fn main() {
                 discord_webhook
                     .lock()
                     .await
-                    .send_error(pagination_client.get_retailer_name(), err)
+                    .send_error(retailer.get_retailer_name(), err)
                     .await;
             }
 
             discord_webhook
                 .lock()
                 .await
-                .finish_retailer(retailer_name, &results, pagination_client.total_bytes_tx)
+                .finish_retailer(retailer_name, &results)
                 .await;
 
             #[cfg(not(debug_assertions))]

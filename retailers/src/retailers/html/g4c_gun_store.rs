@@ -9,7 +9,7 @@ use tracing::debug;
 
 use crate::{
     errors::RetailerError,
-    traits::{Retailer, SearchTerm},
+    structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
     utils::{ecommerce::woocommerce::WooCommerce, html::extract_element_from_element},
 };
 
@@ -17,15 +17,11 @@ const MAX_PER_PAGE: &str = "48";
 const URL: &str =
     "https://g4cgunstore.com/product-category/{category}/page/{page}/?per_page={max_per_page}";
 
-pub struct G4CGunStore {
-    retailer: RetailerName,
-}
+pub struct G4CGunStore;
 
 impl G4CGunStore {
     pub fn new() -> Self {
-        Self {
-            retailer: RetailerName::G4CGunStore,
-        }
+        Self {}
     }
 
     fn is_in_stock(element: ElementRef) -> bool {
@@ -42,16 +38,20 @@ impl G4CGunStore {
     }
 }
 
-#[async_trait]
+impl HtmlRetailerSuper for G4CGunStore {}
+
 impl Retailer for G4CGunStore {
     fn get_retailer_name(&self) -> RetailerName {
-        self.retailer
+        RetailerName::G4CGunStore
     }
+}
 
+#[async_trait]
+impl HtmlRetailer for G4CGunStore {
     async fn build_page_request(
         &self,
         page_num: u64,
-        search_term: &SearchTerm,
+        search_term: &HtmlSearchQuery,
     ) -> Result<Request, RetailerError> {
         let url = URL
             .replace("{category}", &search_term.term)
@@ -68,7 +68,7 @@ impl Retailer for G4CGunStore {
     async fn parse_response(
         &self,
         response: &String,
-        search_term: &SearchTerm,
+        search_term: &HtmlSearchQuery,
     ) -> Result<Vec<CrawlResult>, RetailerError> {
         let mut results: Vec<CrawlResult> = Vec::new();
 
@@ -96,13 +96,13 @@ impl Retailer for G4CGunStore {
         Ok(results)
     }
 
-    fn get_search_terms(&self) -> Vec<SearchTerm> {
+    fn get_search_terms(&self) -> Vec<HtmlSearchQuery> {
         let mut terms = Vec::from_iter([
-            SearchTerm {
+            HtmlSearchQuery {
                 term: "firearms".into(),
                 category: Category::Firearm,
             },
-            SearchTerm {
+            HtmlSearchQuery {
                 term: "Ammunition".into(),
                 category: Category::Ammunition,
             },
@@ -111,7 +111,7 @@ impl Retailer for G4CGunStore {
         let other_terms = ["sights-optics", "accessories"];
 
         for other in other_terms {
-            terms.push(SearchTerm {
+            terms.push(HtmlSearchQuery {
                 term: other.into(),
                 category: Category::Other,
             });

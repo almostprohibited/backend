@@ -9,7 +9,7 @@ use tracing::{debug, error};
 
 use crate::{
     errors::RetailerError,
-    traits::{Retailer, SearchTerm},
+    structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
     utils::{
         conversions::price_to_cents,
         html::{element_extract_attr, element_to_text, extract_element_from_element},
@@ -18,15 +18,11 @@ use crate::{
 
 const URL: &str = "https://firearmsoutletcanada.com/{category}?in_stock=1&page={page}";
 
-pub struct FirearmsOutletCanada {
-    retailer: RetailerName,
-}
+pub struct FirearmsOutletCanada;
 
 impl FirearmsOutletCanada {
     pub fn new() -> Self {
-        Self {
-            retailer: RetailerName::FirearmsOutletCanada,
-        }
+        Self {}
     }
 
     fn create_price(element: ElementRef) -> Result<Price, RetailerError> {
@@ -53,12 +49,20 @@ impl FirearmsOutletCanada {
     }
 }
 
-#[async_trait]
+impl HtmlRetailerSuper for FirearmsOutletCanada {}
+
 impl Retailer for FirearmsOutletCanada {
+    fn get_retailer_name(&self) -> RetailerName {
+        RetailerName::FirearmsOutletCanada
+    }
+}
+
+#[async_trait]
+impl HtmlRetailer for FirearmsOutletCanada {
     async fn build_page_request(
         &self,
         page_num: u64,
-        search_term: &SearchTerm,
+        search_term: &HtmlSearchQuery,
     ) -> Result<Request, RetailerError> {
         let body = URL
             .replace("{category}", &search_term.term)
@@ -72,7 +76,7 @@ impl Retailer for FirearmsOutletCanada {
     async fn parse_response(
         &self,
         response: &String,
-        search_term: &SearchTerm,
+        search_term: &HtmlSearchQuery,
     ) -> Result<Vec<CrawlResult>, RetailerError> {
         let mut results: Vec<CrawlResult> = Vec::new();
 
@@ -105,17 +109,17 @@ impl Retailer for FirearmsOutletCanada {
         Ok(results)
     }
 
-    fn get_search_terms(&self) -> Vec<SearchTerm> {
+    fn get_search_terms(&self) -> Vec<HtmlSearchQuery> {
         let mut terms = Vec::from_iter([
-            SearchTerm {
+            HtmlSearchQuery {
                 term: "firearms".into(),
                 category: Category::Firearm,
             },
-            SearchTerm {
+            HtmlSearchQuery {
                 term: "ammo".into(),
                 category: Category::Ammunition,
             },
-            // SearchTerm {
+            // HtmlSearchQuery {
             //     term: "airguns".into(),
             //     category: Category::Firearm,
             // },
@@ -133,7 +137,7 @@ impl Retailer for FirearmsOutletCanada {
         ];
 
         for other in other_terms {
-            terms.push(SearchTerm {
+            terms.push(HtmlSearchQuery {
                 term: other.into(),
                 category: Category::Other,
             });
@@ -180,9 +184,5 @@ impl Retailer for FirearmsOutletCanada {
 
         // for some reason, each page returns a max of exactly 52 items
         Ok(in_stock_count / 52)
-    }
-
-    fn get_retailer_name(&self) -> RetailerName {
-        self.retailer
     }
 }

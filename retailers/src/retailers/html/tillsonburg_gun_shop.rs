@@ -10,7 +10,7 @@ use tracing::{debug, warn};
 
 use crate::{
     errors::RetailerError,
-    traits::{Retailer, SearchTerm},
+    structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
     utils::{
         conversions::{price_to_cents, string_to_u64},
         html::{element_extract_attr, element_to_text, extract_element_from_element},
@@ -21,14 +21,12 @@ const MAX_PER_PAGE: &str = "100";
 const URL: &str = "https://tillsonburggunshop.com/{category}?limit={max_per_page}&page={page}";
 
 pub struct Tillsonburg {
-    retailer: RetailerName,
     page_count_regex: Regex,
 }
 
 impl Tillsonburg {
     pub fn new() -> Self {
         Self {
-            retailer: RetailerName::Tillsonburg,
             page_count_regex: Regex::new(r"\((\d+)\s+Pages\)")
                 .expect("Static regex should compile"),
         }
@@ -79,16 +77,20 @@ impl Tillsonburg {
     }
 }
 
-#[async_trait]
+impl HtmlRetailerSuper for Tillsonburg {}
+
 impl Retailer for Tillsonburg {
     fn get_retailer_name(&self) -> RetailerName {
-        self.retailer
+        RetailerName::Tillsonburg
     }
+}
 
+#[async_trait]
+impl HtmlRetailer for Tillsonburg {
     async fn build_page_request(
         &self,
         page_num: u64,
-        search_term: &SearchTerm,
+        search_term: &HtmlSearchQuery,
     ) -> Result<Request, RetailerError> {
         let url = URL
             .replace("{category}", &search_term.term)
@@ -105,7 +107,7 @@ impl Retailer for Tillsonburg {
     async fn parse_response(
         &self,
         response: &String,
-        search_term: &SearchTerm,
+        search_term: &HtmlSearchQuery,
     ) -> Result<Vec<CrawlResult>, RetailerError> {
         let mut results: Vec<CrawlResult> = Vec::new();
 
@@ -143,13 +145,13 @@ impl Retailer for Tillsonburg {
         Ok(results)
     }
 
-    fn get_search_terms(&self) -> Vec<SearchTerm> {
+    fn get_search_terms(&self) -> Vec<HtmlSearchQuery> {
         let mut terms = Vec::from_iter([
-            SearchTerm {
+            HtmlSearchQuery {
                 term: "Firearms-guns-Rifles-Shotgun-pistol-handgun-Air-gun".into(),
                 category: Category::Firearm,
             },
-            SearchTerm {
+            HtmlSearchQuery {
                 term: "Used-Firearms".into(),
                 category: Category::Firearm,
             },
@@ -164,7 +166,7 @@ impl Retailer for Tillsonburg {
         ];
 
         for other in other_terms {
-            terms.push(SearchTerm {
+            terms.push(HtmlSearchQuery {
                 term: other.into(),
                 category: Category::Other,
             });

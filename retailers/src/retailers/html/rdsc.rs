@@ -9,7 +9,7 @@ use tracing::{debug, warn};
 
 use crate::{
     errors::RetailerError,
-    traits::{Retailer, SearchTerm},
+    structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
     utils::{
         conversions::{price_to_cents, string_to_u64},
         html::{element_extract_attr, element_to_text, extract_element_from_element},
@@ -19,15 +19,11 @@ use crate::{
 const MAX_ITEMS_PER_PAGE: u64 = 24;
 const URL: &str = "https://rdsc.ca/{category}.html?p={page}";
 
-pub struct Rdsc {
-    retailer: RetailerName,
-}
+pub struct Rdsc;
 
 impl Rdsc {
     pub fn new() -> Self {
-        Self {
-            retailer: RetailerName::Rdsc,
-        }
+        Self {}
     }
 
     fn is_in_stock(element: ElementRef) -> bool {
@@ -48,16 +44,20 @@ impl Rdsc {
     }
 }
 
-#[async_trait]
+impl HtmlRetailerSuper for Rdsc {}
+
 impl Retailer for Rdsc {
     fn get_retailer_name(&self) -> RetailerName {
-        self.retailer
+        RetailerName::Rdsc
     }
+}
 
+#[async_trait]
+impl HtmlRetailer for Rdsc {
     async fn build_page_request(
         &self,
         page_num: u64,
-        search_term: &SearchTerm,
+        search_term: &HtmlSearchQuery,
     ) -> Result<Request, RetailerError> {
         let url = URL
             .replace("{category}", &search_term.term)
@@ -73,7 +73,7 @@ impl Retailer for Rdsc {
     async fn parse_response(
         &self,
         response: &String,
-        search_term: &SearchTerm,
+        search_term: &HtmlSearchQuery,
     ) -> Result<Vec<CrawlResult>, RetailerError> {
         let mut results: Vec<CrawlResult> = Vec::new();
 
@@ -117,8 +117,8 @@ impl Retailer for Rdsc {
         Ok(results)
     }
 
-    fn get_search_terms(&self) -> Vec<SearchTerm> {
-        let mut terms = Vec::from_iter([SearchTerm {
+    fn get_search_terms(&self) -> Vec<HtmlSearchQuery> {
+        let mut terms = Vec::from_iter([HtmlSearchQuery {
             term: "firearms-ammunition/ammunition".into(),
             category: Category::Ammunition,
         }]);
@@ -134,7 +134,7 @@ impl Retailer for Rdsc {
         ];
 
         for firearm in firearm_terms {
-            terms.push(SearchTerm {
+            terms.push(HtmlSearchQuery {
                 term: firearm.into(),
                 category: Category::Firearm,
             });
@@ -153,7 +153,7 @@ impl Retailer for Rdsc {
         ];
 
         for other in other_terms {
-            terms.push(SearchTerm {
+            terms.push(HtmlSearchQuery {
                 term: other.into(),
                 category: Category::Other,
             });

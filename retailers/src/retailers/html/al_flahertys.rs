@@ -1,9 +1,12 @@
 use std::{collections::HashMap, pin::Pin, time::Duration};
 
 use async_trait::async_trait;
-use common::result::{
-    base::{CrawlResult, Price},
-    enums::{Category, RetailerName},
+use common::{
+    result::{
+        base::{CrawlResult, Price},
+        enums::{Category, RetailerName},
+    },
+    utils::CRAWL_COOLDOWN_SECS,
 };
 use crawler::{
     request::{Request, RequestBuilder},
@@ -18,8 +21,7 @@ use urlencoding::encode;
 
 use crate::{
     errors::RetailerError,
-    pagination_client::CRAWL_COOLDOWN_SECS,
-    traits::{Retailer, SearchTerm},
+    structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
     utils::{
         conversions::price_to_cents,
         ecommerce::bigcommerce_nested::BigCommerceNested,
@@ -37,14 +39,12 @@ const API_URL: &str = "https://alflahertys.com/remote/v1/product-attributes/{pro
 
 pub struct AlFlahertys {
     crawler: UnprotectedCrawler,
-    retailer: RetailerName,
 }
 
 impl AlFlahertys {
     pub fn new() -> Self {
         Self {
             crawler: UnprotectedCrawler::new(),
-            retailer: RetailerName::AlFlahertys,
         }
     }
 
@@ -123,7 +123,7 @@ impl AlFlahertys {
         url: String,
         name: String,
         image: String,
-        search_param: &SearchTerm,
+        search_param: &HtmlSearchQuery,
     ) -> Result<Vec<CrawlResult>, RetailerError> {
         let mut results: Vec<CrawlResult> = Vec::new();
 
@@ -210,16 +210,20 @@ impl AlFlahertys {
     }
 }
 
-#[async_trait]
+impl HtmlRetailerSuper for AlFlahertys {}
+
 impl Retailer for AlFlahertys {
     fn get_retailer_name(&self) -> RetailerName {
-        self.retailer
+        RetailerName::AlFlahertys
     }
+}
 
+#[async_trait]
+impl HtmlRetailer for AlFlahertys {
     async fn build_page_request(
         &self,
         page_num: u64,
-        search_term: &SearchTerm,
+        search_term: &HtmlSearchQuery,
     ) -> Result<Request, RetailerError> {
         let offset = PAGE_LIMIT * page_num;
 
@@ -246,7 +250,7 @@ impl Retailer for AlFlahertys {
     async fn parse_response(
         &self,
         response: &String,
-        search_term: &SearchTerm,
+        search_term: &HtmlSearchQuery,
     ) -> Result<Vec<CrawlResult>, RetailerError> {
         let result = Self::get_result(response)?;
 
@@ -315,8 +319,8 @@ impl Retailer for AlFlahertys {
         Ok(results)
     }
 
-    fn get_search_terms(&self) -> Vec<SearchTerm> {
-        let mut terms = Vec::from_iter([SearchTerm {
+    fn get_search_terms(&self) -> Vec<HtmlSearchQuery> {
+        let mut terms = Vec::from_iter([HtmlSearchQuery {
             term: "Shooting Supplies, Firearms & Ammunition;Firearms".into(),
             category: Category::Firearm,
         }]);
@@ -329,7 +333,7 @@ impl Retailer for AlFlahertys {
         ];
 
         for ammo in ammo_terms {
-            terms.push(SearchTerm {
+            terms.push(HtmlSearchQuery {
                 term: ammo.into(),
                 category: Category::Ammunition,
             });
@@ -345,7 +349,7 @@ impl Retailer for AlFlahertys {
         ];
 
         for other in other_terms {
-            terms.push(SearchTerm {
+            terms.push(HtmlSearchQuery {
                 term: other.into(),
                 category: Category::Other,
             });

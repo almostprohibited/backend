@@ -18,6 +18,11 @@ mod routes;
 mod service_layers;
 pub(crate) mod structs;
 
+// https://nickb.dev/blog/default-musl-allocator-considered-harmful-to-performance
+#[cfg(target_env = "musl")]
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 #[tokio::main]
 async fn main() {
     configure_logger();

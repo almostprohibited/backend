@@ -24,7 +24,6 @@ struct RetailerStats {
     firearms_count: u64,
     ammo_count: u64,
     other_count: u64,
-    bytes_tx: u64,
 }
 
 impl RetailerStats {
@@ -35,7 +34,6 @@ impl RetailerStats {
             firearms_count: 0,
             ammo_count: 0,
             other_count: 0,
-            bytes_tx: 0,
         }
     }
 
@@ -68,18 +66,12 @@ impl IndexerWebhook {
         self.retailers.insert(retailer, RetailerStats::new());
     }
 
-    pub async fn finish_retailer(
-        &mut self,
-        retailer: RetailerName,
-        results: &Vec<&CrawlResult>,
-        bytes_tx: u64,
-    ) {
+    pub async fn finish_retailer(&mut self, retailer: RetailerName, results: &Vec<&CrawlResult>) {
         let Some(retailer_stats) = self.retailers.get_mut(&retailer) else {
             return;
         };
 
         retailer_stats.end_time = Some(get_current_time());
-        retailer_stats.bytes_tx = bytes_tx;
 
         for result in results {
             match result.category {
@@ -105,7 +97,7 @@ impl IndexerWebhook {
                 stats.get_total_counts()
             );
 
-            messages.push(format!("{retailer:?}\n{counts:<20}{:>10}", stats.bytes_tx));
+            messages.push(format!("{retailer:?}\n{counts:<22}"));
         }
 
         let final_message = format!("```\n{}\n```", messages.join("\n\n"));

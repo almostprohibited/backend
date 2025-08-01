@@ -9,7 +9,7 @@ use tracing::debug;
 
 use crate::{
     errors::RetailerError,
-    traits::{Retailer, SearchTerm},
+    structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
     utils::{
         conversions::price_to_cents,
         html::{element_extract_attr, element_to_text, extract_element_from_element},
@@ -19,15 +19,11 @@ use crate::{
 const ITEMS_PER_PAGE: u64 = 25;
 const URL: &str = "https://www.italiansportinggoods.com/{category}.html?product_list_limit={items_per_page}&p={page}";
 
-pub struct ItalianSportingGoods {
-    retailer: RetailerName,
-}
+pub struct ItalianSportingGoods;
 
 impl ItalianSportingGoods {
     pub fn new() -> Self {
-        Self {
-            retailer: RetailerName::ItalianSportingGoods,
-        }
+        Self {}
     }
 
     fn parse_prices(element: ElementRef) -> Result<Price, RetailerError> {
@@ -54,12 +50,20 @@ impl ItalianSportingGoods {
     }
 }
 
-#[async_trait]
+impl HtmlRetailerSuper for ItalianSportingGoods {}
+
 impl Retailer for ItalianSportingGoods {
+    fn get_retailer_name(&self) -> RetailerName {
+        RetailerName::ItalianSportingGoods
+    }
+}
+
+#[async_trait]
+impl HtmlRetailer for ItalianSportingGoods {
     async fn build_page_request(
         &self,
         page_num: u64,
-        search_term: &SearchTerm,
+        search_term: &HtmlSearchQuery,
     ) -> Result<Request, RetailerError> {
         let url = URL
             .replace("{category}", &search_term.term)
@@ -74,7 +78,7 @@ impl Retailer for ItalianSportingGoods {
     async fn parse_response(
         &self,
         response: &String,
-        search_term: &SearchTerm,
+        search_term: &HtmlSearchQuery,
     ) -> Result<Vec<CrawlResult>, RetailerError> {
         let mut results: Vec<CrawlResult> = Vec::new();
 
@@ -119,13 +123,13 @@ impl Retailer for ItalianSportingGoods {
         Ok(results)
     }
 
-    fn get_search_terms(&self) -> Vec<SearchTerm> {
+    fn get_search_terms(&self) -> Vec<HtmlSearchQuery> {
         let mut terms = Vec::from_iter([
-            SearchTerm {
+            HtmlSearchQuery {
                 term: "firearms".into(),
                 category: Category::Firearm,
             },
-            SearchTerm {
+            HtmlSearchQuery {
                 term: "ammunition".into(),
                 category: Category::Ammunition,
             },
@@ -141,7 +145,7 @@ impl Retailer for ItalianSportingGoods {
         ];
 
         for other in other_terms {
-            terms.push(SearchTerm {
+            terms.push(HtmlSearchQuery {
                 term: other.into(),
                 category: Category::Other,
             });
@@ -163,9 +167,5 @@ impl Retailer for ItalianSportingGoods {
         } else {
             Ok(0)
         }
-    }
-
-    fn get_retailer_name(&self) -> RetailerName {
-        self.retailer
     }
 }

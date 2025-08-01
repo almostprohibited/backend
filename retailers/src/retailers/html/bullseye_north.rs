@@ -9,7 +9,7 @@ use tracing::{debug, warn};
 
 use crate::{
     errors::RetailerError,
-    traits::{Retailer, SearchTerm},
+    structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
     utils::{
         conversions::{price_to_cents, string_to_u64},
         html::{element_extract_attr, element_to_text, extract_element_from_element},
@@ -21,15 +21,11 @@ const PAGE_LIMIT: u64 = 36;
 const URL: &str =
     "https://www.bullseyenorth.com/{category}/browse/perpage/{page_limit}/page/{page}";
 
-pub struct BullseyeNorth {
-    retailer: RetailerName,
-}
+pub struct BullseyeNorth;
 
 impl BullseyeNorth {
     pub fn new() -> Self {
-        Self {
-            retailer: RetailerName::BullseyeNorth,
-        }
+        Self {}
     }
 
     fn get_price(product_element: ElementRef) -> Result<Price, RetailerError> {
@@ -74,16 +70,20 @@ impl BullseyeNorth {
     }
 }
 
-#[async_trait]
+impl HtmlRetailerSuper for BullseyeNorth {}
+
 impl Retailer for BullseyeNorth {
     fn get_retailer_name(&self) -> RetailerName {
-        self.retailer
+        RetailerName::BullseyeNorth
     }
+}
 
+#[async_trait]
+impl HtmlRetailer for BullseyeNorth {
     async fn build_page_request(
         &self,
         page_num: u64,
-        search_param: &SearchTerm,
+        search_param: &HtmlSearchQuery,
     ) -> Result<Request, RetailerError> {
         let request = RequestBuilder::new()
             .set_url(
@@ -99,7 +99,7 @@ impl Retailer for BullseyeNorth {
     async fn parse_response(
         &self,
         response: &String,
-        search_term: &SearchTerm,
+        search_term: &HtmlSearchQuery,
     ) -> Result<Vec<CrawlResult>, RetailerError> {
         let mut results: Vec<CrawlResult> = Vec::new();
 
@@ -141,13 +141,13 @@ impl Retailer for BullseyeNorth {
         Ok(results)
     }
 
-    fn get_search_terms(&self) -> Vec<SearchTerm> {
+    fn get_search_terms(&self) -> Vec<HtmlSearchQuery> {
         let mut terms = Vec::from_iter([
-            SearchTerm {
+            HtmlSearchQuery {
                 term: "firearms".into(),
                 category: Category::Firearm,
             },
-            SearchTerm {
+            HtmlSearchQuery {
                 term: "ammunition".into(),
                 category: Category::Ammunition,
             },
@@ -174,7 +174,7 @@ impl Retailer for BullseyeNorth {
         ];
 
         for other in other_terms {
-            terms.push(SearchTerm {
+            terms.push(HtmlSearchQuery {
                 term: other.into(),
                 category: Category::Other,
             });

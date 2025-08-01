@@ -45,3 +45,5 @@ serde_json.workspace = true
 reqwest = { workspace = true, features = ["json", "gzip", "http2"] }
 regex.workspace = true
 clap.workspace = true
+mimalloc.workspace = true
+async-trait.workspace = true

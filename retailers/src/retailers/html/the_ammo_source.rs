@@ -8,7 +8,7 @@ use scraper::{ElementRef, Html, Selector};
 
 use crate::{
     errors::RetailerError,
-    traits::{Retailer, SearchTerm},
+    structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
     utils::{
         ecommerce::bigcommerce::BigCommerce,
         html::{element_to_text, extract_element_from_element},
@@ -17,15 +17,11 @@ use crate::{
 
 const URL: &str = "https://theammosource.com/{category}/?page={page}&in_stock=1";
 
-pub struct TheAmmoSource {
-    retailer: RetailerName,
-}
+pub struct TheAmmoSource;
 
 impl TheAmmoSource {
     pub fn new() -> Self {
-        Self {
-            retailer: RetailerName::TheAmmoSource,
-        }
+        Self {}
     }
 
     // SFRC has these sticker/lottery draws that aren't
@@ -40,12 +36,20 @@ impl TheAmmoSource {
     }
 }
 
-#[async_trait]
+impl HtmlRetailerSuper for TheAmmoSource {}
+
 impl Retailer for TheAmmoSource {
+    fn get_retailer_name(&self) -> RetailerName {
+        RetailerName::TheAmmoSource
+    }
+}
+
+#[async_trait]
+impl HtmlRetailer for TheAmmoSource {
     async fn build_page_request(
         &self,
         page_num: u64,
-        search_term: &SearchTerm,
+        search_term: &HtmlSearchQuery,
     ) -> Result<Request, RetailerError> {
         let url = URL
             .replace("{category}", &search_term.term)
@@ -59,7 +63,7 @@ impl Retailer for TheAmmoSource {
     async fn parse_response(
         &self,
         response: &String,
-        search_term: &SearchTerm,
+        search_term: &HtmlSearchQuery,
     ) -> Result<Vec<CrawlResult>, RetailerError> {
         let mut results: Vec<CrawlResult> = Vec::new();
 
@@ -83,8 +87,8 @@ impl Retailer for TheAmmoSource {
         Ok(results)
     }
 
-    fn get_search_terms(&self) -> Vec<SearchTerm> {
-        let mut terms = Vec::from_iter([SearchTerm {
+    fn get_search_terms(&self) -> Vec<HtmlSearchQuery> {
+        let mut terms = Vec::from_iter([HtmlSearchQuery {
             term: "ammunition".into(),
             category: Category::Ammunition,
         }]);
@@ -105,7 +109,7 @@ impl Retailer for TheAmmoSource {
         ];
 
         for firearm in firearm_terms {
-            terms.push(SearchTerm {
+            terms.push(HtmlSearchQuery {
                 term: firearm.into(),
                 category: Category::Firearm,
             });
@@ -121,7 +125,7 @@ impl Retailer for TheAmmoSource {
         ];
 
         for other in other_terms {
-            terms.push(SearchTerm {
+            terms.push(HtmlSearchQuery {
                 term: other.into(),
                 category: Category::Other,
             });
@@ -132,9 +136,5 @@ impl Retailer for TheAmmoSource {
 
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {
         BigCommerce::parse_max_pages(response)
-    }
-
-    fn get_retailer_name(&self) -> RetailerName {
-        self.retailer
     }
 }

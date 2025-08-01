@@ -9,7 +9,7 @@ use tracing::{debug, error};
 
 use crate::{
     errors::RetailerError,
-    traits::{Retailer, SearchTerm},
+    structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
     utils::{
         conversions::price_to_cents,
         html::{element_extract_attr, element_to_text, extract_element_from_element},
@@ -21,28 +21,28 @@ const ITEM_PER_PAGE: u64 = 255;
 const URL: &str = "https://www.canadasgunstore.ca/departments/{category}.html?top={count}";
 const BASE_URL: &str = "https://www.canadasgunstore.ca";
 
-pub struct CanadasGunStore {
-    retailer: RetailerName,
-}
+pub struct CanadasGunStore;
 
 impl CanadasGunStore {
     pub fn new() -> Self {
-        Self {
-            retailer: RetailerName::CanadasGunStore,
-        }
+        Self {}
+    }
+}
+
+impl HtmlRetailerSuper for CanadasGunStore {}
+
+impl Retailer for CanadasGunStore {
+    fn get_retailer_name(&self) -> RetailerName {
+        RetailerName::CanadasGunStore
     }
 }
 
 #[async_trait]
-impl Retailer for CanadasGunStore {
-    fn get_retailer_name(&self) -> RetailerName {
-        self.retailer
-    }
-
+impl HtmlRetailer for CanadasGunStore {
     async fn build_page_request(
         &self,
         page_num: u64,
-        search_term: &SearchTerm,
+        search_term: &HtmlSearchQuery,
     ) -> Result<Request, RetailerError> {
         let request = RequestBuilder::new()
             .set_url(
@@ -57,7 +57,7 @@ impl Retailer for CanadasGunStore {
     async fn parse_response(
         &self,
         response: &String,
-        search_term: &SearchTerm,
+        search_term: &HtmlSearchQuery,
     ) -> Result<Vec<CrawlResult>, RetailerError> {
         let mut results: Vec<CrawlResult> = Vec::new();
 
@@ -112,13 +112,13 @@ impl Retailer for CanadasGunStore {
         Ok(results)
     }
 
-    fn get_search_terms(&self) -> Vec<SearchTerm> {
+    fn get_search_terms(&self) -> Vec<HtmlSearchQuery> {
         let mut terms = Vec::from_iter([
-            SearchTerm {
+            HtmlSearchQuery {
                 term: "firearms-%7C30%7CFA".into(),
                 category: Category::Firearm,
             },
-            SearchTerm {
+            HtmlSearchQuery {
                 term: "ammunition-%7C30%7CAMM".into(),
                 category: Category::Ammunition,
             },
@@ -131,7 +131,7 @@ impl Retailer for CanadasGunStore {
         ];
 
         for other in other_terms {
-            terms.push(SearchTerm {
+            terms.push(HtmlSearchQuery {
                 term: other.into(),
                 category: Category::Other,
             });
