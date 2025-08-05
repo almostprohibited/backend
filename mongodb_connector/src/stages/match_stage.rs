@@ -89,8 +89,15 @@ impl StageDocument for MatchStage {
             );
         }
 
-        if self.category != Category::default() {
-            match_filter.insert("category", format!("{}", self.category));
+        if self.category == Category::default() {
+            match_filter.insert(
+                "category",
+                doc! {
+                    "$in": [Category::Firearm.to_string(), Category::Other.to_string()]
+                },
+            );
+        } else {
+            match_filter.insert("category", self.category.to_string());
         }
 
         [doc! {"$match": match_filter}].into()

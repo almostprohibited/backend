@@ -152,6 +152,10 @@ impl QueryParams {
 
         documents
     }
+
+    pub fn get_category(&self) -> Category {
+        self.category
+    }
 }
 
 pub(crate) trait StageDocument {
