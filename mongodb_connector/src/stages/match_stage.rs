@@ -18,14 +18,15 @@ impl MatchStage {
         min_price: Option<u32>,
         max_price: Option<u32>,
     ) -> Self {
-        let search_terms = query
+        let mut search_terms = query
             .split(" ")
             .map(|term| format!("\"{}\"", term))
-            .collect::<Vec<String>>()
-            .join(" ");
+            .collect::<Vec<String>>();
+
+        search_terms.sort();
 
         Self {
-            query: search_terms,
+            query: search_terms.join(" "),
             category,
             min_price,
             max_price,
