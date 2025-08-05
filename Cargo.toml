@@ -41,3 +41,4 @@ futures = "0.3.31"
 openssl = { version = "0.10", features = ["vendored"] }
 clap = { version = "4.5.41", features = ["derive"] }
 mimalloc = "0.1.47"
+chrono = "0.4.41"

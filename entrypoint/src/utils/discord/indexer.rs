@@ -1,5 +1,6 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::BTreeMap, sync::Arc};
 
+use chrono::{DateTime, FixedOffset, Offset, TimeZone};
 use common::{
     result::{
         base::CrawlResult,
@@ -17,9 +18,12 @@ const INDEXER_WEBHOOK: &str = "https://discord.com/api/webhooks/1375013817091625
 #[cfg(debug_assertions)]
 const INDEXER_WEBHOOK: &str = "https://discord.com/api/webhooks/1391665667987607592/qnLZbWGvfojAeLKUbspu59EMUxLL9aL8kkl76apvzl1oIk2vJ6VXYS0ZXF0pimlqUaQQ";
 
+// west offset
+const TZ_OFFSET: i32 = 7 * 3600;
+
 #[derive(Debug)]
 struct RetailerStats {
-    start_time: Option<u64>,
+    start_time: u64,
     end_time: Option<u64>,
     firearms_count: u64,
     ammo_count: u64,
@@ -29,7 +33,7 @@ struct RetailerStats {
 impl RetailerStats {
     fn new() -> Self {
         Self {
-            start_time: None,
+            start_time: get_current_time(),
             end_time: None,
             firearms_count: 0,
             ammo_count: 0,
@@ -42,10 +46,19 @@ impl RetailerStats {
     }
 }
 
+fn timestamp_to_human_local(time: u64) -> DateTime<FixedOffset> {
+    DateTime::from_timestamp(time as i64, 0)
+        .expect("Creating DateTime should not fail until the year 292 million")
+        .with_timezone(
+            &FixedOffset::west_opt(TZ_OFFSET).expect("This should always be valid timezone"),
+        )
+}
+
 pub struct IndexerWebhook {
     http: Arc<Http>,
     webhook: Arc<Webhook>,
-    retailers: HashMap<RetailerName, RetailerStats>,
+    // BTreeMap is used over HashMap since BTreeMap sort themselves
+    retailers: BTreeMap<RetailerName, RetailerStats>,
     main_message: Option<MessageId>,
 }
 
@@ -57,7 +70,7 @@ impl IndexerWebhook {
         Self {
             http: client.clone(),
             webhook: webhook.clone(),
-            retailers: HashMap::new(),
+            retailers: BTreeMap::new(),
             main_message: None,
         }
     }
@@ -97,7 +110,15 @@ impl IndexerWebhook {
                 stats.get_total_counts()
             );
 
-            messages.push(format!("{retailer:?}\n{counts:<22}"));
+            let end_time = match stats.end_time {
+                Some(time) => timestamp_to_human_local(time).to_string(),
+                None => "<running>".to_string(),
+            };
+
+            messages.push(format!(
+                "{retailer:?}\n{} -> {end_time}\n{counts:<22}",
+                timestamp_to_human_local(stats.start_time)
+            ));
         }
 
         let final_message = format!("```\n{}\n```", messages.join("\n\n"));

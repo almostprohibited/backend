@@ -47,3 +47,4 @@ regex.workspace = true
 clap.workspace = true
 mimalloc.workspace = true
 async-trait.workspace = true
+chrono.workspace = true

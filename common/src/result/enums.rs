@@ -19,7 +19,9 @@ impl Display for Category {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize, Hash, Eq, PartialEq, ValueEnum)]
+#[derive(
+    Clone, Copy, Debug, Deserialize, Serialize, Hash, Eq, PartialEq, ValueEnum, Ord, PartialOrd,
+)]
 pub enum RetailerName {
     ReliableGun,
     LeverArms,
