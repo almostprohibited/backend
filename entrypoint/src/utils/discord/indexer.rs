@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, sync::Arc};
+use std::{cmp::max, collections::BTreeMap, sync::Arc};
 
 use chrono::{DateTime, FixedOffset};
 use common::{
@@ -120,7 +120,7 @@ impl IndexerWebhook {
                 stats.get_total_counts(),
                 stats.ammo_count,
                 stats.ammo_count_with_metadata,
-                100.0 * (stats.ammo_count_with_metadata / stats.ammo_count) as f32
+                100.0 * (stats.ammo_count_with_metadata as f32 / max(stats.ammo_count, 1) as f32)
             );
 
             let end_time = match stats.end_time {
