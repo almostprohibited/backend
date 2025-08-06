@@ -26,7 +26,11 @@ struct RetailerStats {
     start_time: u64,
     end_time: Option<u64>,
     firearms_count: u64,
+    // Total ammo count
     ammo_count: u64,
+    // Total ammo with metadata (ie. round count)
+    // ammo_count >= ammo_count_with_metadata
+    ammo_count_with_metadata: u64,
     other_count: u64,
 }
 
@@ -37,6 +41,7 @@ impl RetailerStats {
             end_time: None,
             firearms_count: 0,
             ammo_count: 0,
+            ammo_count_with_metadata: 0,
             other_count: 0,
         }
     }
@@ -89,7 +94,13 @@ impl IndexerWebhook {
         for result in results {
             match result.category {
                 Category::Firearm => retailer_stats.firearms_count += 1,
-                Category::Ammunition => retailer_stats.ammo_count += 1,
+                Category::Ammunition => {
+                    retailer_stats.ammo_count += 1;
+
+                    if result.metadata.is_some() {
+                        retailer_stats.ammo_count_with_metadata += 1;
+                    }
+                }
                 Category::Other => retailer_stats.other_count += 1,
                 Category::_All => {}
             }
@@ -103,11 +114,13 @@ impl IndexerWebhook {
 
         for (retailer, stats) in &self.retailers {
             let counts = format!(
-                "{} / {} / {} / {}",
+                "F: {:^7} | O: {:^7} | T: {:^7}\nA: {:^7}/{:^7} ({:.2}%)",
                 stats.firearms_count,
-                stats.ammo_count,
                 stats.other_count,
-                stats.get_total_counts()
+                stats.get_total_counts(),
+                stats.ammo_count,
+                stats.ammo_count_with_metadata,
+                100.0 * (stats.ammo_count_with_metadata / stats.ammo_count) as f32
             );
 
             let end_time = match stats.end_time {
