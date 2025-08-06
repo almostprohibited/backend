@@ -304,11 +304,18 @@ impl BigCommerceNested {
         Ok(query_params)
     }
 
-    fn get_name(item_name: &String, variants: &Vec<FormValuePair>) -> String {
+    fn get_name(item_name: &String, variants: &Vec<FormValuePair>, category: Category) -> String {
         let combined_sub_names: String = variants
             .iter()
             .flat_map(|pair| {
-                let name = format!(" - {}", pair.attr_name);
+                // special handling for round counts (add "rds" if the attr_name is something like "20")
+                let name = match category == Category::Ammunition
+                    && pair.attr_name.parse::<u64>().is_ok()
+                {
+                    true => format!(" - {}rds", pair.attr_name),
+                    false => format!(" - {}", pair.attr_name),
+                };
+
                 name.chars().collect::<Vec<_>>()
             })
             .collect();
@@ -397,7 +404,7 @@ impl BigCommerceNested {
 
             let price = Self::get_price_from_object(data)?;
 
-            let name = Self::get_name(&item_name, &variants);
+            let name = Self::get_name(&item_name, &variants, category);
             let image = Self::get_image_url(&data).unwrap_or(fallback_image_url.clone());
 
             let new_result =

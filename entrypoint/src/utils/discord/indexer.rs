@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, sync::Arc};
 
-use chrono::{DateTime, FixedOffset, Offset, TimeZone};
+use chrono::{DateTime, FixedOffset};
 use common::{
     result::{
         base::CrawlResult,
@@ -18,7 +18,7 @@ const INDEXER_WEBHOOK: &str = "https://discord.com/api/webhooks/1375013817091625
 #[cfg(debug_assertions)]
 const INDEXER_WEBHOOK: &str = "https://discord.com/api/webhooks/1391665667987607592/qnLZbWGvfojAeLKUbspu59EMUxLL9aL8kkl76apvzl1oIk2vJ6VXYS0ZXF0pimlqUaQQ";
 
-// west offset
+// PT offset
 const TZ_OFFSET: i32 = 7 * 3600;
 
 #[derive(Debug)]

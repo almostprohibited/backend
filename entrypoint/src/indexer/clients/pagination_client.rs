@@ -29,10 +29,6 @@ pub(crate) struct PaginationClient {
 impl Client for PaginationClient {
     async fn crawl(&mut self) -> Result<(), RetailerError> {
         for term in self.retailer.get_search_terms() {
-            if term.category == Category::Ammunition {
-                continue;
-            }
-
             self.paginate_calls(term).await?;
         }
 

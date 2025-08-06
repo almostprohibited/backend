@@ -125,9 +125,11 @@ impl HtmlRetailer for CalgaryShootingCentre {
 
             let price_element = extract_element_from_element(product, "span.price--main")?;
 
-            if element_to_text(price_element).contains("-") {
-                // this is a nested firearm, there are models inside
-                // the URL that have different prices
+            // CSC doesn't list round count in the title: force the crawler to visit the page
+            // a `-` indicates variants, meaning we have to visit page
+            if element_to_text(price_element).contains("-")
+                || search_term.category == Category::Ammunition
+            {
                 nested_handlers.push(Box::pin(
                     BigCommerceNested::parse_nested(
                         API_URL,

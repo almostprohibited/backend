@@ -111,7 +111,7 @@ impl ApiCategories {
                     "/categories/Rifles/" | "categories/Shotguns/" => {
                         return Some(Category::Firearm);
                     }
-                    // "/ammunition/" => return Some(Category::Ammunition),
+                    "/ammunition/" => return Some(Category::Ammunition),
                     "/reloading-equipment/"
                     | "/reloading-components/"
                     | "/rifle-scopes/"
