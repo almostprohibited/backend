@@ -1,5 +1,3 @@
-use tracing::error;
-
 use crate::errors::RetailerError;
 
 /// Is capable of parsing the following into total cents:
@@ -31,7 +29,6 @@ pub(crate) fn price_to_cents(price: String) -> Result<u64, RetailerError> {
             Ok(parsed_dollars * 100 + parsed_cents)
         }
         None => {
-            error!("Failed to parse price, missing divider: {}", price);
             return Err(RetailerError::InvalidNumber(price));
         }
     }
@@ -39,7 +36,6 @@ pub(crate) fn price_to_cents(price: String) -> Result<u64, RetailerError> {
 
 pub(crate) fn string_to_u64(string: String) -> Result<u64, RetailerError> {
     let Ok(parsed_cents) = string.parse::<u64>() else {
-        error!("Failed to parse string into u64 {}", string);
         return Err(RetailerError::InvalidNumber(string));
     };
 

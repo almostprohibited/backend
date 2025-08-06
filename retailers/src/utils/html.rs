@@ -1,5 +1,4 @@
 use scraper::{ElementRef, Selector};
-use tracing::error;
 
 use crate::errors::RetailerError;
 
@@ -14,10 +13,6 @@ pub(crate) fn element_extract_attr(
     let attribute: String = attr_name.into();
 
     let Some(attr_value) = element.attr(&attribute) else {
-        error!(
-            "Failed to find attribute {} in element {:?}",
-            attribute, element
-        );
         return Err(RetailerError::HtmlElementMissingAttribute(
             attribute,
             element.html(),
@@ -36,11 +31,6 @@ pub(crate) fn extract_element_from_element(
     let selector = Selector::parse(&query).unwrap();
 
     let Some(query_element) = element.select(&selector).next() else {
-        error!(
-            "Failed to find element '{}' in parent element {:?}",
-            query, element
-        );
-
         return Err(RetailerError::HtmlMissingElement(query));
     };
 
