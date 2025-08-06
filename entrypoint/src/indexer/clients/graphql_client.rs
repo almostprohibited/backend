@@ -2,7 +2,10 @@ use std::{collections::HashSet, time::Duration};
 
 use async_trait::async_trait;
 use common::{
-    result::{base::CrawlResult, enums::RetailerName},
+    result::{
+        base::CrawlResult,
+        enums::{Category, RetailerName},
+    },
     utils::CRAWL_COOLDOWN_SECS,
 };
 use crawler::unprotected::UnprotectedCrawler;
@@ -10,7 +13,7 @@ use retailers::{errors::RetailerError, structures::GqlRetailerSuper};
 use tokio::time::sleep;
 use tracing::debug;
 
-use crate::clients::base::Client;
+use crate::clients::base::{Client, get_ammo_metadata};
 
 pub(crate) struct GqlClient {
     retailer: Box<dyn GqlRetailerSuper>,
@@ -42,8 +45,17 @@ impl Client for GqlClient {
 
             pagination_token = self.retailer.get_pagination_token(&response_body)?;
 
-            self.results
-                .extend(self.retailer.parse_response(&response_body).await?);
+            let results = self.retailer.parse_response(&response_body).await?;
+
+            for mut crawled_result in results {
+                if crawled_result.category == Category::Ammunition {
+                    if let Some(metadata) = get_ammo_metadata(&crawled_result.name) {
+                        crawled_result.set_metadata(metadata);
+                    }
+                }
+
+                self.results.insert(crawled_result);
+            }
 
             if pagination_token.is_none() {
                 break;

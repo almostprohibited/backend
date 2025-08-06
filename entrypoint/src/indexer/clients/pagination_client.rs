@@ -16,7 +16,7 @@ use retailers::{
 use tokio::time::sleep;
 use tracing::{debug, trace};
 
-use crate::clients::base::Client;
+use crate::clients::base::{Client, get_ammo_metadata};
 
 pub(crate) struct PaginationClient {
     retailer: Box<dyn HtmlRetailerSuper>,
@@ -75,18 +75,16 @@ impl PaginationClient {
             self.update_max_pages(self.retailer.get_num_pages(&response)?);
             debug!("Changing max pages to {}", self.max_pages);
 
-            let inner_results = self.retailer.parse_response(&response, &term).await?;
+            let results = self.retailer.parse_response(&response, &term).await?;
 
-            for inner in inner_results {
-                let name = inner.name.clone();
-
-                let insert_result = self.results.insert(inner);
-
-                if !insert_result {
-                    debug!("Failed to insert '{name}', hashed entry exists");
-                } else {
-                    debug!("Inserted '{name}'");
+            for mut crawled_result in results {
+                if crawled_result.category == Category::Ammunition {
+                    if let Some(metadata) = get_ammo_metadata(&crawled_result.name) {
+                        crawled_result.set_metadata(metadata);
+                    }
                 }
+
+                self.results.insert(crawled_result);
             }
 
             current_page = current_page + 1;

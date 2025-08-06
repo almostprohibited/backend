@@ -90,4 +90,8 @@ impl CrawlResult {
         self.metadata = Some(metadata);
         self
     }
+
+    pub fn set_metadata(&mut self, metadata: Metadata) {
+        self.metadata = Some(metadata);
+    }
 }
