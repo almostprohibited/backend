@@ -114,7 +114,7 @@ impl IndexerWebhook {
 
         for (retailer, stats) in &self.retailers {
             let counts = format!(
-                "F: {:^7} | O: {:^7} | T: {:^7}\nA: {:^7}/{:^7} ({:.2}%)",
+                "F: {} | O: {} | T: {}\nA: {}/{} ({:.2}%)",
                 stats.firearms_count,
                 stats.other_count,
                 stats.get_total_counts(),
@@ -129,7 +129,7 @@ impl IndexerWebhook {
             };
 
             messages.push(format!(
-                "{retailer:?}\n{} -> {end_time}\n{counts:<22}",
+                "{retailer:?}\n{} -> {end_time}\n{counts}",
                 timestamp_to_human_local(stats.start_time)
             ));
         }
