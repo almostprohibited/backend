@@ -1,6 +1,6 @@
 use std::{cmp::max, collections::BTreeMap, sync::Arc};
 
-use chrono::{DateTime, FixedOffset};
+// use chrono::{DateTime, FixedOffset};
 use common::{
     result::{
         base::CrawlResult,
@@ -19,7 +19,7 @@ const INDEXER_WEBHOOK: &str = "https://discord.com/api/webhooks/1375013817091625
 const INDEXER_WEBHOOK: &str = "https://discord.com/api/webhooks/1391665667987607592/qnLZbWGvfojAeLKUbspu59EMUxLL9aL8kkl76apvzl1oIk2vJ6VXYS0ZXF0pimlqUaQQ";
 
 // PT offset
-const TZ_OFFSET: i32 = 7 * 3600;
+// const TZ_OFFSET: i32 = 7 * 3600;
 
 #[derive(Debug)]
 struct RetailerStats {
@@ -51,13 +51,13 @@ impl RetailerStats {
     }
 }
 
-fn timestamp_to_human_local(time: u64) -> DateTime<FixedOffset> {
-    DateTime::from_timestamp(time as i64, 0)
-        .expect("Creating DateTime should not fail until the year 292 million")
-        .with_timezone(
-            &FixedOffset::west_opt(TZ_OFFSET).expect("This should always be valid timezone"),
-        )
-}
+// fn timestamp_to_human_local(time: u64) -> DateTime<FixedOffset> {
+//     DateTime::from_timestamp(time as i64, 0)
+//         .expect("Creating DateTime should not fail until the year 292 million")
+//         .with_timezone(
+//             &FixedOffset::west_opt(TZ_OFFSET).expect("This should always be valid timezone"),
+//         )
+// }
 
 pub struct IndexerWebhook {
     http: Arc<Http>,
@@ -118,19 +118,19 @@ impl IndexerWebhook {
                 stats.firearms_count,
                 stats.other_count,
                 stats.get_total_counts(),
-                stats.ammo_count,
                 stats.ammo_count_with_metadata,
+                stats.ammo_count,
                 100.0 * (stats.ammo_count_with_metadata as f32 / max(stats.ammo_count, 1) as f32)
             );
 
-            let end_time = match stats.end_time {
-                Some(time) => timestamp_to_human_local(time).to_string(),
-                None => "<running>".to_string(),
-            };
+            // let end_time = match stats.end_time {
+            //     Some(time) => timestamp_to_human_local(time).to_string(),
+            //     None => "<running>".to_string(),
+            // };
 
             messages.push(format!(
-                "{retailer:?}\n{} -> {end_time}\n{counts}",
-                timestamp_to_human_local(stats.start_time)
+                "{retailer:?}\n{counts}",
+                // timestamp_to_human_local(stats.start_time)
             ));
         }
 
