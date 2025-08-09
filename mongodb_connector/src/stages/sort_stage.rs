@@ -22,30 +22,52 @@ impl StageDocument for SortStage {
             }
         };
 
-        let document = match self.sort {
-            Sort::Relevant => doc! {
-                "$sort": {
-                    "score": {
-                        "$meta": "textScore"
-                    }
-                }
-            },
-            Sort::PriceAsc => doc! {
-                "$sort": {
-                    "final_price": 1
-                }
-            },
-            Sort::PriceDesc => doc! {
-                "$sort": {
-                    "final_price": -1
-                }
-            },
-        };
-
         if let Sort::Relevant = self.sort {
-            return [document].into();
+            let docs = [
+                doc! {
+                    "$addFields": {
+                        "score": {
+                            "$meta": "textScore"
+                        }
+                    }
+                },
+                doc! {
+                    "$sort": {
+                        "score": -1,
+                        "_id": 1
+                    }
+                },
+            ];
+
+            return docs.into();
         };
 
-        [final_price, document].into()
+        if let Sort::PriceAsc = self.sort {
+            let docs = [
+                final_price,
+                doc! {
+                    "$sort": {
+                        "final_price": 1
+                    }
+                },
+            ];
+
+            return docs.into();
+        };
+
+        if let Sort::PriceDesc = self.sort {
+            let docs = [
+                final_price,
+                doc! {
+                    "$sort": {
+                        "final_price": -1
+                    }
+                },
+            ];
+
+            return docs.into();
+        };
+
+        [].into()
     }
 }
