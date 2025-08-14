@@ -32,14 +32,14 @@ runs:
       shell: bash
     - name: Update and deploy MongoDB
       if: inputs.deployment-stage == 'release'
-      env:
-        VOLUME_PATH: ${{ inputs.docker-volume-path }}
       run: |
         set -ueo pipefail
 
         cd ./.deployment/backend
 
-        mkdir $VOLUME_PATH/prometheus
+        export VOLUME_PATH=${{ inputs.docker-volume-path }}
+
+        mkdir -p $VOLUME_PATH/prometheus
         touch $VOLUME_PATH/prometheus/prometheus.yml || true
 
         docker compose -f docker-compose.yaml pull mongo mongo-express prometheus grafana
