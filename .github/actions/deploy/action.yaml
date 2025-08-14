@@ -52,6 +52,8 @@ runs:
         
         cd ./.deployment/backend
 
+        export VOLUME_PATH=${{ inputs.docker-volume-path }}
+
         docker compose -f docker-compose.yaml pull backend-${{ inputs.deployment-stage }}
         docker compose -f docker-compose.yaml down backend-${{ inputs.deployment-stage }}
         docker compose -f docker-compose.yaml up -d backend-${{ inputs.deployment-stage }}
