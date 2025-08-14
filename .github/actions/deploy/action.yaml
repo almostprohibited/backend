@@ -28,6 +28,8 @@ runs:
       shell: bash
     - name: Update and deploy MongoDB
       if: inputs.deployment-stage == 'release'
+      env:
+        VOLUME_PATH: ${{ vars.VOLUME_PATH }}
       run: |
         set -ueo pipefail
 
