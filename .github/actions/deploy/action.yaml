@@ -13,6 +13,10 @@ inputs:
     required: true
     description: "The environment to install the systemd services into"
     options: ["release", "beta"]
+  docker-volume-path:
+    type: string
+    required: true
+    description: "Path on machine to Docker mounts"
 runs:
   using: 'composite'
   steps:
@@ -29,7 +33,7 @@ runs:
     - name: Update and deploy MongoDB
       if: inputs.deployment-stage == 'release'
       env:
-        VOLUME_PATH: ${{ vars.VOLUME_PATH }}
+        VOLUME_PATH: ${{ inputs.docker-volume-path }}
       run: |
         set -ueo pipefail
 

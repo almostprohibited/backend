@@ -27,3 +27,4 @@ jobs:
           deployment-package-token: ${{ secrets.DEPLOYMENT_ACCESS }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           deployment-stage: ${{ env.STAGE }}
+          docker-volume-path: ${{ vars.VOLUME_PATH }}
