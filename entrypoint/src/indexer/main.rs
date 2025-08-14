@@ -1,5 +1,6 @@
 use clap::Parser;
 use common::result::enums::RetailerName;
+use metrics::_private::PROVIDER;
 use mongodb_connector::connector::MongoDBConnector;
 use std::{sync::Arc, time::Duration};
 use tokio::{sync::Mutex, task::JoinHandle, time::sleep};
@@ -88,4 +89,6 @@ async fn main() {
         .await
         .send_message("Process complete".into())
         .await;
+
+    let _ = PROVIDER.shutdown();
 }

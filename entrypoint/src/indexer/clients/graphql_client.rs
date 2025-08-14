@@ -54,6 +54,8 @@ impl Client for GqlClient {
                     }
                 }
 
+                self.emit_metrics(&crawled_result);
+
                 self.results.insert(crawled_result);
             }
 

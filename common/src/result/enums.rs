@@ -44,6 +44,12 @@ pub enum RetailerName {
     ProphetRiver,
 }
 
+impl RetailerName {
+    pub fn to_string(&self) -> String {
+        format!("{self:?}")
+    }
+}
+
 #[derive(Deserialize, Serialize, Debug)]
 pub enum ActionType {
     SemiAuto,

@@ -25,6 +25,7 @@ test = false
 doc = false
 
 [dependencies]
+metrics.workspace = true
 retailers.workspace = true
 crawler.workspace = true
 mongodb_connector.workspace = true

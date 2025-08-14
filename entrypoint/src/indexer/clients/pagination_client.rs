@@ -84,6 +84,8 @@ impl PaginationClient {
                     }
                 }
 
+                self.emit_metrics(&crawled_result);
+
                 self.results.insert(crawled_result);
             }
 

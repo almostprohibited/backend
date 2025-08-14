@@ -33,9 +33,12 @@ runs:
 
         cd ./.deployment/backend
 
-        docker compose -f docker-compose.yaml pull mongo mongo-express
-        docker compose -f docker-compose.yaml down mongo mongo-express
-        docker compose -f docker-compose.yaml up -d mongo mongo-express
+        mkdir $VOLUME_PATH/prometheus
+        touch $VOLUME_PATH/prometheus/prometheus.yml || true
+
+        docker compose -f docker-compose.yaml pull mongo mongo-express prometheus grafana
+        docker compose -f docker-compose.yaml down mongo mongo-express prometheus grafana
+        docker compose -f docker-compose.yaml up -d mongo mongo-express prometheus grafana
       shell: bash
     - name: Update and deploy backend
       run: |

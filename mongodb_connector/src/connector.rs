@@ -1,10 +1,18 @@
+use std::{env, sync::LazyLock};
+
 use common::{messages::Message, result::base::CrawlResult};
 use mongodb::{Client, Collection, IndexModel, bson::doc};
 use tracing::debug;
 
 use crate::{stages::traits::QueryParams, structs::Count};
 
-const CONNECTION_URI: &str = "mongodb://root:root@localhost:27017";
+const CONNECTION_URI: LazyLock<String> = LazyLock::new(|| {
+    let host = env::var("MONGO_DB_HOST").unwrap_or("localhost".into());
+    let port = env::var("MONGO_DB_PORT").unwrap_or("27017".into());
+
+    format!("mongodb://root:root@{host}:{port}")
+});
+
 const DATABASE_NAME: &str = "project-carbon";
 const COLLECTION_CRAWL_RESULTS_NAME: &str = "crawl-results";
 const COLLECTION_MESSAGES_NAME: &str = "messages";
@@ -17,7 +25,9 @@ pub struct MongoDBConnector {
 
 impl MongoDBConnector {
     pub async fn new() -> Self {
-        let client = Client::with_uri_str(CONNECTION_URI).await.unwrap();
+        let client = Client::with_uri_str(CONNECTION_URI.to_string())
+            .await
+            .unwrap();
 
         Self::initialize(client.clone()).await;
 
