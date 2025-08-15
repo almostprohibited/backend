@@ -114,7 +114,10 @@ impl GqlRetailer for ProphetRiver {
             }
 
             let Some(category) = node.categories.get_category() else {
-                warn!("Skipping unrecognized item: {}", node.name);
+                warn!(
+                    "Skipping unrecognized item: {} (listed under {:?})",
+                    node.name, node.categories
+                );
                 continue;
             };
 
