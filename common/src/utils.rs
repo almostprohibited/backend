@@ -1,4 +1,7 @@
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::{
+    env,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 pub const CRAWL_COOLDOWN_SECS: u64 = 10;
 
@@ -7,4 +10,8 @@ pub fn get_current_time() -> u64 {
         .duration_since(UNIX_EPOCH)
         .unwrap() // this should not fail since the current time is always > UNIX_EPOCH
         .as_secs()
+}
+
+pub fn is_beta_environment() -> bool {
+    env::var("STAGE").unwrap_or_default() == "beta"
 }

@@ -5,7 +5,6 @@ on:
   workflow_dispatch:
 env:
   STAGE: "beta"
-  VOLUME_PATH: ${{ vars.VOLUME_PATH }}
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -28,4 +27,4 @@ jobs:
           deployment-package-token: ${{ secrets.DEPLOYMENT_ACCESS }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           deployment-stage: ${{ env.STAGE }}
-          docker-volume-path: ${{ env.VOLUME_PATH }}
+          docker-volume-path: ${{ vars.VOLUME_PATH }}

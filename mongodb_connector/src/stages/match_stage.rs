@@ -1,4 +1,7 @@
-use common::{result::enums::Category, utils::get_current_time};
+use common::{
+    result::enums::Category,
+    utils::{get_current_time, is_beta_environment},
+};
 use mongodb::bson::{Document, doc};
 use tracing::trace;
 
@@ -89,11 +92,17 @@ impl StageDocument for MatchStage {
             );
         }
 
+        let mut all_category = vec![Category::Firearm.to_string(), Category::Other.to_string()];
+
+        if is_beta_environment() {
+            all_category.push(Category::Ammunition.to_string());
+        }
+
         if self.category == Category::default() {
             match_filter.insert(
                 "category",
                 doc! {
-                    "$in": [Category::Firearm.to_string(), Category::Other.to_string()]
+                    "$in": all_category
                 },
             );
         } else {
