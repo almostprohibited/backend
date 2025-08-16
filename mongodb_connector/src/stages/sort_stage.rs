@@ -31,12 +31,12 @@ impl StageDocument for SortStage {
                         }
                     }
                 },
-                doc! {
-                    "$sort": {
-                        "score": -1,
-                        "_id": 1
-                    }
-                },
+                // doc! {
+                //     "$sort": {
+                //         "score": -1,
+                //         "_id": 1
+                //     }
+                // },
             ];
 
             return docs.into();
