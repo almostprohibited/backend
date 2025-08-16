@@ -43,7 +43,7 @@ pub mod _private {
 
     use opentelemetry::{
         global,
-        metrics::{Gauge, Meter},
+        metrics::{Counter, Meter},
     };
     use opentelemetry_otlp::{MetricExporter, Protocol, WithExportConfig};
     use opentelemetry_sdk::{
@@ -79,11 +79,11 @@ pub mod _private {
             .build()
     });
 
-    pub static GAUGES: LazyLock<HashMap<Metrics, Gauge<u64>>> = LazyLock::new(|| {
-        let mut mapping: HashMap<Metrics, Gauge<u64>> = HashMap::new();
+    pub static COUNTERS: LazyLock<HashMap<Metrics, Counter<u64>>> = LazyLock::new(|| {
+        let mut mapping: HashMap<Metrics, Counter<u64>> = HashMap::new();
 
         for metric in crate::Metrics::iter() {
-            let metric_meter = OTEL_METER.u64_gauge(metric.to_string()).build();
+            let metric_meter = OTEL_METER.u64_counter(metric.to_string()).build();
 
             mapping.insert(metric, metric_meter);
         }
@@ -95,7 +95,7 @@ pub mod _private {
 #[macro_export]
 macro_rules! put_metric {
     ($metric_name:expr, $added_value:expr $(, $key:literal => $value:expr)* $(,)?) => {
-        use $crate::_private::{KeyValue, GAUGES};
+        use $crate::_private::{KeyValue, COUNTERS};
         use $crate::Metrics;
 
         let metric_name: Metrics = $metric_name;
@@ -105,9 +105,9 @@ macro_rules! put_metric {
             $(KeyValue::new($key, $value),)*
         ];
 
-        GAUGES
+        COUNTERS
             .get(&metric_name)
             .unwrap()
-            .record(added_value, attributes);
+            .add(added_value, attributes);
     };
 }
