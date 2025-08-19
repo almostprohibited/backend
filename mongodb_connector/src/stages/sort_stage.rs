@@ -14,10 +14,28 @@ impl SortStage {
 
 impl StageDocument for SortStage {
     fn get_stage_documents(&self) -> Vec<Document> {
+        // TODO: wtf
         let final_price = doc! {
             "$addFields": {
-                "final_price": {
+                "product_price": {
                     "$ifNull": ["$price.sale_price", "$price.regular_price"]
+                },
+                "round_count": {
+                    "$ifNull": ["$metadata.Ammunition.round_count", 0]
+                },
+                "product_price_by_round": {
+                    "$cond": {
+                        "if": {
+                            "$gt": ["$round_count", 0]
+                        },
+                        "then": {
+                            "$divide": ["$product_price", "$round_count"]
+                        },
+                        "else": null
+                    },
+                },
+                "final_price": {
+                    "$ifNull": ["$product_price_by_round", "$price.sale_price", "$price.regular_price"]
                 }
             }
         };
