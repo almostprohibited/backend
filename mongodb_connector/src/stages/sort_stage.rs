@@ -14,78 +14,97 @@ impl SortStage {
 
 impl StageDocument for SortStage {
     fn get_stage_documents(&self) -> Vec<Document> {
+        let mut sort_docs: Vec<Document> = vec![];
+
         // TODO: wtf
-        let final_price = doc! {
-            "$addFields": {
-                "product_price": {
-                    "$ifNull": ["$price.sale_price", "$price.regular_price"]
-                },
-                "round_count": {
-                    "$ifNull": ["$metadata.Ammunition.round_count", 0]
-                },
-                "product_price_by_round": {
-                    "$cond": {
-                        "if": {
-                            "$gt": ["$round_count", 0]
-                        },
-                        "then": {
-                            "$divide": ["$product_price", "$round_count"]
-                        },
-                        "else": null
+        let final_price = vec![
+            doc! {
+                "$addFields": {
+                    "product_price": {
+                        "$ifNull": ["$price.sale_price", "$price.regular_price"]
                     },
-                },
-                "final_price": {
-                    "$ifNull": ["$product_price_by_round", "$price.sale_price", "$price.regular_price"]
+                    "round_count": {
+                        "$ifNull": [
+                            {
+                                "$getField": {
+                                    "field": "round_count",
+                                    "input": {
+                                        "$getField": {
+                                            "field": "Ammunition",
+                                            "input": "$metadata"
+                                        }
+                                    }
+                                }
+                            },
+                            0
+                        ]
+                    },
+
                 }
+            },
+            doc! {
+                "$addFields": {
+                    "product_price_by_round": {
+                        "$cond": {
+                            "if": {
+                                "$gt": ["$round_count", 0]
+                            },
+                            "then": {
+                                "$divide": ["$product_price", "$round_count"]
+                            },
+                            "else": null
+                        }
+                    }
+                }
+            },
+            doc! {
+                "$addFields": {
+                    "final_price": {
+                        "$ifNull": ["$product_price_by_round", "$product_price"]
+                    }
+                }
+            },
+        ];
+
+        match self.sort {
+            Sort::Relevant => {
+                sort_docs.extend([
+                    doc! {
+                        "$addFields": {
+                            "score": {
+                                "$meta": "textScore"
+                            }
+                        }
+                    },
+                    doc! {
+                        "$sort": {
+                            "score": -1,
+                            "query_time": -1,
+                            "_id": 1
+                        }
+                    },
+                ]);
+            }
+            Sort::PriceAsc => {
+                sort_docs.extend(final_price);
+                sort_docs.push(doc! {
+                    "$sort": {
+                        "final_price": 1,
+                        "product_price": 1
+                    }
+                });
+            }
+            Sort::PriceDesc => {
+                sort_docs.extend(final_price);
+                sort_docs.push(doc! {
+                    "$sort": {
+                        "final_price": -1,
+                        "product_price": -1
+                    }
+                });
             }
         };
 
-        if let Sort::Relevant = self.sort {
-            let docs = [
-                doc! {
-                    "$addFields": {
-                        "score": {
-                            "$meta": "textScore"
-                        }
-                    }
-                },
-                // doc! {
-                //     "$sort": {
-                //         "score": -1,
-                //         "_id": 1
-                //     }
-                // },
-            ];
-
-            return docs.into();
-        };
-
-        if let Sort::PriceAsc = self.sort {
-            let docs = [
-                final_price,
-                doc! {
-                    "$sort": {
-                        "final_price": 1
-                    }
-                },
-            ];
-
-            return docs.into();
-        };
-
-        if let Sort::PriceDesc = self.sort {
-            let docs = [
-                final_price,
-                doc! {
-                    "$sort": {
-                        "final_price": -1
-                    }
-                },
-            ];
-
-            return docs.into();
-        };
-
-        [].into()
+        sort_docs
     }
 }

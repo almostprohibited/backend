@@ -1,7 +1,7 @@
 use std::{env, sync::LazyLock};
 
 use common::{messages::Message, result::base::CrawlResult};
-use mongodb::{Client, Collection, IndexModel, bson::doc};
+use mongodb::{Client, Collection, IndexModel, bson::doc, options::IndexOptions};
 use tracing::debug;
 
 use crate::{stages::traits::QueryParams, structs::Count};
@@ -16,6 +16,11 @@ const CONNECTION_URI: LazyLock<String> = LazyLock::new(|| {
 const DATABASE_NAME: &str = "project-carbon";
 const COLLECTION_CRAWL_RESULTS_NAME: &str = "crawl-results";
 const COLLECTION_MESSAGES_NAME: &str = "messages";
+
+// TODO: I should have assigned a name to the index
+// when I created this thing, todo to refactor this
+const SEARCH_INDEX_NAME: &str = "name_text";
+// const SEARCH_INDEX_NAME: &str = "base_search_index";
 
 pub struct MongoDBConnector {
     // mongodb structs are already Arc, thread safe
@@ -44,24 +49,26 @@ impl MongoDBConnector {
     async fn initialize(client: Client) {
         let db = client.database(DATABASE_NAME);
 
-        let _ = db
-            .create_collection(COLLECTION_CRAWL_RESULTS_NAME)
+        db.create_collection(COLLECTION_CRAWL_RESULTS_NAME)
             .await
-            .unwrap();
+            .expect("Creating crawl results collection to not fail");
 
-        let _ = db
-            .create_collection(COLLECTION_MESSAGES_NAME)
+        db.create_collection(COLLECTION_MESSAGES_NAME)
             .await
-            .unwrap();
+            .expect("Creating messages collection to not fail");
 
         let crawl_result_search_index = IndexModel::builder()
             .keys(doc! {
-                "name": "text"
+                "name": "text",
             })
+            .options(
+                IndexOptions::builder()
+                    .name(SEARCH_INDEX_NAME.to_string())
+                    .build(),
+            )
             .build();
 
-        let _ = db
-            .collection::<CrawlResult>(COLLECTION_CRAWL_RESULTS_NAME)
+        db.collection::<CrawlResult>(COLLECTION_CRAWL_RESULTS_NAME)
             .create_index(crawl_result_search_index)
             .await
             .unwrap();
