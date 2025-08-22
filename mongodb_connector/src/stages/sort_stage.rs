@@ -79,8 +79,6 @@ impl StageDocument for SortStage {
                     doc! {
                         "$sort": {
                             "score": -1,
-                            "query_time": -1,
-                            "_id": 1
                         }
                     },
                 ]);

@@ -16,18 +16,13 @@ impl PageStage {
 
 impl StageDocument for PageStage {
     fn get_stage_documents(&self) -> Vec<Document> {
-        let mut documents: Vec<Document> = Vec::new();
-
-        if let Some(page) = self.page {
-            documents.push(doc! {
-                "$skip": page * MAX_ITEMS_PER_PAGE
-            });
-        }
-
-        documents.push(doc! {
-            "$limit": MAX_ITEMS_PER_PAGE
-        });
-
-        documents
+        vec![
+            doc! {
+                "$skip": self.page.unwrap_or(0) * MAX_ITEMS_PER_PAGE
+            },
+            doc! {
+                "$limit": MAX_ITEMS_PER_PAGE
+            },
+        ]
     }
 }
