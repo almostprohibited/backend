@@ -7,10 +7,7 @@ use axum::{
     response::IntoResponse,
 };
 use axum_extra::extract::WithRejection;
-use common::{
-    result::{base::CrawlResult, enums::Category},
-    utils::is_beta_environment,
-};
+use common::result::{base::CrawlResult, enums::Category};
 use mongodb_connector::stages::traits::QueryParams;
 use serde::Serialize;
 use tokio::{join, time::Instant};
@@ -29,10 +26,6 @@ pub(crate) async fn search_handler(
     WithRejection(Query(params), _): WithRejection<Query<QueryParams>, ApiError>,
 ) -> Result<impl IntoResponse, StatusCode> {
     let start_time = Instant::now();
-
-    if params.get_category() == Category::Ammunition && !is_beta_environment() {
-        return Ok(StatusCode::BAD_REQUEST.into_response());
-    }
 
     let (results, count) = join!(
         state.db.search_items(&params),
