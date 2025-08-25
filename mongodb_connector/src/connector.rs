@@ -149,7 +149,7 @@ impl MongoDBConnector {
         self.crawl_results
             .aggregate(vec![
                 doc! {"$match": {"query_time": {"$gte": prev_days}}},
-                doc! {"$merge": {"into": VIEW_LIVE_DATA_NAME, "whenMatched": "replace", "on": "_id"}},
+                doc! {"$merge": {"into": VIEW_LIVE_DATA_NAME, "whenMatched": "keepExisting", "on": "_id"}},
             ])
             .with_type::<CrawlResult>()
             .await
