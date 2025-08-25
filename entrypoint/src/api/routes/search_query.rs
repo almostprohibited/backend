@@ -7,7 +7,7 @@ use axum::{
     response::IntoResponse,
 };
 use axum_extra::extract::WithRejection;
-use common::result::{base::CrawlResult, enums::Category};
+use common::result::base::CrawlResult;
 use mongodb_connector::stages::traits::QueryParams;
 use serde::Serialize;
 use tokio::{join, time::Instant};

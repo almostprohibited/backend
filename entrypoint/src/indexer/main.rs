@@ -34,11 +34,9 @@ async fn main() {
 
     let mut handles: Vec<JoinHandle<()>> = Vec::new();
 
-    #[cfg(not(debug_assertions))]
     let mongodb = Arc::new(MongoDBConnector::new().await);
 
     for mut retailer in get_retailers(args.retailers) {
-        #[cfg(not(debug_assertions))]
         let db = mongodb.clone();
         let discord_webhook = discord_webhook.clone();
 
@@ -70,7 +68,6 @@ async fn main() {
                 .finish_retailer(retailer_name, &results)
                 .await;
 
-            #[cfg(not(debug_assertions))]
             db.insert_many_results(results).await;
         }));
     }

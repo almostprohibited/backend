@@ -1,6 +1,6 @@
 use std::{env, sync::LazyLock};
 
-use common::{messages::Message, result::base::CrawlResult};
+use common::{messages::Message, result::base::CrawlResult, utils::normalized_relative_days};
 use mongodb::{Client, Collection, IndexModel, bson::doc, options::IndexOptions};
 use tracing::debug;
 
@@ -17,6 +17,8 @@ const DATABASE_NAME: &str = "project-carbon";
 const COLLECTION_CRAWL_RESULTS_NAME: &str = "crawl-results";
 const COLLECTION_MESSAGES_NAME: &str = "messages";
 
+const VIEW_LIVE_DATA_NAME: &str = "live-results";
+
 // TODO: I should have assigned a name to the index
 // when I created this thing, todo to refactor this
 const SEARCH_INDEX_NAME: &str = "name_text";
@@ -24,8 +26,9 @@ const SEARCH_INDEX_NAME: &str = "name_text";
 
 pub struct MongoDBConnector {
     // mongodb structs are already Arc, thread safe
-    crawl_results_collection: Collection<CrawlResult>,
-    messages_collection: Collection<Message>,
+    crawl_results: Collection<CrawlResult>,
+    live_results: Collection<CrawlResult>,
+    messages: Collection<Message>,
 }
 
 impl MongoDBConnector {
@@ -37,10 +40,13 @@ impl MongoDBConnector {
         Self::initialize(client.clone()).await;
 
         Self {
-            crawl_results_collection: client
+            crawl_results: client
                 .database(DATABASE_NAME)
                 .collection::<CrawlResult>(COLLECTION_CRAWL_RESULTS_NAME),
-            messages_collection: client
+            live_results: client
+                .database(DATABASE_NAME)
+                .collection::<CrawlResult>(VIEW_LIVE_DATA_NAME),
+            messages: client
                 .database(DATABASE_NAME)
                 .collection::<Message>(COLLECTION_MESSAGES_NAME),
         }
@@ -52,6 +58,10 @@ impl MongoDBConnector {
         db.create_collection(COLLECTION_CRAWL_RESULTS_NAME)
             .await
             .expect("Creating crawl results collection to not fail");
+
+        db.create_collection(VIEW_LIVE_DATA_NAME)
+            .await
+            .expect("Creating live results collection to not fail");
 
         db.create_collection(COLLECTION_MESSAGES_NAME)
             .await
@@ -69,18 +79,23 @@ impl MongoDBConnector {
             .build();
 
         db.collection::<CrawlResult>(COLLECTION_CRAWL_RESULTS_NAME)
+            .create_index(crawl_result_search_index.clone())
+            .await
+            .unwrap();
+
+        db.collection::<CrawlResult>(VIEW_LIVE_DATA_NAME)
             .create_index(crawl_result_search_index)
             .await
             .unwrap();
     }
 
     pub async fn insert_message(&self, message: Message) {
-        let _ = self.messages_collection.insert_one(message).await.unwrap();
+        let _ = self.messages.insert_one(message).await.unwrap();
     }
 
     pub async fn search_items(&self, query_params: &QueryParams) -> Vec<CrawlResult> {
         let mut cursor = self
-            .crawl_results_collection
+            .live_results
             .aggregate(query_params.get_search_documents())
             .with_type::<CrawlResult>()
             .await
@@ -99,7 +114,7 @@ impl MongoDBConnector {
 
     pub async fn count_items(&self, query_params: &QueryParams) -> Count {
         let mut cursor = self
-            .crawl_results_collection
+            .live_results
             .aggregate(query_params.get_count_documents())
             .with_type::<Count>()
             .await
@@ -116,8 +131,27 @@ impl MongoDBConnector {
     }
 
     pub async fn insert_many_results(&self, results: Vec<&CrawlResult>) {
-        self.crawl_results_collection
-            .insert_many(results)
+        self.crawl_results.insert_many(results).await.unwrap();
+
+        self.update_view().await;
+    }
+
+    pub async fn update_view(&self) {
+        let prev_days = normalized_relative_days(3);
+
+        self.live_results
+            .delete_many(doc! {
+                "query_time": {"$lt": prev_days}
+            })
+            .await
+            .unwrap();
+
+        self.crawl_results
+            .aggregate(vec![
+                doc! {"$match": {"query_time": {"$gte": prev_days}}},
+                doc! {"$merge": {"into": VIEW_LIVE_DATA_NAME, "whenMatched": "replace", "on": "_id"}},
+            ])
+            .with_type::<CrawlResult>()
             .await
             .unwrap();
     }

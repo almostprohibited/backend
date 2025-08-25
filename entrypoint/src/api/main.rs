@@ -31,9 +31,10 @@ async fn main() {
 
     info!("Starting MongoDB client");
 
-    let state = Arc::new(ServerState {
-        db: MongoDBConnector::new().await,
-    });
+    let mongodb = MongoDBConnector::new().await;
+    mongodb.update_view().await;
+
+    let state = Arc::new(ServerState { db: mongodb });
 
     let addr = format!("0.0.0.0:{}", port);
 

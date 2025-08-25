@@ -1,4 +1,4 @@
-use common::{result::enums::Category, utils::get_current_time};
+use common::{result::enums::Category, utils::normalized_relative_days};
 use mongodb::bson::{Document, doc};
 use tracing::trace;
 
@@ -54,19 +54,6 @@ impl MatchStage {
 
         documents
     }
-
-    fn relative_time_document(&self) -> Document {
-        // two days
-        let past_days: i64 = 2 * 24 * 60 * 60;
-
-        // TODO: deal with aligning time to nearest hour
-        let current_time = get_current_time() as i64;
-        let offset_time = current_time - past_days;
-
-        doc! {
-            "$gte": (offset_time / 3600) * 3600
-        }
-    }
 }
 
 impl StageDocument for MatchStage {
@@ -75,7 +62,9 @@ impl StageDocument for MatchStage {
             "$text": {
                 "$search": &self.query
             },
-            "query_time": self.relative_time_document()
+            "query_time": {
+                "$gte": normalized_relative_days(2)
+            }
         };
 
         let price_filter = self.get_price_documents();
