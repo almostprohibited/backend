@@ -9,7 +9,7 @@ use tracing::{debug, error};
 
 use crate::{
     errors::RetailerError,
-    traits::{HtmlRetailer, HtmlSearchQuery},
+    structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
     utils::{
         conversions::{price_to_cents, string_to_u64},
         html::{element_extract_attr, element_to_text, extract_element_from_element},
@@ -18,24 +18,24 @@ use crate::{
 
 const URL: &str = "aaa";
 
-pub struct aaa {
-    retailer: RetailerName,
-}
+pub struct aaa;
 
 impl aaa {
     pub fn new() -> Self {
-        Self {
-            retailer: RetailerName::aaa,
-        }
+        Self {}
+    }
+}
+
+impl HtmlRetailerSuper for aaa {}
+
+impl Retailer for aaa {
+    fn get_retailer_name(&self) -> RetailerName {
+        RetailerName::aaa
     }
 }
 
 #[async_trait]
 impl HtmlRetailer for aaa {
-    fn get_retailer_name(&self) -> RetailerName {
-        self.retailer
-    }
-
     async fn build_page_request(
         &self,
         page_num: u64,

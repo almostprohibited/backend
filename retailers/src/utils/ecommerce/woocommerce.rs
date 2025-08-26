@@ -57,7 +57,22 @@ impl WooCommerce {
     }
 
     fn get_image_url(element: ElementRef) -> Result<String, RetailerError> {
-        let image_element = extract_element_from_element(element, "a.product-image-link > img")?;
+        let valid_selectors = vec![
+            "a.product-image-link > img",
+            "a.woocommerce-LoopProduct-link > img", // international shooting supplies specific
+        ];
+
+        let Some(image_element) = valid_selectors.iter().find_map(|selector| {
+            if let Ok(extracted_element) = extract_element_from_element(element, *selector) {
+                return Some(extracted_element);
+            }
+
+            None
+        }) else {
+            return Err(RetailerError::HtmlMissingElement(
+                "product image element".into(),
+            ));
+        };
 
         if let Ok(data_src) = element_extract_attr(image_element, "data-src")
             && data_src.starts_with("https")
@@ -84,8 +99,23 @@ impl WooCommerce {
         retailer: RetailerName,
         category: Category,
     ) -> Result<CrawlResult, RetailerError> {
-        let title_element =
-            extract_element_from_element(element, "div.product-element-bottom > h3 > a")?;
+        let valid_selectors = vec![
+            "div.product-element-bottom > h3 > a",
+            "div.astra-shop-summary-wrap > a.ast-loop-product__link", // international shooting supplies specific
+        ];
+
+        let Some(title_element) = valid_selectors.iter().find_map(|selector| {
+            if let Ok(extracted_element) = extract_element_from_element(element, *selector) {
+                return Some(extracted_element);
+            }
+
+            None
+        }) else {
+            return Err(RetailerError::HtmlMissingElement(
+                "product title element".into(),
+            ));
+        };
+
         let name = element_to_text(title_element);
         let url = element_extract_attr(title_element, "href")?;
 

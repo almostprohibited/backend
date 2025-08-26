@@ -42,6 +42,7 @@ pub enum RetailerName {
     TrueNorthArms,
     DominionOutdoors,
     ProphetRiver,
+    InternationalShootingSupplies,
 }
 
 impl RetailerName {

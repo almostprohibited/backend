@@ -60,7 +60,7 @@ impl UnprotectedCrawler {
             .timeout(Duration::from_secs(PAGE_TIMEOUT_SECONDS))
             .user_agent(USER_AGENT)
             .https_only(true)
-            .connection_verbose(true)
+            // .connection_verbose(true)
             .build()?;
 
         let retry_strat = ExponentialBackoff::builder()
