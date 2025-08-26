@@ -1,3 +1,5 @@
+use std::sync::LazyLock;
+
 use async_trait::async_trait;
 use common::result::{
     base::CrawlResult,
@@ -8,6 +10,14 @@ use metrics::{Metrics, put_metric};
 use regex::Regex;
 use retailers::errors::RetailerError;
 use tracing::error;
+
+const PATTERNS: LazyLock<Vec<Regex>> = LazyLock::new(|| {
+    vec![
+        Regex::new(r"(?i)(?:box|case|pack|tin) of (\d+)").expect("Ammo count regex to compile"),
+        Regex::new(r"(?i)(\d+)\s*/?(?:ct|count|rd|rnd|round|pack|pc|shell|box|qty)s?\b")
+            .expect("Ammo count regex to compile"),
+    ]
+});
 
 #[async_trait]
 pub(crate) trait Client {
@@ -53,16 +63,7 @@ pub(crate) trait Client {
 }
 
 pub(crate) fn get_ammo_metadata(product_name: &String) -> Option<Metadata> {
-    // TODO: I hate this, please find a different way of
-    // parsing ammo counts other than constructing regex
-    // every time this method is called
-    let patterns = [
-        Regex::new(r"(?i)(?:box|case|pack|tin) of (\d+)").expect("Ammo count regex to compile"),
-        Regex::new(r"(?i)(\d+)\s*/?(?:ct|count|rd|rnd|round|pack|pc|shell|box)s?\b")
-            .expect("Ammo count regex to compile"),
-    ];
-
-    for pattern in patterns {
+    for pattern in PATTERNS.iter() {
         if let Some(capture) = pattern.captures(product_name) {
             let ammo_count = capture
                 .get(1)

@@ -79,6 +79,7 @@ impl StageDocument for SortStage {
                     doc! {
                         "$sort": {
                             "score": -1,
+                            "name": 1,
                         }
                     },
                 ]);
@@ -88,7 +89,8 @@ impl StageDocument for SortStage {
                 sort_docs.push(doc! {
                     "$sort": {
                         "final_price": 1,
-                        "product_price": 1
+                        "product_price": 1,
+                        "name": 1,
                     }
                 });
             }
@@ -97,7 +99,8 @@ impl StageDocument for SortStage {
                 sort_docs.push(doc! {
                     "$sort": {
                         "final_price": -1,
-                        "product_price": -1
+                        "product_price": -1,
+                        "name": 1,
                     }
                 });
             }

@@ -32,6 +32,8 @@ async fn main() {
     info!("Starting MongoDB client");
 
     let mongodb = MongoDBConnector::new().await;
+
+    #[cfg(not(debug_assertions))]
     mongodb.update_view().await;
 
     let state = Arc::new(ServerState { db: mongodb });
