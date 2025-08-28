@@ -1,4 +1,4 @@
-use std::{collections::HashSet, time::Duration};
+use std::{collections::HashMap, time::Duration};
 
 use async_trait::async_trait;
 use common::{
@@ -16,13 +16,16 @@ use retailers::{
 use tokio::time::sleep;
 use tracing::{debug, trace};
 
-use crate::clients::base::{Client, get_ammo_metadata};
+use crate::clients::{
+    base::{Client, get_ammo_metadata},
+    utils::{get_category_tier, get_key},
+};
 
 pub(crate) struct PaginationClient {
     retailer: Box<dyn HtmlRetailerSuper>,
     max_pages: u64,
     crawler: UnprotectedCrawler,
-    results: HashSet<CrawlResult>,
+    results: HashMap<String, CrawlResult>,
 }
 
 #[async_trait]
@@ -36,7 +39,7 @@ impl Client for PaginationClient {
     }
 
     fn get_results(&self) -> Vec<&CrawlResult> {
-        self.results.iter().collect()
+        self.results.values().collect()
     }
 
     fn get_retailer_name(&self) -> RetailerName {
@@ -50,7 +53,22 @@ impl PaginationClient {
             retailer,
             max_pages: 1,
             crawler: UnprotectedCrawler::new(),
-            results: HashSet::new(),
+            results: HashMap::new(),
+        }
+    }
+
+    // TODO: this method is repeated twice for each client, refactor this
+    fn insert_result(&mut self, crawl_result: CrawlResult) {
+        let key = get_key(&crawl_result);
+
+        // deal with retailers that have the same product in multiple places
+        if let Some(existing_result) = self.results.get_mut(&key)
+            && get_category_tier(existing_result.category)
+                < get_category_tier(crawl_result.category)
+        {
+            *existing_result = crawl_result;
+        } else {
+            self.results.insert(key, crawl_result);
         }
     }
 
@@ -84,9 +102,7 @@ impl PaginationClient {
                     }
                 }
 
-                self.emit_metrics(&crawled_result);
-
-                self.results.insert(crawled_result);
+                self.insert_result(crawled_result);
             }
 
             current_page = current_page + 1;

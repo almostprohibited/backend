@@ -27,36 +27,38 @@ pub(crate) trait Client {
 
     fn get_retailer_name(&self) -> RetailerName;
 
-    fn emit_metrics(&self, result: &CrawlResult) {
-        let metric = match result.category {
-            Category::Firearm => Some(Metrics::CrawledFirearm),
-            Category::Ammunition => Some(Metrics::CrawledAmmunition),
-            Category::Other => Some(Metrics::CrawledOther),
-            _ => None,
-        };
+    fn emit_metrics(&self) {
+        for result in self.get_results() {
+            let metric = match result.category {
+                Category::Firearm => Some(Metrics::CrawledFirearm),
+                Category::Ammunition => Some(Metrics::CrawledAmmunition),
+                Category::Other => Some(Metrics::CrawledOther),
+                _ => None,
+            };
 
-        if let Some(metric) = metric {
-            put_metric!(metric, 1, "retailer" => self.get_retailer_name().to_string());
-        }
-
-        if result.category == Category::Ammunition {
-            let mut has_metadata = false;
-
-            if let Some(metadata) = &result.metadata {
-                match metadata {
-                    Metadata::Ammunition { .. } => {
-                        has_metadata = true;
-                    }
-                    _ => {}
-                }
+            if let Some(metric) = metric {
+                put_metric!(metric, 1, "retailer" => self.get_retailer_name().to_string());
             }
 
-            if !has_metadata {
-                put_metric!(
-                    Metrics::CrawledAmmunitionNoRoundCount,
-                    1,
-                    "retailer" => self.get_retailer_name().to_string()
-                );
+            if result.category == Category::Ammunition {
+                let mut has_metadata = false;
+
+                if let Some(metadata) = &result.metadata {
+                    match metadata {
+                        Metadata::Ammunition { .. } => {
+                            has_metadata = true;
+                        }
+                        _ => {}
+                    }
+                }
+
+                if !has_metadata {
+                    put_metric!(
+                        Metrics::CrawledAmmunitionNoRoundCount,
+                        1,
+                        "retailer" => self.get_retailer_name().to_string()
+                    );
+                }
             }
         }
     }

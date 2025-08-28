@@ -68,6 +68,7 @@ async fn main() {
                 .finish_retailer(retailer_name, &results)
                 .await;
 
+            retailer.emit_metrics();
             db.insert_many_results(results).await;
         }));
     }
