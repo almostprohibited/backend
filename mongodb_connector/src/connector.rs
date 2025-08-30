@@ -4,7 +4,7 @@ use common::{messages::Message, result::base::CrawlResult, utils::normalized_rel
 use mongodb::{Client, Collection, IndexModel, bson::doc, options::IndexOptions};
 use tracing::debug;
 
-use crate::{stages::traits::QueryParams, structs::Count};
+use crate::{query_pipeline::traits::QueryParams, structs::Count};
 
 const CONNECTION_URI: LazyLock<String> = LazyLock::new(|| {
     let host = env::var("MONGO_DB_HOST").unwrap_or("localhost".into());
@@ -77,11 +77,6 @@ impl MongoDBConnector {
                     .build(),
             )
             .build();
-
-        db.collection::<CrawlResult>(COLLECTION_CRAWL_RESULTS_NAME)
-            .create_index(crawl_result_search_index.clone())
-            .await
-            .unwrap();
 
         db.collection::<CrawlResult>(VIEW_LIVE_DATA_NAME)
             .create_index(crawl_result_search_index)

@@ -4,12 +4,12 @@ use super::traits::StageDocument;
 
 const MAX_ITEMS_PER_PAGE: u32 = 32;
 
-pub(crate) struct PageStage {
+pub(super) struct PageStage {
     page: Option<u32>,
 }
 
 impl PageStage {
-    pub(crate) fn new(page: Option<u32>) -> Self {
+    pub(super) fn new(page: Option<u32>) -> Self {
         Self { page }
     }
 }

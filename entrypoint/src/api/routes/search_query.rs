@@ -8,7 +8,7 @@ use axum::{
 };
 use axum_extra::extract::WithRejection;
 use common::result::base::CrawlResult;
-use mongodb_connector::stages::traits::QueryParams;
+use mongodb_connector::query_pipeline::traits::QueryParams;
 use serde::Serialize;
 use tokio::{join, time::Instant};
 use tracing::debug;

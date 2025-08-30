@@ -4,7 +4,7 @@ use tracing::trace;
 
 use super::traits::StageDocument;
 
-pub(crate) struct MatchStage {
+pub(super) struct MatchStage {
     query: String,
     category: Category,
     min_price: Option<u32>,
@@ -12,7 +12,7 @@ pub(crate) struct MatchStage {
 }
 
 impl MatchStage {
-    pub(crate) fn new(
+    pub(super) fn new(
         query: String,
         category: Category,
         min_price: Option<u32>,

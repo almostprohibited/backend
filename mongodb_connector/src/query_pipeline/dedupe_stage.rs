@@ -2,10 +2,10 @@ use mongodb::bson::{Document, doc};
 
 use super::traits::StageDocument;
 
-pub(crate) struct DedupeStage;
+pub(super) struct DedupeStage;
 
 impl DedupeStage {
-    pub(crate) fn new() -> Self {
+    pub(super) fn new() -> Self {
         Self {}
     }
 }

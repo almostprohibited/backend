@@ -2,12 +2,12 @@ use mongodb::bson::{Document, doc};
 
 use super::traits::{Sort, StageDocument};
 
-pub(crate) struct SortStage {
+pub(super) struct SortStage {
     sort: Sort,
 }
 
 impl SortStage {
-    pub(crate) fn new(sort: Sort) -> Self {
+    pub(super) fn new(sort: Sort) -> Self {
         Self { sort }
     }
 }
