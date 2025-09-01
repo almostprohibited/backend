@@ -1,7 +1,5 @@
 [workspace]
 resolver = "3"
-edition = "2024"
-rust-version = "1.88"
 members = [
 	"crawler",
 	"entrypoint",

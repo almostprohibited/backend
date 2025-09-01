@@ -108,7 +108,7 @@ impl ApiCategories {
                 let path_node = &path_obj.node;
 
                 match path_node.path.clone().unwrap_or_default().as_str() {
-                    "/categories/Rifles/" | "categories/Shotguns/" => {
+                    "/categories/Rifles/" | "/categories/Shotguns/" => {
                         return Some(Category::Firearm);
                     }
                     "/ammunition/" => return Some(Category::Ammunition),

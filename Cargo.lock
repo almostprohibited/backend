@@ -481,6 +481,7 @@ name = "common"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "mongodb",
  "serde",
  "serde_json",
  "tokio",

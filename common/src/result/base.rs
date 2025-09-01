@@ -1,6 +1,8 @@
 use std::hash::{Hash, Hasher};
 
-use serde::{Deserialize, Serialize};
+use mongodb::bson::oid::ObjectId;
+use serde::de::Error;
+use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::{
     result::{
@@ -18,6 +20,11 @@ pub struct Price {
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct CrawlResult {
+    #[serde(rename(deserialize = "_id"))]
+    // TODO: this might break things if someone was to populate `id` accidentially
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "object_id_to_string")]
+    pub id: Option<String>,
     pub name: String,
     pub url: String,
     pub price: Price,
@@ -27,6 +34,19 @@ pub struct CrawlResult {
     pub description: Option<String>,
     pub image_url: Option<String>,
     pub metadata: Option<Metadata>,
+}
+
+fn object_id_to_string<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value: Option<ObjectId> = Option::deserialize(deserializer)?;
+
+    let Some(object_id) = value else {
+        return Err(Error::custom("field is not MongoDB ObjectId"));
+    };
+
+    Ok(Some(object_id.to_string()))
 }
 
 // TNA forced my hand because they have so many products
@@ -64,6 +84,7 @@ impl CrawlResult {
         let time = get_current_time();
 
         Self {
+            id: None,
             name,
             url,
             price,
