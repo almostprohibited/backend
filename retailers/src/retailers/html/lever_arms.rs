@@ -127,14 +127,16 @@ impl HtmlRetailer for LeverArms {
                 term: "guns/used".into(),
                 category: Category::Firearm,
             },
-            HtmlSearchQuery {
-                term: "ammo/surplus-ammo".into(),
-                category: Category::Ammunition,
-            },
-            HtmlSearchQuery {
-                term: "ammo/factory-ammo".into(),
-                category: Category::Ammunition,
-            },
+            // Lever Arms doesn't do online ammo sales
+            // HtmlSearchQuery {
+            //     term: "ammo/surplus-ammo".into(),
+            //     category: Category::Ammunition,
+            // },
+            // HtmlSearchQuery {
+            //     term: "ammo/factory-ammo".into(),
+            //     category: Category::Ammunition,
+            // },
+
             // don't bother parsing their other categories
             // they add products into more than one category
             // I'll parse out what I don't need later
