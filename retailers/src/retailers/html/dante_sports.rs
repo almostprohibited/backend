@@ -66,7 +66,7 @@ impl HtmlRetailer for DanteSports {
         let url = URL
             .replace("{category}", &search_term.term)
             .replace("{page}", &(page_num + 1).to_string())
-            .replace("{max_per_page", MAX_PER_PAGE);
+            .replace("{max_per_page}", MAX_PER_PAGE);
 
         debug!("Setting page to {}", url);
 
