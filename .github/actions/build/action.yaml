@@ -55,10 +55,10 @@ runs:
           docker_target="--target release"
         fi
 
+        cp target/${{ inputs.rust-target }}/release/api ./.deployment/backend/
+        cp target/${{ inputs.rust-target }}/release/indexer ./.deployment/backend/
+        
         cd ./.deployment/backend/
-
-        cp target/${{ inputs.rust-target }}/release/api ./
-        cp target/${{ inputs.rust-target }}/release/indexer ./
 
         docker build \
           $docker_target \
