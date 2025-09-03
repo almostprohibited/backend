@@ -11,10 +11,10 @@ use retailers::{
             dante_sports::DanteSports, dominion_outdoors::DominionOutdoors,
             firearms_outlet_canada::FirearmsOutletCanada, g4c_gun_store::G4CGunStore,
             international_shooting_supplies::InternationalShootingSupplies,
-            italian_sporting_goods::ItalianSportingGoods, lever_arms::LeverArms,
-            rangeview_sports::RangeviewSports, rdsc::Rdsc, reliable_gun::ReliableGun,
-            select_shooting_supplies::SelectShootingSupplies, tenda::Tenda,
-            the_ammo_source::TheAmmoSource, tillsonburg_gun_shop::Tillsonburg,
+            intersurplus::InterSurplus, italian_sporting_goods::ItalianSportingGoods,
+            lever_arms::LeverArms, rangeview_sports::RangeviewSports, rdsc::Rdsc,
+            reliable_gun::ReliableGun, select_shooting_supplies::SelectShootingSupplies,
+            tenda::Tenda, the_ammo_source::TheAmmoSource, tillsonburg_gun_shop::Tillsonburg,
             true_north_arms::TrueNorthArms,
         },
     },
@@ -53,6 +53,7 @@ fn html_retailers() -> HashMap<RetailerName, fn() -> Result<Box<dyn HtmlRetailer
     retailers.insert(RetailerName::DominionOutdoors, || Ok(Box::new(DominionOutdoors::new())));
     retailers.insert(RetailerName::Tenda, || Ok(Box::new(Tenda::new()?)));
     retailers.insert(RetailerName::InternationalShootingSupplies, || Ok(Box::new(InternationalShootingSupplies::new())));
+    retailers.insert(RetailerName::InterSurplus, || Ok(Box::new(InterSurplus::new())));
 
     retailers
 }

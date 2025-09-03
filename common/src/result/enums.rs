@@ -43,6 +43,7 @@ pub enum RetailerName {
     DominionOutdoors,
     ProphetRiver,
     InternationalShootingSupplies,
+    InterSurplus,
 }
 
 impl RetailerName {
