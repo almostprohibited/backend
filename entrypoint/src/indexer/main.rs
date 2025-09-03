@@ -20,8 +20,15 @@ static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 #[derive(Parser)]
 #[command(version)]
 struct Arguments {
+    /// List of retailers to crawl, crawls all retailers by default
     #[arg(short, long, value_delimiter = ' ', num_args = 0..)]
     retailers: Vec<RetailerName>,
+    /// List of retailers to exclude from crawling
+    #[arg(short, long, value_delimiter = ' ', num_args = 0..)]
+    excluded_retailers: Vec<RetailerName>,
+    /// Does not write to DB if set
+    #[arg(short, long, default_value_t = false)]
+    dry_run: bool,
 }
 
 #[tokio::main]
@@ -36,7 +43,7 @@ async fn main() {
 
     let mongodb = Arc::new(MongoDBConnector::new().await);
 
-    for mut retailer in get_retailers(args.retailers) {
+    for mut retailer in get_retailers(args.retailers, args.excluded_retailers) {
         let db = mongodb.clone();
         let discord_webhook = discord_webhook.clone();
 
@@ -68,8 +75,10 @@ async fn main() {
                 .finish_retailer(retailer_name, &results)
                 .await;
 
-            retailer.emit_metrics();
-            db.insert_many_results(results).await;
+            if !args.dry_run {
+                retailer.emit_metrics();
+                db.insert_many_results(results).await;
+            }
         }));
     }
 

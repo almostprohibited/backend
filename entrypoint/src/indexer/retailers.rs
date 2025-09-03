@@ -70,18 +70,24 @@ fn gql_retailers() -> HashMap<RetailerName, fn() -> Result<Box<dyn GqlRetailerSu
 
 fn filter_retailers<T: ?Sized>(
     retailer_filter: &Vec<RetailerName>,
+    excluded_retailer_filter: &Vec<RetailerName>,
     retailers: HashMap<RetailerName, fn() -> Result<Box<T>, RetailerError>>,
 ) -> Vec<fn() -> Result<Box<T>, RetailerError>> {
     let mut filted_retailers: Vec<fn() -> Result<Box<T>, RetailerError>> = Vec::new();
 
-    match retailer_filter.len() {
-        0 => filted_retailers.extend(retailers.values()),
-        _ => {
-            for retailer in retailer_filter {
-                if let Some(retailer_factory) = retailers.get(&retailer) {
-                    filted_retailers.push(*retailer_factory);
-                }
-            }
+    let included_retailers: Vec<RetailerName> = match retailer_filter.len() {
+        0 => retailers.keys().copied().collect(),
+        _ => retailer_filter.clone(),
+    };
+
+    let search_space: Vec<&RetailerName> = included_retailers
+        .iter()
+        .filter(|retailer| !excluded_retailer_filter.contains(&retailer))
+        .collect();
+
+    for retailer in search_space {
+        if let Some(retailer_factory) = retailers.get(&retailer) {
+            filted_retailers.push(*retailer_factory);
         }
     }
 
@@ -94,14 +100,21 @@ fn filter_retailers<T: ?Sized>(
 // filter_retailers(), but that doesn't look nice
 pub(crate) fn get_retailers(
     retailer_filter: Vec<RetailerName>,
+    excluded_retailer_filter: Vec<RetailerName>,
 ) -> Vec<Box<dyn Client + Send + Sync>> {
     let mut boxed_clients: Vec<Box<dyn Client + Send + Sync>> = Vec::new();
 
-    let html_retailers: Vec<HtmlRetailerSuperFactory> =
-        filter_retailers::<dyn HtmlRetailerSuper>(&retailer_filter, html_retailers());
+    let html_retailers: Vec<HtmlRetailerSuperFactory> = filter_retailers::<dyn HtmlRetailerSuper>(
+        &retailer_filter,
+        &excluded_retailer_filter,
+        html_retailers(),
+    );
 
-    let gql_retailers: Vec<GqlRetailerSuperFactory> =
-        filter_retailers::<dyn GqlRetailerSuper>(&retailer_filter, gql_retailers());
+    let gql_retailers: Vec<GqlRetailerSuperFactory> = filter_retailers::<dyn GqlRetailerSuper>(
+        &retailer_filter,
+        &excluded_retailer_filter,
+        gql_retailers(),
+    );
 
     for retailer in html_retailers {
         if let Ok(unwrapped_retailer) = retailer() {

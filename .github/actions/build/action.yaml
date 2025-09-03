@@ -55,14 +55,19 @@ runs:
           docker_target="--target release"
         fi
 
+        cd ./.deployment/backend/
+
+        cp target/${{ inputs.rust-target }}/release/api ./
+        cp target/${{ inputs.rust-target }}/release/indexer ./
+
         docker build \
           $docker_target \
           --build-arg API_BINARY_NAME=api \
           --build-arg INDEXER_BINARY_NAME=indexer \
           --platform=linux/arm64 \
-          -f ./.deployment/backend/Dockerfile-backend.dockerfile \
+          -f Dockerfile-backend.dockerfile \
           -t ghcr.io/almostprohibited/backend:${{ inputs.deployment-stage }} \
-          target/${{ inputs.rust-target }}/release
+          .
       shell: bash
     - name: Upload Docker image
       run: |
