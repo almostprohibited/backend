@@ -48,6 +48,8 @@ const PAGE_LIMIT: u64 = 250;
 const URL: &str =
     "https://intersurplus.com/collections/{category}/products.json?limit={page_limit}&page={page}";
 const PRODUCT_URL: &str = "https://intersurplus.com/collections/{category}/products";
+const DEFAULT_IMAGE: &str =
+    "https://intersurplus.com/cdn/shopifycloud/storefront/assets/no-image-50-e6fb86f4_360x.gif";
 
 pub struct InterSurplus;
 
@@ -94,11 +96,9 @@ impl HtmlRetailer for InterSurplus {
         let api_response = serde_json::from_str::<ApiResponse>(response)?;
 
         for product in api_response.products {
-            let Some(image) = product.images.first() else {
-                return Err(RetailerError::ApiResponseInvalidShape(format!(
-                    "{} is missing images",
-                    product.title.clone()
-                )));
+            let image = match product.images.first() {
+                Some(image_obj) => image_obj.src.clone(),
+                None => DEFAULT_IMAGE.to_string(),
             };
 
             for variant in product.variants {
@@ -137,7 +137,7 @@ impl HtmlRetailer for InterSurplus {
                     self.get_retailer_name(),
                     search_term.category,
                 )
-                .with_image_url(image.src.clone());
+                .with_image_url(image.clone());
 
                 results.push(new_result);
             }
