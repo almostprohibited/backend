@@ -44,6 +44,7 @@ pub enum RetailerName {
     ProphetRiver,
     InternationalShootingSupplies,
     InterSurplus,
+    GreatNorthGun,
 }
 
 impl RetailerName {

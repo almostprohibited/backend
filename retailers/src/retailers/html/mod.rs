@@ -6,6 +6,7 @@ pub mod dante_sports;
 pub mod dominion_outdoors;
 pub mod firearms_outlet_canada; // why is FOC so bloated it uses so much memory in a browser window
 pub mod g4c_gun_store;
+pub mod great_north_gun;
 pub mod international_shooting_supplies;
 pub mod intersurplus;
 pub mod italian_sporting_goods; // they have arsenalforce in their robots.txt

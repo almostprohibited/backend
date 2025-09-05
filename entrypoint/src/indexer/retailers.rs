@@ -10,6 +10,7 @@ use retailers::{
             calgary_shooting_centre::CalgaryShootingCentre, canadas_gun_store::CanadasGunStore,
             dante_sports::DanteSports, dominion_outdoors::DominionOutdoors,
             firearms_outlet_canada::FirearmsOutletCanada, g4c_gun_store::G4CGunStore,
+            great_north_gun::GreatNorthGun,
             international_shooting_supplies::InternationalShootingSupplies,
             intersurplus::InterSurplus, italian_sporting_goods::ItalianSportingGoods,
             lever_arms::LeverArms, rangeview_sports::RangeviewSports, rdsc::Rdsc,
@@ -54,6 +55,7 @@ fn html_retailers() -> HashMap<RetailerName, fn() -> Result<Box<dyn HtmlRetailer
     retailers.insert(RetailerName::Tenda, || Ok(Box::new(Tenda::new()?)));
     retailers.insert(RetailerName::InternationalShootingSupplies, || Ok(Box::new(InternationalShootingSupplies::new())));
     retailers.insert(RetailerName::InterSurplus, || Ok(Box::new(InterSurplus::new())));
+    retailers.insert(RetailerName::GreatNorthGun, || Ok(Box::new(GreatNorthGun::new())));
 
     retailers
 }
