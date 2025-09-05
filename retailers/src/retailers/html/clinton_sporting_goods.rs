@@ -65,7 +65,7 @@ impl HtmlRetailer for ClintonSportingGoods {
             .with_product_name_selector(
                 "a.woocommerce-LoopProduct-link > h2.woocommerce-loop-product__title",
             )
-            .with_image_url_selector("a.woocommerce-LoopProduct-link > picture > img")
+            .with_image_url_selector("a.woocommerce-LoopProduct-link img")
             .build();
 
         for product in html.select(&product_selector) {
