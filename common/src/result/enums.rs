@@ -45,6 +45,7 @@ pub enum RetailerName {
     InternationalShootingSupplies,
     InterSurplus,
     GreatNorthGun,
+    ClintonSportingGoods,
 }
 
 impl RetailerName {

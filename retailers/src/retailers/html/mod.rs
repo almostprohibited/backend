@@ -2,6 +2,7 @@ pub mod al_flahertys;
 pub mod bullseye_north;
 pub mod calgary_shooting_centre; // TODO: investigate this, they have a GQL end point @ https://store.theshootingcentre.com/graphql
 pub mod canadas_gun_store;
+pub mod clinton_sporting_goods;
 pub mod dante_sports;
 pub mod dominion_outdoors;
 pub mod firearms_outlet_canada; // why is FOC so bloated it uses so much memory in a browser window
