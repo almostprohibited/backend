@@ -22,7 +22,7 @@ use crate::{
     structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
     utils::{
         conversions::price_to_cents,
-        ecommerce::woocommerce::WooCommerce,
+        ecommerce::woocommerce::{WooCommerce, WooCommerceBuilder},
         html::{element_extract_attr, element_to_text, extract_element_from_element},
     },
 };
@@ -238,6 +238,8 @@ impl HtmlRetailer for RangeviewSports {
     ) -> Result<Vec<CrawlResult>, RetailerError> {
         let mut results: Vec<CrawlResult> = Vec::new();
 
+        let woocommerce_helper = WooCommerceBuilder::default().build();
+
         // commit another Rust sin, and clone the entire HTML
         // as a string since scraper::ElementRef is not thread safe
         // we'll recreate the Node later
@@ -287,7 +289,7 @@ impl HtmlRetailer for RangeviewSports {
                 continue;
             };
 
-            let result = WooCommerce::parse_product(
+            let result = woocommerce_helper.parse_product(
                 product,
                 self.get_retailer_name(),
                 search_term.category,

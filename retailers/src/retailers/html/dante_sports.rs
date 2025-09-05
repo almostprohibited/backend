@@ -4,16 +4,13 @@ use common::result::{
     enums::{Category, RetailerName},
 };
 use crawler::request::{Request, RequestBuilder};
-use scraper::{ElementRef, Html, Selector};
+use scraper::{Html, Selector};
 use tracing::debug;
 
 use crate::{
     errors::RetailerError,
     structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
-    utils::{
-        ecommerce::woocommerce::WooCommerce,
-        html::{element_extract_attr, element_to_text, extract_element_from_element},
-    },
+    utils::ecommerce::woocommerce::{WooCommerce, WooCommerceBuilder},
 };
 
 const MAX_PER_PAGE: &str = "48";
@@ -24,27 +21,6 @@ pub struct DanteSports;
 impl DanteSports {
     pub fn new() -> Self {
         Self {}
-    }
-
-    // dante images are either under `data-src`, or `src` attributes
-    // we should be using the former if it exists first
-    fn get_image_url(image_element: ElementRef) -> Result<String, RetailerError> {
-        if let Ok(data_src) = element_extract_attr(image_element, "data-src")
-            && data_src.starts_with("https")
-        {
-            return Ok(data_src);
-        };
-
-        if let Ok(regular_src) = element_extract_attr(image_element, "src")
-            && regular_src.starts_with("https")
-        {
-            return Ok(regular_src);
-        }
-
-        return Err(RetailerError::HtmlElementMissingAttribute(
-            "'valid data-src or src'".into(),
-            element_to_text(image_element),
-        ));
     }
 }
 
@@ -84,32 +60,22 @@ impl HtmlRetailer for DanteSports {
 
         let html = Html::parse_document(&response);
 
-        let product_selector =
-            Selector::parse("ul#products > li.product > div > a.woocommerce-LoopProduct-link")
-                .unwrap();
+        let product_selector = Selector::parse("ul#products > li.product > div").unwrap();
+
+        let woocommerce_helper = WooCommerceBuilder::default()
+            .with_product_url_selector("a.woocommerce-LoopProduct-link")
+            .with_product_name_selector(
+                "a.woocommerce-LoopProduct-link > h2.woocommerce-loop-product__title",
+            )
+            .with_image_url_selector("div.product-loop-thumbnail > img")
+            .build();
 
         for product in html.select(&product_selector) {
-            let link = element_extract_attr(product, "href")?;
-
-            let image_element =
-                extract_element_from_element(product, "div.product-loop-thumbnail > img")?;
-
-            let image_link = Self::get_image_url(image_element)?;
-
-            let name_element =
-                extract_element_from_element(product, "h2.woocommerce-loop-product__title")?;
-            let name = element_to_text(name_element);
-
-            let new_result = CrawlResult::new(
-                name,
-                link,
-                WooCommerce::parse_price(product)?,
+            results.push(woocommerce_helper.parse_product(
+                product,
                 self.get_retailer_name(),
                 search_term.category,
-            )
-            .with_image_url(image_link);
-
-            results.push(new_result);
+            )?);
         }
 
         Ok(results)

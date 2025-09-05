@@ -10,7 +10,10 @@ use tracing::debug;
 use crate::{
     errors::RetailerError,
     structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
-    utils::{ecommerce::woocommerce::WooCommerce, html::extract_element_from_element},
+    utils::{
+        ecommerce::woocommerce::{WooCommerce, WooCommerceBuilder},
+        html::extract_element_from_element,
+    },
 };
 
 const MAX_PER_PAGE: &str = "48";
@@ -77,6 +80,8 @@ impl HtmlRetailer for G4CGunStore {
         let product_selector =
             Selector::parse("div.products > div.product > div.product-wrapper").unwrap();
 
+        let woocommerce_helper = WooCommerceBuilder::default().build();
+
         for product in html.select(&product_selector) {
             if !Self::is_in_stock(product) {
                 // break instead of continue since products are in order
@@ -84,7 +89,7 @@ impl HtmlRetailer for G4CGunStore {
                 break;
             }
 
-            let result = WooCommerce::parse_product(
+            let result = woocommerce_helper.parse_product(
                 product,
                 self.get_retailer_name(),
                 search_term.category,

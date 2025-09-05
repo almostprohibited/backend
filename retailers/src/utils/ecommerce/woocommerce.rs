@@ -12,10 +12,50 @@ use crate::{
     },
 };
 
-pub(crate) struct WooCommerce {}
+pub(crate) struct WooCommerceBuilder {
+    product_name_selector: String,
+    product_url_selector: String,
+    image_url_selector: String,
+}
+
+impl WooCommerceBuilder {
+    pub(crate) fn default() -> Self {
+        Self {
+            product_name_selector: "div.product-element-bottom > h3 > a".into(),
+            product_url_selector: "div.product-element-bottom > h3 > a".into(),
+            image_url_selector: "a.product-image-link > img".into(),
+        }
+    }
+
+    pub(crate) fn with_product_name_selector(mut self, selector: impl Into<String>) -> Self {
+        self.product_name_selector = selector.into();
+
+        self
+    }
+
+    pub(crate) fn with_product_url_selector(mut self, selector: impl Into<String>) -> Self {
+        self.product_url_selector = selector.into();
+
+        self
+    }
+
+    pub(crate) fn with_image_url_selector(mut self, selector: impl Into<String>) -> Self {
+        self.image_url_selector = selector.into();
+
+        self
+    }
+
+    pub(crate) fn build(self) -> WooCommerce {
+        WooCommerce { options: self }
+    }
+}
+
+pub(crate) struct WooCommerce {
+    options: WooCommerceBuilder,
+}
 
 impl WooCommerce {
-    pub(crate) fn parse_price(element: ElementRef) -> Result<Price, RetailerError> {
+    fn parse_price(element: ElementRef) -> Result<Price, RetailerError> {
         let mut price = Price {
             regular_price: 0,
             sale_price: None,
@@ -56,23 +96,9 @@ impl WooCommerce {
         Ok(string_to_u64(element_to_text(last_page_element))?)
     }
 
-    fn get_image_url(element: ElementRef) -> Result<String, RetailerError> {
-        let valid_selectors = vec![
-            "a.product-image-link > img",
-            "a.woocommerce-LoopProduct-link > img", // international shooting supplies specific
-        ];
-
-        let Some(image_element) = valid_selectors.iter().find_map(|selector| {
-            if let Ok(extracted_element) = extract_element_from_element(element, *selector) {
-                return Some(extracted_element);
-            }
-
-            None
-        }) else {
-            return Err(RetailerError::HtmlMissingElement(
-                "product image element".into(),
-            ));
-        };
+    fn get_image_url(&self, element: ElementRef) -> Result<String, RetailerError> {
+        let image_element =
+            extract_element_from_element(element, self.options.image_url_selector.clone())?;
 
         if let Ok(data_src) = element_extract_attr(image_element, "data-src")
             && data_src.starts_with("https")
@@ -95,31 +121,20 @@ impl WooCommerce {
     }
 
     pub(crate) fn parse_product(
+        &self,
         element: ElementRef,
         retailer: RetailerName,
         category: Category,
     ) -> Result<CrawlResult, RetailerError> {
-        let valid_selectors = vec![
-            "div.product-element-bottom > h3 > a",
-            "div.astra-shop-summary-wrap > a.ast-loop-product__link", // international shooting supplies specific
-        ];
+        let url_element =
+            extract_element_from_element(element, self.options.product_url_selector.clone())?;
+        let name_element =
+            extract_element_from_element(element, self.options.product_name_selector.clone())?;
 
-        let Some(title_element) = valid_selectors.iter().find_map(|selector| {
-            if let Ok(extracted_element) = extract_element_from_element(element, *selector) {
-                return Some(extracted_element);
-            }
+        let name = element_to_text(name_element);
+        let url = element_extract_attr(url_element, "href")?;
 
-            None
-        }) else {
-            return Err(RetailerError::HtmlMissingElement(
-                "product title element".into(),
-            ));
-        };
-
-        let name = element_to_text(title_element);
-        let url = element_extract_attr(title_element, "href")?;
-
-        let image_url = Self::get_image_url(element)?;
+        let image_url = self.get_image_url(element)?;
 
         let new_product =
             CrawlResult::new(name, url, Self::parse_price(element)?, retailer, category)

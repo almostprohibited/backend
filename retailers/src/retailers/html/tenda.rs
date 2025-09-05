@@ -17,8 +17,7 @@ use crate::{
     errors::RetailerError,
     structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
     utils::{
-        ecommerce::woocommerce::WooCommerce,
-        html::{element_extract_attr, element_to_text, extract_element_from_element},
+        ecommerce::woocommerce::{WooCommerce, WooCommerceBuilder},
         regex::unwrap_regex_capture,
     },
 };
@@ -185,28 +184,18 @@ impl HtmlRetailer for Tenda {
 
         let product_selector = Selector::parse("ul.products > li.product.instock").unwrap();
 
+        let woocommerce_helper = WooCommerceBuilder::default()
+            .with_product_url_selector("h3.products-title > a")
+            .with_product_name_selector("h3.products-title > a")
+            .with_image_url_selector("figure.products-img > a > img")
+            .build();
+
         for element in fragment.select(&product_selector) {
-            let title_element = extract_element_from_element(element, "h3.products-title > a")?;
-
-            let product_url = element_extract_attr(title_element, "href")?;
-            let product_name = element_to_text(title_element);
-
-            let price = WooCommerce::parse_price(element)?;
-
-            let image_element =
-                extract_element_from_element(element, "figure.products-img > a > img")?;
-            let image_url = element_extract_attr(image_element, "data-src")?;
-
-            let result = CrawlResult::new(
-                product_name,
-                product_url,
-                price,
+            results.push(woocommerce_helper.parse_product(
+                element,
                 self.get_retailer_name(),
                 search_term.category,
-            )
-            .with_image_url(image_url.to_string());
-
-            results.push(result);
+            )?);
         }
 
         Ok(results)

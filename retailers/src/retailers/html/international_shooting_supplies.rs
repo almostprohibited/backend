@@ -10,7 +10,7 @@ use tracing::debug;
 use crate::{
     errors::RetailerError,
     structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
-    utils::ecommerce::woocommerce::WooCommerce,
+    utils::ecommerce::woocommerce::{WooCommerce, WooCommerceBuilder},
 };
 
 const URL: &str = "https://internationalshootingsupplies.com/product-category/{category}/page/{page}/?filter_stock_status=instock";
@@ -60,8 +60,16 @@ impl HtmlRetailer for InternationalShootingSupplies {
 
         let product_selector = Selector::parse("ul.products > li.product.instock").unwrap();
 
+        let woocommerce_helper = WooCommerceBuilder::default()
+            .with_product_url_selector("div.astra-shop-summary-wrap > a.ast-loop-product__link")
+            .with_product_name_selector(
+                "div.astra-shop-summary-wrap > a.ast-loop-product__link > h2.woocommerce-loop-product__title"
+            )
+            .with_image_url_selector("a.woocommerce-LoopProduct-link > img")
+            .build();
+
         for product in html.select(&product_selector) {
-            let new_product = WooCommerce::parse_product(
+            let new_product = woocommerce_helper.parse_product(
                 product,
                 self.get_retailer_name(),
                 search_term.category,
