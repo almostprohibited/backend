@@ -1,23 +1,12 @@
 use common::result::base::Price;
 use mongodb::bson::{Document, doc, oid::ObjectId};
 use serde::{Deserialize, Serialize};
-use strum_macros::EnumString;
-
-#[derive(Deserialize, EnumString)]
-#[serde(rename_all = "kebab-case")]
-#[strum(serialize_all = "kebab-case")]
-pub(crate) enum TimeRange {
-    OneWeek,
-    OneMonth,
-    OneYear,
-}
 
 #[derive(Deserialize)]
 #[serde(rename_all = "kebab-case")]
 #[serde(deny_unknown_fields)]
 pub struct HistoryParams {
     pub(crate) id: ObjectId,
-    pub(crate) time_range: TimeRange,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

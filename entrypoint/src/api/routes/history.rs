@@ -28,6 +28,10 @@ struct OutputShape {
     lowest_price: FormattedHistory,
 }
 
+// TODO: the results from this will parse the entire database
+// of crawled results, meaning we'll potentially waste a bunch
+// of processing parsing stuff outside the current max window
+// which is currently 1 year back
 pub(crate) async fn history_handler(
     State(state): State<Arc<ServerState>>,
     WithRejection(Query(query), _): WithRejection<Query<HistoryParams>, ApiError>,

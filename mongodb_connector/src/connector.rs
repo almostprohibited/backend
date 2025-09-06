@@ -1,7 +1,7 @@
 use std::{env, sync::LazyLock};
 
 use common::{messages::Message, result::base::CrawlResult, utils::normalized_relative_days};
-use mongodb::{Client, Collection, IndexModel, bson::doc, options::IndexOptions};
+use mongodb::{Client, Collection, Database, IndexModel, bson::doc, options::IndexOptions};
 use tracing::{debug, warn};
 
 use crate::{
@@ -23,10 +23,8 @@ const COLLECTION_MESSAGES_NAME: &str = "messages";
 
 const VIEW_LIVE_DATA_NAME: &str = "live-results";
 
-// TODO: I should have assigned a name to the index
-// when I created this thing, todo to refactor this
 const SEARCH_INDEX_NAME: &str = "name_text";
-// const SEARCH_INDEX_NAME: &str = "base_search_index";
+const HISTORY_INDEX: &str = "history_index";
 
 pub struct MongoDBConnector {
     // mongodb structs are already Arc, thread safe
@@ -59,17 +57,41 @@ impl MongoDBConnector {
     async fn initialize(client: Client) {
         let db = client.database(DATABASE_NAME);
 
+        db.create_collection(COLLECTION_MESSAGES_NAME)
+            .await
+            .expect("Creating messages collection to not fail");
+
+        Self::create_crawl_results(&db).await;
+        Self::create_live_view(&db).await;
+    }
+
+    async fn create_crawl_results(db: &Database) {
         db.create_collection(COLLECTION_CRAWL_RESULTS_NAME)
             .await
             .expect("Creating crawl results collection to not fail");
 
+        let history_index = IndexModel::builder()
+            .keys(doc! {
+                "name": "text",
+                "url": "text",
+            })
+            .options(
+                IndexOptions::builder()
+                    .name(HISTORY_INDEX.to_string())
+                    .build(),
+            )
+            .build();
+
+        db.collection::<CrawlResult>(COLLECTION_CRAWL_RESULTS_NAME)
+            .create_index(history_index)
+            .await
+            .unwrap();
+    }
+
+    async fn create_live_view(db: &Database) {
         db.create_collection(VIEW_LIVE_DATA_NAME)
             .await
             .expect("Creating live results collection to not fail");
-
-        db.create_collection(COLLECTION_MESSAGES_NAME)
-            .await
-            .expect("Creating messages collection to not fail");
 
         let crawl_result_search_index = IndexModel::builder()
             .keys(doc! {
@@ -81,11 +103,6 @@ impl MongoDBConnector {
                     .build(),
             )
             .build();
-
-        db.collection::<CrawlResult>(COLLECTION_CRAWL_RESULTS_NAME)
-            .create_index(crawl_result_search_index.clone())
-            .await
-            .unwrap();
 
         db.collection::<CrawlResult>(VIEW_LIVE_DATA_NAME)
             .create_index(crawl_result_search_index)
