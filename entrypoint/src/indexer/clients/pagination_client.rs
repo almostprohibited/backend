@@ -2,10 +2,7 @@ use std::{collections::HashMap, time::Duration};
 
 use async_trait::async_trait;
 use common::{
-    result::{
-        base::CrawlResult,
-        enums::{Category, RetailerName},
-    },
+    result::{base::CrawlResult, enums::RetailerName},
     utils::CRAWL_COOLDOWN_SECS,
 };
 use crawler::{request::Request, unprotected::UnprotectedCrawler};
@@ -17,7 +14,7 @@ use tokio::time::sleep;
 use tracing::{debug, trace};
 
 use crate::clients::{
-    base::{Client, get_ammo_metadata},
+    base::Client,
     utils::{get_category_tier, get_key},
 };
 
@@ -95,13 +92,7 @@ impl PaginationClient {
 
             let results = self.retailer.parse_response(&response, &term).await?;
 
-            for mut crawled_result in results {
-                if crawled_result.category == Category::Ammunition {
-                    if let Some(metadata) = get_ammo_metadata(&crawled_result.name) {
-                        crawled_result.set_metadata(metadata);
-                    }
-                }
-
+            for crawled_result in results {
                 self.insert_result(crawled_result);
             }
 
