@@ -122,23 +122,23 @@ impl HtmlRetailer for SJHardware {
         // their ammo page says they don't ship ammo
         // oh well
 
-        // [
-        //     "gun-cleaning",
-        //     "tactical-gear",
-        //     "medical-and-survival",
-        //     "milsurp",
-        //     "optics",
-        //     "accessories",
-        //     "precision-rifle-components",
-        //     "reloading-components",
-        // ]
-        // .iter()
-        // .for_each(|search| {
-        //     terms.push(HtmlSearchQuery {
-        //         term: search.to_string(),
-        //         category: Category::Other,
-        //     });
-        // });
+        [
+            "gun-cleaning",
+            "tactical-gear",
+            "medical-and-survival",
+            "milsurp",
+            "optics",
+            "accessories",
+            "precision-rifle-components",
+            "reloading-components",
+        ]
+        .iter()
+        .for_each(|search| {
+            terms.push(HtmlSearchQuery {
+                term: search.to_string(),
+                category: Category::Other,
+            });
+        });
 
         terms
     }
