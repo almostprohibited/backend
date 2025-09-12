@@ -1,4 +1,5 @@
 pub mod al_flahertys;
+pub mod al_simmons;
 pub mod bullseye_north;
 pub mod calgary_shooting_centre; // TODO: investigate this, they have a GQL end point @ https://store.theshootingcentre.com/graphql
 pub mod canadas_gun_store;

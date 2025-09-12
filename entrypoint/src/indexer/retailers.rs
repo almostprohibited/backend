@@ -6,7 +6,7 @@ use retailers::{
     retailers::{
         gql::prophet_river::prophet_river::ProphetRiver,
         html::{
-            al_flahertys::AlFlahertys, bullseye_north::BullseyeNorth,
+            al_flahertys::AlFlahertys, al_simmons::AlSimmons, bullseye_north::BullseyeNorth,
             calgary_shooting_centre::CalgaryShootingCentre, canadas_gun_store::CanadasGunStore,
             clinton_sporting_goods::ClintonSportingGoods, dante_sports::DanteSports,
             dominion_outdoors::DominionOutdoors, firearms_outlet_canada::FirearmsOutletCanada,
@@ -57,6 +57,7 @@ fn html_retailers() -> HashMap<RetailerName, fn() -> Result<Box<dyn HtmlRetailer
     retailers.insert(RetailerName::InterSurplus, || Ok(Box::new(InterSurplus::new())));
     retailers.insert(RetailerName::GreatNorthGun, || Ok(Box::new(GreatNorthGun::new())));
     retailers.insert(RetailerName::ClintonSportingGoods, || Ok(Box::new(ClintonSportingGoods::new())));
+    retailers.insert(RetailerName::AlSimmons, || Ok(Box::new(AlSimmons::new())));
 
     retailers
 }
