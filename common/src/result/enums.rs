@@ -47,6 +47,7 @@ pub enum RetailerName {
     GreatNorthGun,
     ClintonSportingGoods,
     AlSimmons,
+    SJHardware,
 }
 
 impl RetailerName {

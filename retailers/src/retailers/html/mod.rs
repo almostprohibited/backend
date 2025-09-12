@@ -17,6 +17,7 @@ pub mod rangeview_sports;
 pub mod rdsc;
 pub mod reliable_gun;
 pub mod select_shooting_supplies;
+pub mod sj_hardware;
 pub mod tenda;
 pub mod the_ammo_source;
 pub mod tillsonburg_gun_shop;
