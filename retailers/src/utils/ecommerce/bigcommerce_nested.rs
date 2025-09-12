@@ -62,9 +62,38 @@ impl QueryParams {
     }
 }
 
-pub(crate) struct BigCommerceNested {}
+pub(crate) struct NestedProduct {
+    pub(crate) name: String,
+    pub(crate) fallback_image_url: String,
+    pub(crate) category: Category,
+    pub(crate) product_url: String,
+}
+
+pub(crate) struct BigCommerceNested {
+    api_url: String,
+    cart_url: String,
+    retailer: RetailerName,
+    parse_queue: Vec<NestedProduct>,
+}
 
 impl BigCommerceNested {
+    pub(crate) fn new(
+        api_url: impl Into<String>,
+        cart_url: impl Into<String>,
+        retailer: RetailerName,
+    ) -> Self {
+        Self {
+            api_url: api_url.into(),
+            cart_url: cart_url.into(),
+            retailer,
+            parse_queue: Vec::new(),
+        }
+    }
+
+    pub(crate) fn enqueue_product(&mut self, product: NestedProduct) {
+        self.parse_queue.push(product);
+    }
+
     /// For nested pricing using the JSON API response
     pub(crate) fn get_price_from_object(obj: &Value) -> Result<Price, RetailerError> {
         // "price": {
@@ -343,77 +372,74 @@ impl BigCommerceNested {
         Ok(image_url.replace(REPLACEMENT_PATTERN, REPLACEMENT_SIZE))
     }
 
-    pub(crate) async fn parse_nested(
-        api_url: impl Into<String>,
-        item_url: impl Into<String>,
-        retailer_cart_url: impl Into<String>,
-        retailer: RetailerName,
-        category: Category,
-        item_name: String,
-        fallback_image_url: String,
-    ) -> Result<Vec<CrawlResult>, RetailerError> {
+    pub(crate) async fn parse_nested(&self) -> Result<Vec<CrawlResult>, RetailerError> {
         let crawler = UnprotectedCrawler::new();
-
-        let api_url_string: String = api_url.into();
-        let item_url_string: String = item_url.into();
 
         let mut nested_results: Vec<CrawlResult> = Vec::new();
 
-        let request = RequestBuilder::new()
-            .set_url(item_url_string.clone())
-            .build();
-        let result = crawler.make_web_request(request).await?;
-
-        let product_id = Self::get_product_id(&result.body)?;
-        let nested_variants = Self::get_models(&result.body, retailer_cart_url.into())?;
-
-        for variants in nested_variants.form_pairs {
-            let combined_attrs: String = variants
-                .iter()
-                .flat_map(|pair| {
-                    let attr = format!("&{}={}", pair.form_id, pair.form_attr_id);
-                    attr.chars().collect::<Vec<_>>()
-                })
-                .collect();
-            let body = format!("action=add&product_id={product_id}{combined_attrs}");
-
-            debug!("Sending subrequest with {}", body);
-
+        for nested_product in &self.parse_queue {
             let request = RequestBuilder::new()
-                .set_url(api_url_string.replace("{product_id}", &product_id))
-                .set_method(HttpMethod::POST)
-                .set_headers(
-                    &[(
-                        "Content-Type".into(),
-                        "application/x-www-form-urlencoded".into(),
-                    )]
-                    .to_vec(),
-                )
-                .set_body(body)
+                .set_url(nested_product.product_url.clone())
                 .build();
-
             let result = crawler.make_web_request(request).await?;
 
-            let json = serde_json::from_str::<Value>(&result.body)?;
-            let data = json_get_object(&json, "data".into())?;
+            let product_id = Self::get_product_id(&result.body)?;
+            let nested_variants = Self::get_models(&result.body, self.cart_url.clone())?;
 
-            if json_get_object(&data, "instock".into())? == false {
-                info!("Skipping out of stock {combined_attrs}");
-                continue;
+            for variants in nested_variants.form_pairs {
+                let combined_attrs: String = variants
+                    .iter()
+                    .flat_map(|pair| {
+                        let attr = format!("&{}={}", pair.form_id, pair.form_attr_id);
+                        attr.chars().collect::<Vec<_>>()
+                    })
+                    .collect();
+                let body = format!("action=add&product_id={product_id}{combined_attrs}");
+
+                debug!("Sending subrequest with {}", body);
+
+                let request = RequestBuilder::new()
+                    .set_url(self.api_url.replace("{product_id}", &product_id))
+                    .set_method(HttpMethod::POST)
+                    .set_headers(
+                        &[(
+                            "Content-Type".into(),
+                            "application/x-www-form-urlencoded".into(),
+                        )]
+                        .to_vec(),
+                    )
+                    .set_body(body)
+                    .build();
+
+                let result = crawler.make_web_request(request).await?;
+
+                let json = serde_json::from_str::<Value>(&result.body)?;
+                let data = json_get_object(&json, "data".into())?;
+
+                if json_get_object(&data, "instock".into())? == false {
+                    info!("Skipping out of stock {combined_attrs}");
+                    continue;
+                }
+
+                let price = Self::get_price_from_object(data)?;
+
+                let name = Self::get_name(&nested_product.name, &variants, nested_product.category);
+                let image =
+                    Self::get_image_url(&data).unwrap_or(nested_product.fallback_image_url.clone());
+
+                let new_result = CrawlResult::new(
+                    name,
+                    nested_product.product_url.clone(),
+                    price,
+                    self.retailer,
+                    nested_product.category,
+                )
+                .with_image_url(image);
+
+                nested_results.push(new_result);
+
+                sleep(Duration::from_secs(CRAWL_COOLDOWN_SECS)).await;
             }
-
-            let price = Self::get_price_from_object(data)?;
-
-            let name = Self::get_name(&item_name, &variants, category);
-            let image = Self::get_image_url(&data).unwrap_or(fallback_image_url.clone());
-
-            let new_result =
-                CrawlResult::new(name, item_url_string.clone(), price, retailer, category)
-                    .with_image_url(image);
-
-            nested_results.push(new_result);
-
-            sleep(Duration::from_secs(CRAWL_COOLDOWN_SECS)).await;
         }
 
         Ok(nested_results)

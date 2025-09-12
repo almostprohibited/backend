@@ -1,5 +1,3 @@
-use std::pin::Pin;
-
 use async_trait::async_trait;
 use common::result::{
     base::CrawlResult,
@@ -13,7 +11,10 @@ use crate::{
     errors::RetailerError,
     structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
     utils::{
-        ecommerce::{bigcommerce::BigCommerce, bigcommerce_nested::BigCommerceNested},
+        ecommerce::{
+            bigcommerce::BigCommerce,
+            bigcommerce_nested::{BigCommerceNested, NestedProduct},
+        },
         html::{element_extract_attr, element_to_text, extract_element_from_element},
     },
 };
@@ -62,11 +63,11 @@ impl HtmlRetailer for SelectShootingSupplies {
         response: &String,
         search_term: &HtmlSearchQuery,
     ) -> Result<Vec<CrawlResult>, RetailerError> {
+        let mut nested_handler =
+            BigCommerceNested::new(API_URL, CART_URL, self.get_retailer_name());
+
         let mut results: Vec<CrawlResult> = Vec::new();
 
-        // commit another Rust sin, and clone the entire HTML
-        // as a string since scraper::ElementRef is not thread safe
-        // we'll recreate the Node later
         let products = {
             let html = Html::parse_document(response);
             let product_selector = Selector::parse("ul.productGrid > li.product").unwrap();
@@ -74,10 +75,6 @@ impl HtmlRetailer for SelectShootingSupplies {
                 .map(|element| element.html().clone())
                 .collect::<Vec<_>>()
         };
-
-        let mut nested_handlers: Vec<
-            Pin<Box<dyn Future<Output = Result<Vec<CrawlResult>, RetailerError>> + Send>>,
-        > = Vec::new();
 
         for html_doc in products {
             let product_inner = Html::parse_document(&html_doc);
@@ -92,20 +89,12 @@ impl HtmlRetailer for SelectShootingSupplies {
                 let title_element = extract_element_from_element(product, "h4.card-title > a")?;
                 let url = element_extract_attr(title_element, "href")?;
 
-                // this is a nested firearm, there are models inside
-                // the URL that have different prices
-                nested_handlers.push(Box::pin(
-                    BigCommerceNested::parse_nested(
-                        API_URL,
-                        url,
-                        CART_URL,
-                        self.get_retailer_name(),
-                        search_term.category,
-                        BigCommerce::get_item_name(product)?,
-                        BigCommerce::get_image_url(product)?,
-                    )
-                    .into_future(),
-                ));
+                nested_handler.enqueue_product(NestedProduct {
+                    name: BigCommerce::get_item_name(product)?,
+                    fallback_image_url: BigCommerce::get_image_url(product)?,
+                    category: search_term.category,
+                    product_url: url,
+                });
 
                 continue;
             }
@@ -119,9 +108,7 @@ impl HtmlRetailer for SelectShootingSupplies {
             results.push(result);
         }
 
-        for handler in nested_handlers {
-            results.append(&mut handler.await?);
-        }
+        results.extend(nested_handler.parse_nested().await?);
 
         Ok(results)
     }
