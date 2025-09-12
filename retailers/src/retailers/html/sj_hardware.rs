@@ -4,7 +4,7 @@ use common::result::{
     enums::{Category, RetailerName},
 };
 use crawler::request::{Request, RequestBuilder};
-use scraper::{ElementRef, Html, Selector};
+use scraper::{Html, Selector};
 
 use crate::{
     errors::RetailerError,
