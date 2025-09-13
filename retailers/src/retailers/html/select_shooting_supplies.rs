@@ -80,12 +80,17 @@ impl HtmlRetailer for SelectShootingSupplies {
             let product_inner = Html::parse_document(&html_doc);
             let product = product_inner.root_element();
 
+            let cart_button =
+                extract_element_from_element(product, "div.card-text.add-to-cart-button")?;
+            let button_text = element_to_text(cart_button).to_lowercase();
+
             let price_element = extract_element_from_element(
                 product,
                 "div.price-section > span.price.price--withoutTax",
             )?;
+            let price_text = element_to_text(price_element);
 
-            if element_to_text(price_element).contains("-") {
+            if button_text.contains("choose options") || price_text.contains("-") {
                 let title_element = extract_element_from_element(product, "h4.card-title > a")?;
                 let url = element_extract_attr(title_element, "href")?;
 
@@ -95,17 +100,15 @@ impl HtmlRetailer for SelectShootingSupplies {
                     category: search_term.category,
                     product_url: url,
                 });
+            } else if button_text.contains("add to cart") {
+                let result = BigCommerce::parse_product(
+                    product,
+                    self.get_retailer_name(),
+                    search_term.category,
+                )?;
 
-                continue;
+                results.push(result);
             }
-
-            let result = BigCommerce::parse_product(
-                product,
-                self.get_retailer_name(),
-                search_term.category,
-            )?;
-
-            results.push(result);
         }
 
         results.extend(nested_handler.parse_nested().await?);
