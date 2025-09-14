@@ -90,12 +90,16 @@ impl HtmlRetailer for SJHardware {
                 let title_element = extract_element_from_element(product, "h4.card-title > a")?;
                 let url = element_extract_attr(title_element, "href")?;
 
-                nested_handler.enqueue_product(NestedProduct {
-                    name: BigCommerce::get_item_name(product)?,
-                    fallback_image_url: BigCommerce::get_image_url(product)?,
-                    category: search_term.category,
-                    product_url: url,
-                });
+                // TODO: fix this, sj hardware has a product that is in stock, but
+                // does not actually go anywhere when visited (it 404s)
+                if !url.contains("https://sjhardware.com/6-israeli-bandages") {
+                    nested_handler.enqueue_product(NestedProduct {
+                        name: BigCommerce::get_item_name(product)?,
+                        fallback_image_url: BigCommerce::get_image_url(product)?,
+                        category: search_term.category,
+                        product_url: url,
+                    });
+                }
             } else if button_text.contains("add to cart") {
                 let result = BigCommerce::parse_product(
                     product,
