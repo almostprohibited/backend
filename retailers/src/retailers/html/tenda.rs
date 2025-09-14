@@ -18,15 +18,18 @@ use crate::{
     structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
     utils::{
         ecommerce::woocommerce::{WooCommerce, WooCommerceBuilder},
+        html::element_to_text,
         regex::unwrap_regex_capture,
     },
 };
 
+const SITE_MAP: &str = "https://www.gotenda.com/product_cat-sitemap.xml";
 const BASE_URL: &str = "https://www.gotenda.com/";
 const URL: &str = "https://www.gotenda.com/product-category/{category}/page/{page}/?stock=instock";
 
 pub struct Tenda {
     securi_cookie: String,
+    search_terms: Vec<HtmlSearchQuery>,
 }
 
 impl Tenda {
@@ -35,8 +38,11 @@ impl Tenda {
 
         debug!("Using cookie: {cookie}");
 
+        let search_terms = executor::block_on(Self::get_search_queries())?;
+
         Ok(Self {
             securi_cookie: cookie,
+            search_terms,
         })
     }
 
@@ -142,6 +148,57 @@ impl Tenda {
 
         Ok(format!("{}={};", cookie_name, cookie_value))
     }
+
+    async fn get_search_queries() -> Result<Vec<HtmlSearchQuery>, RetailerError> {
+        let crawler = UnprotectedCrawler::new();
+        let request = RequestBuilder::new().set_url(SITE_MAP).build();
+        let response = crawler.make_web_request(request).await?;
+
+        let sitemap = Html::parse_fragment(&response.body);
+        let selector = Selector::parse("urlset > url > loc").unwrap();
+        let links: Vec<HtmlSearchQuery> = sitemap
+            .select(&selector)
+            .map(|el| {
+                let mut cleaned_text =
+                    element_to_text(el).replace("https://www.gotenda.com/product-category/", "");
+
+                if cleaned_text.ends_with("/") {
+                    cleaned_text.pop();
+                }
+
+                cleaned_text
+            })
+            .filter_map(|link| {
+                if link.contains("/watches") || link.contains("/casual") || link.contains("/hats") {
+                    return None;
+                }
+
+                if link.starts_with("accessories/")
+                    || link.starts_with("reloading/")
+                    || link.starts_with("optic/")
+                {
+                    return Some(HtmlSearchQuery {
+                        term: link,
+                        category: Category::Other,
+                    });
+                } else if link.starts_with("ammunition/") {
+                    return Some(HtmlSearchQuery {
+                        term: link,
+                        category: Category::Ammunition,
+                    });
+                } else if link.starts_with("firearms/") {
+                    return Some(HtmlSearchQuery {
+                        term: link,
+                        category: Category::Firearm,
+                    });
+                };
+
+                None
+            })
+            .collect::<Vec<HtmlSearchQuery>>();
+
+        Ok(links)
+    }
 }
 
 impl HtmlRetailerSuper for Tenda {}
@@ -202,84 +259,8 @@ impl HtmlRetailer for Tenda {
     }
 
     fn get_search_terms(&self) -> Vec<HtmlSearchQuery> {
-        let mut terms = Vec::from_iter([HtmlSearchQuery {
-            term: "ammunition".into(),
-            category: Category::Ammunition,
-        }]);
-
-        let firearm_terms = [
-            "firearms/handguns",
-            "firearms/restricted-rifles",
-            "firearms/rifles",
-            "firearms/shotguns",
-            "firearms/surplus-military",
-            "firearms/consignment",
-        ];
-
-        for firearm in firearm_terms {
-            terms.push(HtmlSearchQuery {
-                term: firearm.into(),
-                category: Category::Firearm,
-            });
-        }
-
-        let other_terms = [
-            "firearms/laser-training",
-            "accessories/magpul-section",
-            "accessories/gun-maintenance-tools",
-            "accessories/gun-maintenance-tools",
-            "accessories/gun-parts/mdt-parts",
-            "accessories/gun-parts/gun-stocks",
-            "accessories/gun-parts/for-shotgun",
-            "accessories/gun-parts/for-revolver",
-            "accessories/gun-parts/parts-for-ruger-1022",
-            "accessories/gun-parts/parts-for-glock",
-            "product-category/accessories/gun-parts/gun-barrels",
-            "accessories/gun-parts/ar-parts",
-            "accessories/gun-parts/cz-parts",
-            "accessories/gun-parts/upgrade-triggers",
-            "accessories/gun-parts/muzzle-brakes",
-            "accessories/gun-parts/sks-parts",
-            "accessories/bipod-grips-shooting-rest-sling",
-            "accessories/ipsc-3guns/holster",
-            "accessories/ipsc-3guns/trap-skeet",
-            "accessories/ipsc-3guns/pouch",
-            "accessories/ipsc-3guns/belt",
-            "accessories/storage-transport",
-            "accessories/shooting-protection",
-            "accessories/targets",
-            "accessories/magazines",
-            "reloading/gun-powders",
-            "reloading/primers/shotshell-primers",
-            "reloading/primers/pistol-primers",
-            "reloading/primers/rifle-primers",
-            "reloading/tools-accessories",
-            "reloading/dillon-precision",
-            "reloading/lee-precision",
-            "reloading/lyman-mark-7",
-            "reloading/dies-press",
-            "reloading/brass-bullet",
-            "reloading/brass-cleaning",
-            "optic/binocular-range-finder",
-            "optic/replacement-sights",
-            "optic/scope",
-            "optic/optic-accessories/ringsmount",
-            "optic/optic-accessories/scope-cover",
-            "optic/optic-accessories/clean-maintain",
-            "optic/red-dot",
-            "optic/nightforce-section/scope-nightforce-section",
-            "optic/nightforce-section/rings-mounts",
-            "optic/laser-flashlight",
-        ];
-
-        for other in other_terms {
-            terms.push(HtmlSearchQuery {
-                term: other.into(),
-                category: Category::Other,
-            });
-        }
-
-        terms
+        // sucks to clone this, but I don't remember if this is run in a loop
+        self.search_terms.clone()
     }
 
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {
