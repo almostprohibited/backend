@@ -24,6 +24,12 @@ pub struct Tillsonburg {
     page_count_regex: Regex,
 }
 
+impl Default for Tillsonburg {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Tillsonburg {
     pub fn new() -> Self {
         Self {
@@ -39,7 +45,7 @@ impl Tillsonburg {
             return Err(RetailerError::HtmlMissingElement(query.to_string()));
         };
 
-        return Ok(element_to_text(cart_button) == "Out Of Stock");
+        Ok(element_to_text(cart_button) == "Out Of Stock")
     }
 
     fn get_price(element: ElementRef) -> Result<Price, RetailerError> {
@@ -111,7 +117,7 @@ impl HtmlRetailer for Tillsonburg {
     ) -> Result<Vec<CrawlResult>, RetailerError> {
         let mut results: Vec<CrawlResult> = Vec::new();
 
-        let html = Html::parse_document(&response);
+        let html = Html::parse_document(response);
 
         let product_selector =
             Selector::parse("div.row > div.product-layout > div.product-thumb").unwrap();
@@ -176,7 +182,7 @@ impl HtmlRetailer for Tillsonburg {
     }
 
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {
-        let html = Html::parse_document(&response);
+        let html = Html::parse_document(response);
         let root = html.root_element();
 
         if Self::is_out_of_stock(root)? {
@@ -201,6 +207,6 @@ impl HtmlRetailer for Tillsonburg {
             .get(1)
             .expect("Expect single match as there was a capture");
 
-        Ok(string_to_u64(page_match.as_str().to_string())?)
+        string_to_u64(page_match.as_str().to_string())
     }
 }

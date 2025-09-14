@@ -50,14 +50,13 @@ impl Tenda {
         let cookie_name_regex = Regex::new(r##";document\.cookie=(.*?)\+\s*\"=\"\s*\+"##)
             .expect("Regex should compile as nothing has changed");
 
-        let cookie_name_obfuscated = unwrap_regex_capture(&cookie_name_regex, &haystack)?;
+        let cookie_name_obfuscated = unwrap_regex_capture(&cookie_name_regex, haystack)?;
         let mut cookie_name_parts: Vec<String> = Vec::new();
 
         for cooke_name_part in cookie_name_obfuscated.split("+") {
             let Some(individual_char) = cooke_name_part.get(1..2) else {
                 return Err(RetailerError::GeneralError(format!(
-                    "Failed to map value: {}",
-                    cooke_name_part
+                    "Failed to map value: {cooke_name_part}"
                 )));
             };
 
@@ -85,8 +84,7 @@ impl Tenda {
             let Ok(char_code) = unwrap_regex_capture(&char_code_regex, part) else {
                 let Some(individual_char) = part.get(1..2) else {
                     return Err(RetailerError::GeneralError(format!(
-                        "Captured non String.fromCharCode, but failed to map to char: {}",
-                        part
+                        "Captured non String.fromCharCode, but failed to map to char: {part}"
                     )));
                 };
 
@@ -96,15 +94,13 @@ impl Tenda {
 
             let Ok(char_code) = char_code.parse::<u32>() else {
                 return Err(RetailerError::GeneralError(format!(
-                    "Char code is not a number: {}",
-                    char_code
+                    "Char code is not a number: {char_code}"
                 )));
             };
 
             let Some(parsed_char) = char::from_u32(char_code) else {
                 return Err(RetailerError::GeneralError(format!(
-                    "Failed to convert char into valid UTF-8: {}",
-                    char_code
+                    "Failed to convert char into valid UTF-8: {char_code}"
                 )));
             };
 
@@ -132,8 +128,7 @@ impl Tenda {
 
         let Ok(decoded_base64) = BASE64_STANDARD.decode(&base64) else {
             return Err(RetailerError::GeneralError(format!(
-                "Failed to decode base64, got this instead: {}",
-                base64
+                "Failed to decode base64, got this instead: {base64}"
             )));
         };
 
@@ -146,7 +141,7 @@ impl Tenda {
         let cookie_name = Self::get_cookie_name(&decoded_string)?;
         let cookie_value = Self::get_cookie_value(&decoded_string)?;
 
-        Ok(format!("{}={};", cookie_name, cookie_value))
+        Ok(format!("{cookie_name}={cookie_value};"))
     }
 
     async fn get_search_queries() -> Result<Vec<HtmlSearchQuery>, RetailerError> {
@@ -237,7 +232,7 @@ impl HtmlRetailer for Tenda {
     ) -> Result<Vec<CrawlResult>, RetailerError> {
         let mut results: Vec<CrawlResult> = Vec::new();
 
-        let fragment = Html::parse_document(&response);
+        let fragment = Html::parse_document(response);
 
         let product_selector = Selector::parse("ul.products > li.product.instock").unwrap();
 

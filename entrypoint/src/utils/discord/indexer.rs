@@ -141,7 +141,7 @@ impl IndexerWebhook {
     }
 
     pub async fn send_message(&self, msg: String) {
-        let message = format!("```{}```", msg);
+        let message = format!("```{msg}```");
         let embed = CreateEmbed::new().description(message);
         let builder = ExecuteWebhook::new().embed(embed);
 
@@ -152,9 +152,9 @@ impl IndexerWebhook {
     }
 
     pub async fn send_error(&self, name: RetailerName, err: RetailerError) {
-        let message = format!("```{}```", err);
+        let message = format!("```{err}```");
         let embed = CreateEmbed::new()
-            .title(format!("Error - {:?}", name))
+            .title(format!("Error - {name:?}"))
             .description(message);
         let builder = ExecuteWebhook::new().embed(embed);
 

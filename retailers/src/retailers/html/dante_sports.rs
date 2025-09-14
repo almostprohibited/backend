@@ -18,6 +18,12 @@ const URL: &str = "https://www.dantesports.com/en/product-category/{category}/pa
 
 pub struct DanteSports;
 
+impl Default for DanteSports {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DanteSports {
     pub fn new() -> Self {
         Self {}
@@ -58,7 +64,7 @@ impl HtmlRetailer for DanteSports {
     ) -> Result<Vec<CrawlResult>, RetailerError> {
         let mut results: Vec<CrawlResult> = Vec::new();
 
-        let html = Html::parse_document(&response);
+        let html = Html::parse_document(response);
 
         let product_selector = Selector::parse("ul#products > li.product > div").unwrap();
 

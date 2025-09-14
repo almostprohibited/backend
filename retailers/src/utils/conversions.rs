@@ -18,7 +18,7 @@ pub(crate) fn price_to_cents(price: String) -> Result<u64, RetailerError> {
     // lazily deal with missing cents
     // turns "100" -> "100.00"
     if !trimmed_price.contains(".") {
-        trimmed_price = trimmed_price + ".00";
+        trimmed_price += ".00";
     }
 
     match trimmed_price.split_once(".") {
@@ -28,9 +28,7 @@ pub(crate) fn price_to_cents(price: String) -> Result<u64, RetailerError> {
 
             Ok(parsed_dollars * 100 + parsed_cents)
         }
-        None => {
-            return Err(RetailerError::InvalidNumber(price));
-        }
+        None => Err(RetailerError::InvalidNumber(price)),
     }
 }
 

@@ -48,7 +48,7 @@ async fn main() {
         let discord_webhook = discord_webhook.clone();
 
         handles.push(tokio::spawn(async move {
-            let retailer_name = retailer.get_retailer_name().clone();
+            let retailer_name = retailer.get_retailer_name();
             info!("Registering {retailer_name:?}");
 
             discord_webhook

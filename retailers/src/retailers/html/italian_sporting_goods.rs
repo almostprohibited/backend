@@ -21,6 +21,12 @@ const URL: &str = "https://www.italiansportinggoods.com/{category}.html?product_
 
 pub struct ItalianSportingGoods;
 
+impl Default for ItalianSportingGoods {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ItalianSportingGoods {
     pub fn new() -> Self {
         Self {}
@@ -82,7 +88,7 @@ impl HtmlRetailer for ItalianSportingGoods {
     ) -> Result<Vec<CrawlResult>, RetailerError> {
         let mut results: Vec<CrawlResult> = Vec::new();
 
-        let html = Html::parse_document(&response);
+        let html = Html::parse_document(response);
 
         let product_selector = Selector::parse("div.product-item-info").unwrap();
 
@@ -155,7 +161,7 @@ impl HtmlRetailer for ItalianSportingGoods {
     }
 
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {
-        let html = Html::parse_document(&response);
+        let html = Html::parse_document(response);
 
         let item_counts = Selector::parse("p#toolbar-amount > span.toolbar-number").unwrap();
         if let Some(total_items_element) = html.select(&item_counts).nth(2) {

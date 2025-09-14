@@ -38,10 +38,10 @@ async fn main() {
 
     let state = Arc::new(ServerState { db: mongodb });
 
-    let addr = format!("0.0.0.0:{}", port);
+    let addr = format!("0.0.0.0:{port}");
 
     info!("MongoDB client ready");
-    info!("Starting web server on: {}", addr);
+    info!("Starting web server on: {addr}");
 
     let router = Router::new()
         .route("/api/search", get(search_handler))

@@ -20,7 +20,7 @@ impl MatchStage {
     ) -> Self {
         let mut search_terms = query
             .split(" ")
-            .map(|term| format!("\"{}\"", term))
+            .map(|term| format!("\"{term}\""))
             .collect::<Vec<String>>();
 
         search_terms.sort();
@@ -71,7 +71,7 @@ impl StageDocument for MatchStage {
 
         trace!("Price filters: {:#?}", price_filter);
 
-        if price_filter.len() > 0 {
+        if !price_filter.is_empty() {
             match_filter.insert(
                 "$expr",
                 doc! {

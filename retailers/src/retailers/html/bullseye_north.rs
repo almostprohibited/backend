@@ -23,6 +23,12 @@ const URL: &str =
 
 pub struct BullseyeNorth;
 
+impl Default for BullseyeNorth {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BullseyeNorth {
     pub fn new() -> Self {
         Self {}
@@ -195,6 +201,6 @@ impl HtmlRetailer for BullseyeNorth {
 
         let max_page_count = element_extract_attr(max_pages_el, "data-max-pages")?;
 
-        Ok(string_to_u64(max_page_count)?)
+        string_to_u64(max_page_count)
     }
 }

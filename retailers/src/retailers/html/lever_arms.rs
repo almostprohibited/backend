@@ -20,6 +20,12 @@ const URL: &str = "https://leverarms.com/product-category/{category}/page/{page}
 
 pub struct LeverArms;
 
+impl Default for LeverArms {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl LeverArms {
     pub fn new() -> Self {
         Self {}
@@ -59,7 +65,7 @@ impl HtmlRetailer for LeverArms {
     ) -> Result<Vec<CrawlResult>, RetailerError> {
         let mut results: Vec<CrawlResult> = Vec::new();
 
-        let fragment = Html::parse_document(&response);
+        let fragment = Html::parse_document(response);
 
         let product_selector = Selector::parse("a.woocommerce-LoopProduct-link").unwrap();
 
@@ -148,7 +154,7 @@ impl HtmlRetailer for LeverArms {
     }
 
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {
-        let fragment = Html::parse_document(&response);
+        let fragment = Html::parse_document(response);
         let page_number_selector =
             Selector::parse("a:not(.next):not(.prev).page-numbers, span.page-numbers").unwrap();
 
@@ -163,7 +169,7 @@ impl HtmlRetailer for LeverArms {
         // page links look like:
         // ["1", "2", "3", "->"]
         let Some(last_page_element) = page_links.nth(page_links_count - 1) else {
-            let message = format!("Invalid number of page elements: {:?}", page_links);
+            let message = format!("Invalid number of page elements: {page_links:?}");
             error!(message);
 
             return Err(RetailerError::GeneralError(
@@ -171,6 +177,6 @@ impl HtmlRetailer for LeverArms {
             ));
         };
 
-        Ok(string_to_u64(element_to_text(last_page_element))?)
+        string_to_u64(element_to_text(last_page_element))
     }
 }

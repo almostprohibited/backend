@@ -21,6 +21,12 @@ const URL: &str = "https://rdsc.ca/{category}.html?p={page}";
 
 pub struct Rdsc;
 
+impl Default for Rdsc {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Rdsc {
     pub fn new() -> Self {
         Self {}
@@ -35,10 +41,10 @@ impl Rdsc {
         // check for button text to make sure it says "View Options"
         match extract_element_from_element(element, "a.view-button") {
             Ok(view_button) => {
-                return element_to_text(view_button) == "View Options";
+                element_to_text(view_button) == "View Options"
             }
             Err(_) => {
-                return false;
+                false
             }
         }
     }
@@ -77,7 +83,7 @@ impl HtmlRetailer for Rdsc {
     ) -> Result<Vec<CrawlResult>, RetailerError> {
         let mut results: Vec<CrawlResult> = Vec::new();
 
-        let fragment = Html::parse_document(&response);
+        let fragment = Html::parse_document(response);
 
         let product_selector =
             Selector::parse("ol.product-items > li.product-item > div.product-item-info").unwrap();
@@ -163,7 +169,7 @@ impl HtmlRetailer for Rdsc {
     }
 
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {
-        let fragment = Html::parse_document(&response);
+        let fragment = Html::parse_document(response);
 
         // there's no way to only filter for in stock items via the website
         // need to check if any of the item cart buttons exists, otherwise its
@@ -175,7 +181,7 @@ impl HtmlRetailer for Rdsc {
 
         let item_number_selector =
             Selector::parse("p#toolbar-amount > span.toolbar-number").unwrap();
-        let Some(item_number_element) = fragment.select(&item_number_selector).last() else {
+        let Some(item_number_element) = fragment.select(&item_number_selector).next_back() else {
             warn!("Page is missing total item count");
             return Ok(0);
         };

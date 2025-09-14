@@ -82,18 +82,18 @@ impl WooCommerce {
         Ok(price)
     }
 
-    pub(crate) fn parse_max_pages(response: &String) -> Result<u64, RetailerError> {
-        let fragment = Html::parse_document(&response);
+    pub(crate) fn parse_max_pages(response: &str) -> Result<u64, RetailerError> {
+        let fragment = Html::parse_document(response);
         let page_number_selector =
             Selector::parse("ul.page-numbers > li > a:not(.next):not(.prev).page-numbers").unwrap();
 
-        let page_links = fragment.select(&page_number_selector);
+        let mut page_links = fragment.select(&page_number_selector);
 
-        let Some(last_page_element) = page_links.last() else {
+        let Some(last_page_element) = page_links.next_back() else {
             return Ok(0);
         };
 
-        Ok(string_to_u64(element_to_text(last_page_element))?)
+        string_to_u64(element_to_text(last_page_element))
     }
 
     fn get_image_url(&self, element: ElementRef) -> Result<String, RetailerError> {
@@ -114,10 +114,10 @@ impl WooCommerce {
             return Ok(regular_src);
         }
 
-        return Err(RetailerError::HtmlElementMissingAttribute(
+        Err(RetailerError::HtmlElementMissingAttribute(
             "'valid data-src or src'".into(),
             element_to_text(image_element),
-        ));
+        ))
     }
 
     pub(crate) fn parse_product(

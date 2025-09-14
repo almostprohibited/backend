@@ -48,6 +48,12 @@ pub struct RangeviewSports {
     crawler: UnprotectedCrawler,
 }
 
+impl Default for RangeviewSports {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RangeviewSports {
     pub fn new() -> Self {
         Self {
@@ -177,7 +183,7 @@ impl RangeviewSports {
             let sale_price = price_to_cents(variation.display_price.to_string())?;
 
             let price = Price {
-                regular_price: regular_price,
+                regular_price,
                 sale_price: if regular_price == sale_price {
                     None
                 } else {

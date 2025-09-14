@@ -41,6 +41,12 @@ pub struct AlFlahertys {
     crawler: UnprotectedCrawler,
 }
 
+impl Default for AlFlahertys {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AlFlahertys {
     pub fn new() -> Self {
         Self {
@@ -72,7 +78,7 @@ impl AlFlahertys {
         let prop = json_get_object(json, key.into())?;
 
         let Some(string_repr) = prop.as_str() else {
-            let message = format!("{} is not a string: {}", key, prop);
+            let message = format!("{key} is not a string: {prop}");
 
             error!(message);
 
@@ -127,7 +133,7 @@ impl AlFlahertys {
     ) -> Result<Vec<CrawlResult>, RetailerError> {
         let mut results: Vec<CrawlResult> = Vec::new();
 
-        let cad_formatted_pricing = format!("{}?setCurrencyId=1", url);
+        let cad_formatted_pricing = format!("{url}?setCurrencyId=1");
 
         let request = RequestBuilder::new()
             .set_url(&cad_formatted_pricing)
@@ -155,8 +161,7 @@ impl AlFlahertys {
 
         for (model_id, model_name) in models {
             let body = format!(
-                "action=add&product_id={}&{}={}&qty%5B%5D=1",
-                product_id, model_key_name, model_id
+                "action=add&product_id={product_id}&{model_key_name}={model_id}&qty%5B%5D=1"
             );
 
             sleep(Duration::from_secs(CRAWL_COOLDOWN_SECS)).await;
@@ -187,12 +192,12 @@ impl AlFlahertys {
             let data = json_get_object(&json, "data".into())?;
 
             // boolean check since I am comparing against `Value`
-            if json_get_object(&data, "instock".into())? == false {
+            if json_get_object(data, "instock".into())? == false {
                 continue;
             }
 
             let price = BigCommerceNested::get_price_from_object(data)?;
-            let formatted_name = format!("({}) - {}", model_name, name);
+            let formatted_name = format!("({model_name}) - {name}");
 
             let new_result = CrawlResult::new(
                 formatted_name,
@@ -277,7 +282,7 @@ impl HtmlRetailer for AlFlahertys {
 
             let variant_value = json_get_object(item, "totalVariants".into())?;
             let Some(variants) = variant_value.as_u64() else {
-                let message = format!("Failed to convert {} into an u64", variant_value);
+                let message = format!("Failed to convert {variant_value} into an u64");
                 error!(message);
                 return Err(RetailerError::ApiResponseInvalidShape(message));
             };
@@ -365,11 +370,11 @@ impl HtmlRetailer for AlFlahertys {
         let total_results = json_get_object(meta, "totalResultsFound".into())?;
 
         let Some(count) = total_results.as_u64() else {
-            let message = format!("Failed to parse count as number: {}", total_results);
+            let message = format!("Failed to parse count as number: {total_results}");
 
             error!(message);
 
-            return Err(RetailerError::ApiResponseInvalidShape(message.into()));
+            return Err(RetailerError::ApiResponseInvalidShape(message));
         };
 
         Ok(count / PAGE_LIMIT + 1)

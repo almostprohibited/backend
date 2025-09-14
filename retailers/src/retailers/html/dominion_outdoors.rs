@@ -29,6 +29,12 @@ pub struct DominionOutdoors {
     crawler: UnprotectedCrawler,
 }
 
+impl Default for DominionOutdoors {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DominionOutdoors {
     pub fn new() -> Self {
         Self {
@@ -187,19 +193,19 @@ impl HtmlRetailer for DominionOutdoors {
             });
         }
 
-        return terms;
+        terms
     }
 
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {
-        let fragment = Html::parse_document(&response);
+        let fragment = Html::parse_document(response);
         let page_number_selector = Selector::parse("div.pager > ul.right > li.number").unwrap();
 
-        let page_links = fragment.select(&page_number_selector);
+        let mut page_links = fragment.select(&page_number_selector);
 
-        let Some(last_page_element) = page_links.last() else {
+        let Some(last_page_element) = page_links.next_back() else {
             return Ok(0);
         };
 
-        Ok(string_to_u64(element_to_text(last_page_element))?)
+        string_to_u64(element_to_text(last_page_element))
     }
 }

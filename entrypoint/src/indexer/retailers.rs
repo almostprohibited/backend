@@ -75,24 +75,24 @@ fn gql_retailers() -> HashMap<RetailerName, fn() -> Result<Box<dyn GqlRetailerSu
 }
 
 fn filter_retailers<T: ?Sized>(
-    retailer_filter: &Vec<RetailerName>,
-    excluded_retailer_filter: &Vec<RetailerName>,
+    retailer_filter: &[RetailerName],
+    excluded_retailer_filter: &[RetailerName],
     retailers: HashMap<RetailerName, fn() -> Result<Box<T>, RetailerError>>,
 ) -> Vec<fn() -> Result<Box<T>, RetailerError>> {
     let mut filted_retailers: Vec<fn() -> Result<Box<T>, RetailerError>> = Vec::new();
 
     let included_retailers: Vec<RetailerName> = match retailer_filter.len() {
         0 => retailers.keys().copied().collect(),
-        _ => retailer_filter.clone(),
+        _ => retailer_filter.to_owned(),
     };
 
     let search_space: Vec<&RetailerName> = included_retailers
         .iter()
-        .filter(|retailer| !excluded_retailer_filter.contains(&retailer))
+        .filter(|retailer| !excluded_retailer_filter.contains(retailer))
         .collect();
 
     for retailer in search_space {
-        if let Some(retailer_factory) = retailers.get(&retailer) {
+        if let Some(retailer_factory) = retailers.get(retailer) {
             filted_retailers.push(*retailer_factory);
         }
     }

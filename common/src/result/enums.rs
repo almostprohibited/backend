@@ -15,7 +15,7 @@ pub enum Category {
 
 impl Display for Category {
     fn fmt(&self, format: &mut Formatter) -> Result {
-        write!(format, "{}", format!("{:?}", self).to_lowercase())
+        write!(format, "{}", format!("{self:?}").to_lowercase())
     }
 }
 

@@ -47,15 +47,15 @@ impl BigCommerce {
             Selector::parse("li:not(.pagination-item--next):not(.pagination-item--previous).pagination-item > a.pagination-link")
                 .unwrap();
 
-        let pagination_elements = html.select(&selector);
+        let mut pagination_elements = html.select(&selector);
 
-        let Some(last_page_element) = pagination_elements.last() else {
+        let Some(last_page_element) = pagination_elements.next_back() else {
             return Ok(0);
         };
 
         let last_page_text = element_to_text(last_page_element);
 
-        Ok(string_to_u64(last_page_text)?)
+        string_to_u64(last_page_text)
     }
 
     pub(crate) fn get_image_url(element: ElementRef) -> Result<String, RetailerError> {
@@ -74,10 +74,10 @@ impl BigCommerce {
             return Ok(regular_src);
         }
 
-        return Err(RetailerError::HtmlElementMissingAttribute(
+        Err(RetailerError::HtmlElementMissingAttribute(
             "'valid data-src or src'".into(),
             element_to_text(image_element),
-        ));
+        ))
     }
 
     fn get_title_element(element: ElementRef) -> Result<ElementRef, RetailerError> {

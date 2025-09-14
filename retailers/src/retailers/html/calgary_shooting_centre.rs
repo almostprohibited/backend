@@ -27,6 +27,12 @@ const CART_URL: &str = "https://store.theshootingcentre.com/cart.php";
 
 pub struct CalgaryShootingCentre;
 
+impl Default for CalgaryShootingCentre {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CalgaryShootingCentre {
     pub fn new() -> Self {
         Self {}

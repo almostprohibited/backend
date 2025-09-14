@@ -88,7 +88,7 @@ pub(crate) async fn history_handler(
                 existing_history.price = Some(price);
             }
         } else {
-            history.insert(normalized_timestamp, formatted_history.clone());
+            history.insert(normalized_timestamp, formatted_history);
         };
 
         if let Some(ref lowest) = lowest_price {
@@ -96,10 +96,10 @@ pub(crate) async fn history_handler(
                 || (lowest.price == formatted_history.price
                     && lowest.normalized_timestamp > formatted_history.normalized_timestamp)
             {
-                lowest_price = Some(formatted_history.clone());
+                lowest_price = Some(formatted_history);
             }
         } else {
-            lowest_price = Some(formatted_history.clone());
+            lowest_price = Some(formatted_history);
         };
 
         if let Some(ref highest) = highest_price {
@@ -107,7 +107,7 @@ pub(crate) async fn history_handler(
                 || (highest.price == formatted_history.price
                     && highest.normalized_timestamp > formatted_history.normalized_timestamp)
             {
-                highest_price = Some(formatted_history.clone());
+                highest_price = Some(formatted_history);
             }
         } else {
             highest_price = Some(formatted_history);
@@ -126,15 +126,12 @@ pub(crate) async fn history_handler(
     };
 
     while current_timestamp > first_timestamp {
-        if history.get(&current_timestamp).is_none() {
-            history.insert(
-                current_timestamp,
-                FormattedHistory {
-                    normalized_timestamp: current_timestamp,
-                    price: None,
-                },
-            );
-        }
+        history
+            .entry(current_timestamp)
+            .or_insert(FormattedHistory {
+                normalized_timestamp: current_timestamp,
+                price: None,
+            });
 
         // rewind one day
         current_timestamp -= 24 * 60 * 60;

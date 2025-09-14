@@ -20,6 +20,12 @@ const URL: &str = "https://firearmsoutletcanada.com/{category}?in_stock=1&page={
 
 pub struct FirearmsOutletCanada;
 
+impl Default for FirearmsOutletCanada {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl FirearmsOutletCanada {
     pub fn new() -> Self {
         Self {}
@@ -175,7 +181,7 @@ impl HtmlRetailer for FirearmsOutletCanada {
         in_stock_text = in_stock_text.replace("(", "").replace(")", "");
 
         let Ok(in_stock_count) = in_stock_text.parse::<u64>() else {
-            let message = format!("Failed to parse {} into a number", in_stock_text);
+            let message = format!("Failed to parse {in_stock_text} into a number");
 
             error!(message);
 

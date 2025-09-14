@@ -17,6 +17,12 @@ const URL: &str = "https://greatnorthgunco.ca/{category}/?product-page={page}";
 
 pub struct GreatNorthGun;
 
+impl Default for GreatNorthGun {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl GreatNorthGun {
     pub fn new() -> Self {
         Self {}
@@ -56,7 +62,7 @@ impl HtmlRetailer for GreatNorthGun {
     ) -> Result<Vec<CrawlResult>, RetailerError> {
         let mut results: Vec<CrawlResult> = Vec::new();
 
-        let html = Html::parse_document(&response);
+        let html = Html::parse_document(response);
 
         let product_selector =
             Selector::parse("div.woocommerce > ul.products > li.product").unwrap();

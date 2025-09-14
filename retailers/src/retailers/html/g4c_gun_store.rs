@@ -22,6 +22,12 @@ const URL: &str =
 
 pub struct G4CGunStore;
 
+impl Default for G4CGunStore {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl G4CGunStore {
     pub fn new() -> Self {
         Self {}
@@ -75,7 +81,7 @@ impl HtmlRetailer for G4CGunStore {
     ) -> Result<Vec<CrawlResult>, RetailerError> {
         let mut results: Vec<CrawlResult> = Vec::new();
 
-        let html = Html::parse_document(&response);
+        let html = Html::parse_document(response);
 
         let product_selector =
             Selector::parse("div.products > div.product > div.product-wrapper").unwrap();
@@ -126,7 +132,7 @@ impl HtmlRetailer for G4CGunStore {
     }
 
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {
-        let html = Html::parse_document(&response);
+        let html = Html::parse_document(response);
         let root_element = html.root_element();
 
         if Self::is_dead_page(root_element) {

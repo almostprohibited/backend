@@ -94,7 +94,7 @@ impl GqlRetailer for ProphetRiver {
         Ok(request)
     }
 
-    async fn parse_response(&self, response: &String) -> Result<Vec<CrawlResult>, RetailerError> {
+    async fn parse_response(&self, response: &str) -> Result<Vec<CrawlResult>, RetailerError> {
         let mut results: Vec<CrawlResult> = Vec::new();
 
         let response_objects = serde_json::from_str::<ApiResponse>(response)?;
@@ -143,7 +143,7 @@ impl GqlRetailer for ProphetRiver {
         Ok(results)
     }
 
-    fn get_pagination_token(&self, response: &String) -> Result<Option<String>, RetailerError> {
+    fn get_pagination_token(&self, response: &str) -> Result<Option<String>, RetailerError> {
         let response_objects = serde_json::from_str::<ApiResponse>(response)?;
         let pagination_info = response_objects.data.site.products.page_info;
 

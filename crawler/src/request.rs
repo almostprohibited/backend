@@ -33,6 +33,12 @@ impl Request {
     }
 }
 
+impl Default for RequestBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RequestBuilder {
     pub fn new() -> Self {
         Self {

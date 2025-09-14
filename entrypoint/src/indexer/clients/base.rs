@@ -31,13 +31,8 @@ pub(crate) trait Client {
             if result.category == Category::Ammunition {
                 let mut has_metadata = false;
 
-                if let Some(metadata) = &result.metadata {
-                    match metadata {
-                        Metadata::Ammunition { .. } => {
-                            has_metadata = true;
-                        }
-                        _ => {}
-                    }
+                if let Some(Metadata::Ammunition { .. }) = &result.metadata {
+                    has_metadata = true;
                 }
 
                 if !has_metadata {

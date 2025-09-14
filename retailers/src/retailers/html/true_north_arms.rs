@@ -25,6 +25,12 @@ const URL: &str = "https://truenortharms.com/{category}/?page={page}&in_stock=1"
 
 pub struct TrueNorthArms;
 
+impl Default for TrueNorthArms {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TrueNorthArms {
     pub fn new() -> Self {
         Self {}
@@ -180,7 +186,7 @@ impl HtmlRetailer for TrueNorthArms {
             });
         }
 
-        return terms;
+        terms
     }
 
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {

@@ -23,6 +23,12 @@ const BASE_URL: &str = "https://www.canadasgunstore.ca";
 
 pub struct CanadasGunStore;
 
+impl Default for CanadasGunStore {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CanadasGunStore {
     pub fn new() -> Self {
         Self {}
@@ -86,7 +92,7 @@ impl HtmlRetailer for CanadasGunStore {
 
             let image_src = element_extract_attr(image_element, "src")?;
             let image_url = match image_src.starts_with("/") {
-                true => format!("{BASE_URL}{}", image_src),
+                true => format!("{BASE_URL}{image_src}"),
                 false => image_src,
             };
 
@@ -155,10 +161,7 @@ impl HtmlRetailer for CanadasGunStore {
         let results_parts: Vec<&str> = results_text.split(" ").collect();
 
         let Some(pages) = results_parts.last() else {
-            let message = format!(
-                "Failed to split the string (empty matches): {}",
-                results_text
-            );
+            let message = format!("Failed to split the string (empty matches): {results_text}");
 
             error!(message);
 
@@ -168,7 +171,7 @@ impl HtmlRetailer for CanadasGunStore {
         let Ok(page_as_num) = pages.parse::<u64>() else {
             error!(
                 "{}",
-                format!("Failed to convert string into number: {}", pages)
+                format!("Failed to convert string into number: {pages}")
             );
 
             return Err(RetailerError::InvalidNumber(pages.to_string()));

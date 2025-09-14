@@ -40,9 +40,9 @@ pub trait GqlRetailer {
         pagination_token: Option<String>,
     ) -> Result<Request, RetailerError>;
 
-    async fn parse_response(&self, response: &String) -> Result<Vec<CrawlResult>, RetailerError>;
+    async fn parse_response(&self, response: &str) -> Result<Vec<CrawlResult>, RetailerError>;
 
-    fn get_pagination_token(&self, response: &String) -> Result<Option<String>, RetailerError>;
+    fn get_pagination_token(&self, response: &str) -> Result<Option<String>, RetailerError>;
 }
 
 #[derive(Debug, Clone)]

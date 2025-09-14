@@ -57,7 +57,7 @@ pub(super) struct ApiProductPrice {
 
 impl ApiProductPrice {
     fn float_to_cents(original_price: f32) -> Result<u64, RetailerError> {
-        Ok(price_to_cents(original_price.to_string())?)
+        price_to_cents(original_price.to_string())
     }
 
     pub(super) fn get_price(&self) -> Result<Price, RetailerError> {

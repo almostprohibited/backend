@@ -5,8 +5,7 @@ use crate::errors::RetailerError;
 pub(crate) fn json_get_object(object: &Value, key: String) -> Result<&Value, RetailerError> {
     let Some(value) = object.get(&key) else {
         return Err(RetailerError::ApiResponseMissingKey(format!(
-            "JSON is missing '{}'",
-            key
+            "JSON is missing '{key}'"
         )));
     };
 

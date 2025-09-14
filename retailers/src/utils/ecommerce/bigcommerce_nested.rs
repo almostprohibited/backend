@@ -45,10 +45,9 @@ impl QueryParams {
     }
 
     fn apply(&mut self, form_pairs: Vec<FormValuePair>) {
-        if self.form_pairs.len() == 0 {
+        if self.form_pairs.is_empty() {
             for pair in form_pairs {
-                let mut new_vec: Vec<FormValuePair> = Vec::new();
-                new_vec.push(pair);
+                let new_vec: Vec<FormValuePair> = vec![pair];
 
                 self.form_pairs.push(new_vec);
             }
@@ -114,22 +113,22 @@ impl BigCommerceNested {
         //         "currency": "CAD"
         //     }
         // },
-        let price_obj = json_get_object(&obj, "price".into())?;
+        let price_obj = json_get_object(obj, "price".into())?;
 
         let main_price = json_get_object(price_obj, "without_tax".into())?;
         let main_price_value = json_get_object(main_price, "value".into())?;
 
-        let currency = json_get_object(&main_price, "currency".into())?;
+        let currency = json_get_object(main_price, "currency".into())?;
         if let Some(currency_string) = currency.as_str()
             && currency_string != "CAD"
         {
             let message = format!("Invalid pricing, API returned non CAD pricing: {currency:?}");
             error!(message);
-            return Err(RetailerError::ApiResponseInvalidShape(message.into()));
+            return Err(RetailerError::ApiResponseInvalidShape(message));
         };
 
         let Some(price_str) = main_price_value.as_f64() else {
-            let message = format!("Failed to convert {} into f64", main_price_value);
+            let message = format!("Failed to convert {main_price_value} into f64");
             error!(message);
             return Err(RetailerError::ApiResponseInvalidShape(message));
         };
@@ -145,7 +144,7 @@ impl BigCommerceNested {
 
             let regular_price = json_get_object(non_sale_price, "value".into())?;
             let Some(regular_price_str) = regular_price.as_f64() else {
-                let message = format!("Failed to convert {} into f64", regular_price);
+                let message = format!("Failed to convert {regular_price} into f64");
                 error!(message);
                 return Err(RetailerError::ApiResponseInvalidShape(message));
             };
@@ -176,7 +175,7 @@ impl BigCommerceNested {
             let json_result = match javascript.split_once(" = ") {
                 Some((_, json)) => serde_json::from_str::<Value>(json.trim_end_matches(";"))?,
                 None => {
-                    let message = format!("Unexpected JS, failed to split variable and value");
+                    let message = "Unexpected JS, failed to split variable and value".to_string();
 
                     error!(message);
 
@@ -185,12 +184,12 @@ impl BigCommerceNested {
             };
 
             let attributes = json_get_object(&json_result, "product_attributes".into())?;
-            let in_stock_prop = json_get_object(&attributes, "in_stock_attributes".into())?;
-            let in_stock_array = json_get_array(&in_stock_prop)?;
+            let in_stock_prop = json_get_object(attributes, "in_stock_attributes".into())?;
+            let in_stock_array = json_get_array(in_stock_prop)?;
 
             for in_stock_id in in_stock_array {
                 let Some(id) = in_stock_id.as_u64() else {
-                    let message = format!("In stock attribute is not a number");
+                    let message = "In stock attribute is not a number".to_string();
 
                     error!(message);
 
@@ -206,7 +205,7 @@ impl BigCommerceNested {
         Ok(attributes_in_stock)
     }
 
-    fn get_product_id(html: &String) -> Result<String, RetailerError> {
+    fn get_product_id(html: &str) -> Result<String, RetailerError> {
         let parsed_html = Html::parse_document(html);
         let element = parsed_html.root_element();
 
@@ -218,7 +217,7 @@ impl BigCommerceNested {
 
     fn get_pairs_radio_buttons(
         element: ElementRef,
-        in_stock_attr: &Vec<String>,
+        in_stock_attr: &[String],
     ) -> Result<Vec<FormValuePair>, RetailerError> {
         let mut attrs: Vec<FormValuePair> = Vec::new();
 
@@ -241,7 +240,7 @@ impl BigCommerceNested {
             attrs.push(FormValuePair {
                 form_id: form_key.clone(),
                 form_attr_id: attr_id,
-                attr_name: attr_name,
+                attr_name,
             });
         }
 
@@ -250,7 +249,7 @@ impl BigCommerceNested {
 
     fn get_pairs_dropdown(
         element: ElementRef,
-        in_stock_attr: &Vec<String>,
+        in_stock_attr: &[String],
     ) -> Result<Vec<FormValuePair>, RetailerError> {
         let mut attrs: Vec<FormValuePair> = Vec::new();
 
@@ -273,17 +272,14 @@ impl BigCommerceNested {
             attrs.push(FormValuePair {
                 form_id: form_key.clone(),
                 form_attr_id: attr_id,
-                attr_name: attr_name,
+                attr_name,
             });
         }
 
         Ok(attrs)
     }
 
-    fn get_models(
-        html: &String,
-        cart_url: impl Into<String>,
-    ) -> Result<QueryParams, RetailerError> {
+    fn get_models(html: &str, cart_url: impl Into<String>) -> Result<QueryParams, RetailerError> {
         let parsed_html = Html::parse_document(html);
         let element = parsed_html.root_element();
 
@@ -360,8 +356,8 @@ impl BigCommerceNested {
     }
 
     fn get_image_url(obj: &Value) -> Result<String, RetailerError> {
-        let image_obj = json_get_object(&obj, "image".into())?;
-        let image_url_value = json_get_object(&image_obj, "data".into())?;
+        let image_obj = json_get_object(obj, "image".into())?;
+        let image_url_value = json_get_object(image_obj, "data".into())?;
 
         let Some(image_url) = image_url_value.as_str() else {
             return Err(RetailerError::ApiResponseInvalidShape(
@@ -416,7 +412,7 @@ impl BigCommerceNested {
                 let json = serde_json::from_str::<Value>(&result.body)?;
                 let data = json_get_object(&json, "data".into())?;
 
-                if json_get_object(&data, "instock".into())? == false {
+                if json_get_object(data, "instock".into())? == false {
                     info!("Skipping out of stock {combined_attrs}");
                     continue;
                 }
@@ -425,7 +421,7 @@ impl BigCommerceNested {
 
                 let name = Self::get_name(&nested_product.name, &variants, nested_product.category);
                 let image =
-                    Self::get_image_url(&data).unwrap_or(nested_product.fallback_image_url.clone());
+                    Self::get_image_url(data).unwrap_or(nested_product.fallback_image_url.clone());
 
                 let new_result = CrawlResult::new(
                     name,

@@ -60,7 +60,7 @@ where
         return Err(Error::custom("invalid price"));
     };
 
-    if string_price == "" {
+    if string_price.is_empty() {
         return Ok(None);
     }
 
@@ -75,7 +75,7 @@ where
     // lazily deal with missing cents
     // turns "100" -> "100.00"
     if !trimmed_price.contains(".") {
-        trimmed_price = trimmed_price + ".00";
+        trimmed_price += ".00";
     }
 
     let Some((dollars, cents)) = trimmed_price.split_once(".") else {
@@ -97,7 +97,7 @@ where
 
     debug!("Converted {} into {}", string_price, result);
 
-    return Ok(Some(result));
+    Ok(Some(result))
 }
 
 impl QueryParams {

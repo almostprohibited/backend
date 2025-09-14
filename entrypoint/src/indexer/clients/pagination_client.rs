@@ -96,7 +96,7 @@ impl PaginationClient {
                 self.insert_result(crawled_result);
             }
 
-            current_page = current_page + 1;
+            current_page += 1;
 
             sleep(Duration::from_secs(CRAWL_COOLDOWN_SECS)).await;
         }

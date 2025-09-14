@@ -29,6 +29,12 @@ pub struct UnprotectedCrawler {
     max_retry: u32,
 }
 
+impl Default for UnprotectedCrawler {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl UnprotectedCrawler {
     pub fn new() -> Self {
         Self {

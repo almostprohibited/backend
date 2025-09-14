@@ -59,7 +59,7 @@ impl HtmlRetailer for aaa {
     ) -> Result<Vec<CrawlResult>, RetailerError> {
         let mut results: Vec<CrawlResult> = Vec::new();
 
-        let html = Html::parse_document(&response);
+        let html = Html::parse_document(response);
 
         let product_selector = Selector::parse("aaa").unwrap();
 
@@ -76,7 +76,7 @@ impl HtmlRetailer for aaa {
     }
 
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {
-        let html = Html::parse_document(&response);
+        let html = Html::parse_document(response);
 
         Ok(0)
     }

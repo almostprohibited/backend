@@ -17,6 +17,12 @@ const URL: &str = "https://alsimmonsgunshop.com/product-category/{category}/page
 
 pub struct AlSimmons;
 
+impl Default for AlSimmons {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AlSimmons {
     pub fn new() -> Self {
         Self {}
@@ -56,7 +62,7 @@ impl HtmlRetailer for AlSimmons {
     ) -> Result<Vec<CrawlResult>, RetailerError> {
         let mut results: Vec<CrawlResult> = Vec::new();
 
-        let html = Html::parse_document(&response);
+        let html = Html::parse_document(response);
 
         let product_selector = Selector::parse("main#main > ul.products > li.product").unwrap();
 

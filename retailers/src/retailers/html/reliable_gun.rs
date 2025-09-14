@@ -72,6 +72,12 @@ const URL: &str = "https://www.reliablegun.com/getFilteredProducts";
 
 pub struct ReliableGun;
 
+impl Default for ReliableGun {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ReliableGun {
     pub fn new() -> Self {
         Self {}
@@ -146,7 +152,7 @@ impl HtmlRetailer for ReliableGun {
 
             let new_result = CrawlResult::new(
                 name,
-                format!("{}{}", BASE_URL, url_href),
+                format!("{BASE_URL}{url_href}"),
                 price,
                 self.get_retailer_name(),
                 search_term.category,
@@ -203,12 +209,12 @@ impl HtmlRetailer for ReliableGun {
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {
         let html = Html::parse_fragment(response);
         let page_selector = Selector::parse("div.pager > div > ul > li.individual-page").unwrap();
-        let page_links = html.select(&page_selector);
+        let mut page_links = html.select(&page_selector);
 
-        let Some(last_page_element) = page_links.last() else {
+        let Some(last_page_element) = page_links.next_back() else {
             return Ok(0);
         };
 
-        Ok(string_to_u64(element_to_text(last_page_element))?)
+        string_to_u64(element_to_text(last_page_element))
     }
 }
