@@ -17,6 +17,7 @@ use retailers::{
             reliable_gun::ReliableGun, select_shooting_supplies::SelectShootingSupplies,
             sj_hardware::SJHardware, tenda::Tenda, the_ammo_source::TheAmmoSource,
             tillsonburg_gun_shop::Tillsonburg, true_north_arms::TrueNorthArms,
+            victory_ridge_sports::VictoryRidgeSports,
         },
     },
     structures::{GqlRetailerSuper, HtmlRetailerSuper},
@@ -59,6 +60,7 @@ fn html_retailers() -> HashMap<RetailerName, fn() -> Result<Box<dyn HtmlRetailer
     retailers.insert(RetailerName::ClintonSportingGoods, || Ok(Box::new(ClintonSportingGoods::new())));
     retailers.insert(RetailerName::AlSimmons, || Ok(Box::new(AlSimmons::new())));
     retailers.insert(RetailerName::SJHardware, || Ok(Box::new(SJHardware::new())));
+    retailers.insert(RetailerName::VictoryRidgeSports, || Ok(Box::new(VictoryRidgeSports::new())));
 
     retailers
 }

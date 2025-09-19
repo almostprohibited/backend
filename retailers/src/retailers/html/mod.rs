@@ -22,3 +22,4 @@ pub mod tenda;
 pub mod the_ammo_source;
 pub mod tillsonburg_gun_shop;
 pub mod true_north_arms;
+pub mod victory_ridge_sports;

@@ -48,6 +48,7 @@ pub enum RetailerName {
     ClintonSportingGoods,
     AlSimmons,
     SJHardware,
+    VictoryRidgeSports,
 }
 
 impl RetailerName {

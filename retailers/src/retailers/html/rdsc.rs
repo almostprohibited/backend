@@ -40,12 +40,8 @@ impl Rdsc {
 
         // check for button text to make sure it says "View Options"
         match extract_element_from_element(element, "a.view-button") {
-            Ok(view_button) => {
-                element_to_text(view_button) == "View Options"
-            }
-            Err(_) => {
-                false
-            }
+            Ok(view_button) => element_to_text(view_button) == "View Options",
+            Err(_) => false,
         }
     }
 }
