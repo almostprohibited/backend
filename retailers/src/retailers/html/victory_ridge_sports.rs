@@ -117,20 +117,22 @@ impl HtmlRetailer for VictoryRidgeSports {
             let add_cart_button =
                 extract_element_from_element(product, "div.wd-product-footer > div > a")?;
 
-            if element_to_text(add_cart_button).to_lowercase() == "select options" {
-                let product_url_element = extract_element_from_element(product, css_selector)?;
-                let product_url = element_extract_attr(product_url_element, "href")?;
+            match element_to_text(add_cart_button).to_lowercase().as_str() {
+                "select options" => {
+                    let product_url_element = extract_element_from_element(product, css_selector)?;
+                    let product_url = element_extract_attr(product_url_element, "href")?;
 
-                woocommerce_nested.enqueue_product(product_url, search_term.category);
-
-                continue;
-            }
-
-            results.push(woocommerce_helper.parse_product(
-                product,
-                self.get_retailer_name(),
-                search_term.category,
-            )?);
+                    woocommerce_nested.enqueue_product(product_url, search_term.category);
+                }
+                "add to cart" => {
+                    results.push(woocommerce_helper.parse_product(
+                        product,
+                        self.get_retailer_name(),
+                        search_term.category,
+                    )?);
+                }
+                _ => {}
+            };
         }
 
         results.extend(woocommerce_nested.parse_nested().await?);
