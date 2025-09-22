@@ -1,24 +1,25 @@
 use async_trait::async_trait;
 use common::result::{
-    base::{CrawlResult, Price},
+    base::CrawlResult,
     enums::{Category, RetailerName},
 };
 use crawler::request::{Request, RequestBuilder};
 use scraper::{Html, Selector};
-use tracing::{debug, error};
 
 use crate::{
     errors::RetailerError,
     structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
-    utils::{
-        conversions::{price_to_cents, string_to_u64},
-        html::{element_extract_attr, element_to_text, extract_element_from_element},
-    },
 };
 
 const URL: &str = "aaa";
 
 pub struct aaa;
+
+impl Default for aaa {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl aaa {
     pub fn new() -> Self {
@@ -69,15 +70,33 @@ impl HtmlRetailer for aaa {
     }
 
     fn get_search_terms(&self) -> Vec<HtmlSearchQuery> {
-        Vec::from_iter([HtmlSearchQuery {
-            term: "a".into(),
-            category: Category::Firearm,
-        }])
+        let mut search_terms: Vec<HtmlSearchQuery> = Vec::new();
+
+        [].iter().for_each(|category| {
+            search_terms.push(HtmlSearchQuery {
+                term: category.to_string(),
+                category: Category::Firearm,
+            })
+        });
+
+        [].iter().for_each(|category| {
+            search_terms.push(HtmlSearchQuery {
+                term: category.to_string(),
+                category: Category::Ammunition,
+            })
+        });
+
+        [].iter().for_each(|category| {
+            search_terms.push(HtmlSearchQuery {
+                term: category.to_string(),
+                category: Category::Other,
+            })
+        });
+
+        search_terms
     }
 
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {
-        let html = Html::parse_document(response);
-
         Ok(0)
     }
 }

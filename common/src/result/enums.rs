@@ -49,6 +49,7 @@ pub enum RetailerName {
     AlSimmons,
     SJHardware,
     VictoryRidgeSports,
+    Marstar,
 }
 
 impl RetailerName {

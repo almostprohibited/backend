@@ -17,13 +17,14 @@ use crate::{
     errors::RetailerError,
     structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
     utils::{
+        auctollo_sitemap::get_search_queries,
         ecommerce::woocommerce::{WooCommerce, WooCommerceBuilder},
-        html::element_to_text,
         regex::unwrap_regex_capture,
     },
 };
 
 const SITE_MAP: &str = "https://www.gotenda.com/product_cat-sitemap.xml";
+const PRODUCT_BASE_URL: &str = "https://www.gotenda.com/product-category/";
 const BASE_URL: &str = "https://www.gotenda.com/";
 const URL: &str = "https://www.gotenda.com/product-category/{category}/page/{page}/?stock=instock";
 
@@ -145,54 +146,34 @@ impl Tenda {
     }
 
     async fn get_search_queries() -> Result<Vec<HtmlSearchQuery>, RetailerError> {
-        let crawler = UnprotectedCrawler::new();
-        let request = RequestBuilder::new().set_url(SITE_MAP).build();
-        let response = crawler.make_web_request(request).await?;
+        get_search_queries(SITE_MAP, PRODUCT_BASE_URL, |link| {
+            if link.contains("/watches") || link.contains("/casual") || link.contains("/hats") {
+                return None;
+            }
 
-        let sitemap = Html::parse_fragment(&response.body);
-        let selector = Selector::parse("urlset > url > loc").unwrap();
-        let links: Vec<HtmlSearchQuery> = sitemap
-            .select(&selector)
-            .map(|el| {
-                let mut cleaned_text =
-                    element_to_text(el).replace("https://www.gotenda.com/product-category/", "");
+            if link.starts_with("accessories/")
+                || link.starts_with("reloading/")
+                || link.starts_with("optic/")
+            {
+                return Some(HtmlSearchQuery {
+                    term: link,
+                    category: Category::Other,
+                });
+            } else if link.starts_with("ammunition/") {
+                return Some(HtmlSearchQuery {
+                    term: link,
+                    category: Category::Ammunition,
+                });
+            } else if link.starts_with("firearms/") {
+                return Some(HtmlSearchQuery {
+                    term: link,
+                    category: Category::Firearm,
+                });
+            };
 
-                if cleaned_text.ends_with("/") {
-                    cleaned_text.pop();
-                }
-
-                cleaned_text
-            })
-            .filter_map(|link| {
-                if link.contains("/watches") || link.contains("/casual") || link.contains("/hats") {
-                    return None;
-                }
-
-                if link.starts_with("accessories/")
-                    || link.starts_with("reloading/")
-                    || link.starts_with("optic/")
-                {
-                    return Some(HtmlSearchQuery {
-                        term: link,
-                        category: Category::Other,
-                    });
-                } else if link.starts_with("ammunition/") {
-                    return Some(HtmlSearchQuery {
-                        term: link,
-                        category: Category::Ammunition,
-                    });
-                } else if link.starts_with("firearms/") {
-                    return Some(HtmlSearchQuery {
-                        term: link,
-                        category: Category::Firearm,
-                    });
-                };
-
-                None
-            })
-            .collect::<Vec<HtmlSearchQuery>>();
-
-        Ok(links)
+            None
+        })
+        .await
     }
 }
 
