@@ -22,6 +22,8 @@ use crate::{
 const MAX_PER_PAGE: &str = "20";
 const URL: &str = "https://www.rangeviewsports.ca/product-category/{category}/page/{page}/?per_page={max_per_page}";
 
+const BLOCKED_TITLE_TERMS: [&str; 2] = ["special order*", "*in store only*"];
+
 pub struct RangeviewSports {}
 
 impl Default for RangeviewSports {
@@ -98,12 +100,14 @@ impl HtmlRetailer for RangeviewSports {
             let price_element = extract_element_from_element(product, "span.price")?;
             let link_element = extract_element_from_element(product, "h3.wd-entities-title > a")?;
 
-            if element_to_text(link_element)
-                .to_lowercase()
-                .starts_with("*in store only*")
+            let name = element_to_text(link_element).to_lowercase();
+
+            if BLOCKED_TITLE_TERMS
+                .iter()
+                .any(|term| name.contains(&term.to_lowercase()))
             {
                 continue;
-            }
+            };
 
             // rangeview does something dumb and uses a unicode dash
             // to show case price range, instead of regular ascii
