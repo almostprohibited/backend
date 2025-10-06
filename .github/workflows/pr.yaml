@@ -1,0 +1,27 @@
+name: PR Check
+
+on:
+  pull_request:
+    branches: [develop, main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        id: build
+        uses: ./.github/actions/build
+  automerge:
+    permissions:
+      contents: write
+      pull-requests: write
+    needs: [build]
+    if: github.event.pull_request.user.login == 'dependabot[bot]' && github.repository == 'almostprohibited/backend'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Auto-merge PR
+        run: gh pr merge --squash --auto "$PR_URL"
+        env:
+          PR_URL: ${{github.event.pull_request.html_url}}
+          GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
