@@ -35,7 +35,10 @@ runs:
       name: Download built files
       with:
         artifact-ids: ${{ inputs.artifact-id }}
-        path: ./.deployment/backend # same folder as the docker build file in the deploy repo
+        path: ./.download
+    - run: |
+        mv ./.download/built-files/* ./.deployment/backend/
+      shell: bash
     - name: Build Docker image
       run: |
         set -ueo pipefail
