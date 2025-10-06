@@ -1,0 +1,77 @@
+name: Package
+
+inputs:
+  deployment-package-token:
+    type: string
+    required: true
+    description: "Github PAT for accessing the deployment repo"
+  github-token:
+    type: string
+    required: true
+    description: "Github Actions token"
+  deployment-stage:
+    type: choice
+    required: true
+    description: "The environment to install the systemd services into"
+    options: ["release", "beta"]
+  artifact-id:
+    type: string
+    required: true
+    description: "The artifact ID from the previous build step containing Rust binaries"
+
+runs:
+  using: composite
+  steps:
+    # this is not a typo, first checkout checkouts this backend repo
+    # the other checkout grabs the deployment package
+    - uses: actions/checkout@v4
+    - uses: actions/checkout@v4
+      with:
+        repository: almostprohibited/deployment
+        ref: main
+        token: ${{ inputs.deployment-package-token }}
+        path: ./.deployment
+    - uses: actions/download-artifact@v4
+      name: Download built files
+      with:
+        artifact-ids: ${{ inputs.artifact-id }}
+        path: ./.deployment/backend # same folder as the docker build file in the deploy repo
+    - name: Build Docker image
+      run: |
+        set -ueo pipefail
+        
+        docker run --privileged --rm tonistiigi/binfmt --install arm64
+
+        docker_target=""
+
+        if [ "${{ inputs.deployment-stage }}" = "release" ]; then
+          docker_target="--target release"
+        fi
+
+        cd ./.deployment/backend/
+
+        docker build \
+          $docker_target \
+          --build-arg API_BINARY_NAME=api \
+          --build-arg INDEXER_BINARY_NAME=indexer \
+          --platform=linux/arm64 \
+          -f Dockerfile-backend.dockerfile \
+          -t ghcr.io/almostprohibited/backend:${{ inputs.deployment-stage }} \
+          .
+      shell: bash
+    - name: Upload Docker image
+      run: |
+        set -ueo pipefail
+
+        echo ${{ inputs.github-token }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+        docker push ghcr.io/almostprohibited/backend:${{ inputs.deployment-stage }}
+      shell: bash
+    - name: Clean old package versions
+      uses: actions/delete-package-versions@v5
+      with:
+        owner: almostprohibited
+        package-name: backend
+        package-type: container
+        min-versions-to-keep: 4
+        delete-only-untagged-versions: true

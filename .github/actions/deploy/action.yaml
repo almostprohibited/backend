@@ -1,4 +1,5 @@
 name: Deploy
+
 inputs:
   deployment-package-token:
     type: string
@@ -17,6 +18,7 @@ inputs:
     type: string
     required: true
     description: "Path on machine to Docker mounts"
+
 runs:
   using: 'composite'
   steps:
