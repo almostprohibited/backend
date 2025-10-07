@@ -1,0 +1,20 @@
+[package]
+name = "discord"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "discord"
+path = "./src/lib.rs"
+doctest = false
+test = false
+doc = false
+
+[dependencies]
+common.workspace = true
+retailers.workspace = true
+
+serenity.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+tokio.workspace = true

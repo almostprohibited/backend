@@ -30,6 +30,7 @@ retailers.workspace = true
 crawler.workspace = true
 mongodb_connector.workspace = true
 common.workspace = true
+discord.workspace = true
 
 tokio = { workspace = true, features = ["full"] }
 tracing.workspace = true
@@ -38,7 +39,6 @@ axum = { workspace = true, features = ["query", "tokio", "macros"] }
 axum-extra.workspace = true
 tower-http = { workspace = true, features = ["cors"] }
 tower.workspace = true
-serenity.workspace = true
 thiserror.workspace = true
 serde.workspace = true
 serde_with.workspace = true

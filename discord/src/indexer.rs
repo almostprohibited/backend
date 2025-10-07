@@ -1,4 +1,4 @@
-use std::{cmp::max, collections::BTreeMap, sync::Arc};
+use std::{cmp::max, collections::BTreeMap};
 
 use common::{
     result::{
@@ -8,8 +8,13 @@ use common::{
     utils::get_current_time,
 };
 use retailers::errors::RetailerError;
-use serenity::all::{CreateEmbed, EditWebhookMessage, ExecuteWebhook, Http, MessageId, Webhook};
+use serenity::all::{CreateEmbed, EditWebhookMessage, ExecuteWebhook, MessageId};
+use tokio::sync::OnceCell;
 use tracing::debug;
+
+use crate::client::DiscordClient;
+
+static DISCORD_INDEXER_WEBHOOK: OnceCell<DiscordClient> = OnceCell::const_new();
 
 #[cfg(not(debug_assertions))]
 const INDEXER_WEBHOOK: &str = "https://discord.com/api/webhooks/1375013817091625032/2uqBwCzQGPbzHiHWvDBfY_xK7DyeFoyZ3WC40FxxwW1tD4EEDf2gYY3RzaM4vDYGiIbx";
@@ -48,8 +53,6 @@ impl RetailerStats {
 }
 
 pub struct IndexerWebhook {
-    http: Arc<Http>,
-    webhook: Arc<Webhook>,
     // BTreeMap is used over HashMap since BTreeMap sort themselves
     retailers: BTreeMap<RetailerName, RetailerStats>,
     main_message: Option<MessageId>,
@@ -57,15 +60,16 @@ pub struct IndexerWebhook {
 
 impl IndexerWebhook {
     pub async fn new() -> Self {
-        let client = Arc::new(Http::new("this does not appear to matter"));
-        let webhook = Arc::new(Webhook::from_url(&client, INDEXER_WEBHOOK).await.unwrap());
-
         Self {
-            http: client.clone(),
-            webhook: webhook.clone(),
             retailers: BTreeMap::new(),
             main_message: None,
         }
+    }
+
+    async fn get_client() -> &'static DiscordClient {
+        DISCORD_INDEXER_WEBHOOK
+            .get_or_init(|| DiscordClient::new(INDEXER_WEBHOOK))
+            .await
     }
 
     pub fn register_retailer(&mut self, retailer: RetailerName) {
@@ -116,21 +120,23 @@ impl IndexerWebhook {
 
         let final_message = format!("```\n{}\n```", messages.join("\n\n"));
 
+        let client = Self::get_client().await;
+
         if let Some(ref message) = self.main_message {
             debug!("Replaying message {}", message);
 
             let edit_builder = EditWebhookMessage::new().content(final_message);
 
-            let _ = self
+            let _ = client
                 .webhook
-                .edit_message(self.http.clone(), *message, edit_builder)
+                .edit_message(client.http.clone(), *message, edit_builder)
                 .await;
         } else {
             let builder = ExecuteWebhook::new().content(final_message);
 
-            let result = self
+            let result = client
                 .webhook
-                .execute(self.http.clone(), true, builder)
+                .execute(client.http.clone(), true, builder)
                 .await
                 .expect("Expected Discord API call to succeed")
                 .expect("Expected message returned");
@@ -145,9 +151,11 @@ impl IndexerWebhook {
         let embed = CreateEmbed::new().description(message);
         let builder = ExecuteWebhook::new().embed(embed);
 
-        let _ = self
+        let client = Self::get_client().await;
+
+        let _ = client
             .webhook
-            .execute(self.http.clone(), false, builder)
+            .execute(client.http.clone(), false, builder)
             .await;
     }
 
@@ -158,9 +166,11 @@ impl IndexerWebhook {
             .description(message);
         let builder = ExecuteWebhook::new().embed(embed);
 
-        let _ = self
+        let client = Self::get_client().await;
+
+        let _ = client
             .webhook
-            .execute(self.http.clone(), false, builder)
+            .execute(client.http.clone(), false, builder)
             .await;
     }
 }

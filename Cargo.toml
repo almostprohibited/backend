@@ -15,6 +15,7 @@ retailers = { path = "./retailers" }
 mongodb_connector = { path = "./mongodb_connector" }
 common = { path = "./common" }
 metrics = { path = "./metrics" }
+discord = { path = "./discord" }
 
 reqwest = "0.12.15"
 reqwest-retry = "0.7.0"

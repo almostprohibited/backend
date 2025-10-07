@@ -1,27 +1,23 @@
-use std::sync::Arc;
-
 use common::messages::Message;
-use serenity::all::{CreateEmbed, ExecuteWebhook, Http, Webhook};
+use serenity::all::{CreateEmbed, ExecuteWebhook};
+use tokio::sync::OnceCell;
+
+use crate::client::DiscordClient;
+
+static DISCORD_CONTACT_WEBHOOK: OnceCell<DiscordClient> = OnceCell::const_new();
 
 const CONTACT_WEBHOOK: &str = "https://discord.com/api/webhooks/1383689431592210462/LszB63q-H2y7HiNObCDxqv8YpTRRWvRk9FPF3qqIp201bZIJoNijzm1ZcxgWGIjFxqmx";
 
-pub struct ContactWebhook {
-    http: Arc<Http>,
-    webhook: Arc<Webhook>,
-}
+pub struct ContactWebhook {}
 
 impl ContactWebhook {
-    pub async fn new() -> Self {
-        let client = Arc::new(Http::new("this does not appear to matter"));
-        let webhook = Arc::new(Webhook::from_url(&client, CONTACT_WEBHOOK).await.unwrap());
-
-        Self {
-            http: client.clone(),
-            webhook: webhook.clone(),
-        }
+    async fn get_client() -> &'static DiscordClient {
+        DISCORD_CONTACT_WEBHOOK
+            .get_or_init(|| DiscordClient::new(CONTACT_WEBHOOK))
+            .await
     }
 
-    pub async fn relay_message(&self, message: Message) {
+    pub async fn relay_message(message: Message) {
         let embed = CreateEmbed::new().title("New message").fields([
             ("IP address", message.ip_address, false),
             ("Time", format!("<t:{}:R>", message.timestamp), false),
@@ -32,9 +28,11 @@ impl ContactWebhook {
 
         let builder = ExecuteWebhook::new().embed(embed);
 
-        let _ = self
+        let client = Self::get_client().await;
+
+        let _ = client
             .webhook
-            .execute(self.http.clone(), false, builder)
+            .execute(client.http.clone(), false, builder)
             .await;
     }
 }
