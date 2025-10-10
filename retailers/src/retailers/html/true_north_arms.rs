@@ -25,12 +25,6 @@ const URL: &str = "https://truenortharms.com/{category}/?page={page}&in_stock=1"
 
 pub struct TrueNorthArms;
 
-impl Default for TrueNorthArms {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl TrueNorthArms {
     pub fn new() -> Self {
         Self {}

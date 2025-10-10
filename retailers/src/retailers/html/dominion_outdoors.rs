@@ -29,12 +29,6 @@ pub struct DominionOutdoors {
     crawler: UnprotectedCrawler,
 }
 
-impl Default for DominionOutdoors {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl DominionOutdoors {
     pub fn new() -> Self {
         Self {

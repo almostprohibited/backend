@@ -30,6 +30,10 @@ impl aaa {
 impl HtmlRetailerSuper for aaa {}
 
 impl Retailer for aaa {
+    async fn new() -> Result<Self, RetailerError> {
+        Ok(Self {})
+    }
+
     fn get_retailer_name(&self) -> RetailerName {
         RetailerName::aaa
     }

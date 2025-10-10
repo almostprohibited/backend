@@ -19,12 +19,6 @@ const URL: &str = "https://theammosource.com/{category}/?page={page}&in_stock=1"
 
 pub struct TheAmmoSource;
 
-impl Default for TheAmmoSource {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl TheAmmoSource {
     pub fn new() -> Self {
         Self {}

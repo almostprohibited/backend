@@ -24,12 +24,6 @@ pub struct Tillsonburg {
     page_count_regex: Regex,
 }
 
-impl Default for Tillsonburg {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl Tillsonburg {
     pub fn new() -> Self {
         Self {

@@ -72,12 +72,6 @@ const URL: &str = "https://www.reliablegun.com/getFilteredProducts";
 
 pub struct ReliableGun;
 
-impl Default for ReliableGun {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl ReliableGun {
     pub fn new() -> Self {
         Self {}

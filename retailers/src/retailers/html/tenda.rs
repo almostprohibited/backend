@@ -8,7 +8,6 @@ use crawler::{
     request::{Request, RequestBuilder},
     unprotected::UnprotectedCrawler,
 };
-use futures::executor;
 use regex::Regex;
 use scraper::{Html, Selector};
 use tracing::{debug, trace};
@@ -34,17 +33,11 @@ pub struct Tenda {
 }
 
 impl Tenda {
-    pub fn new() -> Result<Self, RetailerError> {
-        let cookie = executor::block_on(Self::set_securi_cookie())?;
-
-        debug!("Using cookie: {cookie}");
-
-        let search_terms = executor::block_on(Self::get_search_queries())?;
-
-        Ok(Self {
-            securi_cookie: cookie,
-            search_terms,
-        })
+    pub fn new() -> Self {
+        Self {
+            securi_cookie: String::new(),
+            search_terms: Vec::new(),
+        }
     }
 
     fn get_cookie_name(haystack: &str) -> Result<String, RetailerError> {
@@ -179,7 +172,19 @@ impl Tenda {
 
 impl HtmlRetailerSuper for Tenda {}
 
+#[async_trait]
 impl Retailer for Tenda {
+    async fn init(&mut self) -> Result<(), RetailerError> {
+        let cookie = Self::set_securi_cookie().await?;
+
+        debug!("Using cookie: {cookie}");
+
+        self.securi_cookie = cookie;
+        self.search_terms.extend(Self::get_search_queries().await?);
+
+        Ok(())
+    }
+
     fn get_retailer_name(&self) -> RetailerName {
         RetailerName::Tenda
     }

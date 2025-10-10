@@ -17,12 +17,6 @@ const URL: &str = "https://internationalshootingsupplies.com/product-category/{c
 
 pub struct InternationalShootingSupplies;
 
-impl Default for InternationalShootingSupplies {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl InternationalShootingSupplies {
     pub fn new() -> Self {
         Self {}

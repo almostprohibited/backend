@@ -21,17 +21,13 @@ const URL: &str = "https://rdsc.ca/{category}.html?p={page}";
 
 pub struct Rdsc;
 
-impl Default for Rdsc {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl Rdsc {
     pub fn new() -> Self {
         Self {}
     }
+}
 
+impl Rdsc {
     fn is_in_stock(element: ElementRef) -> bool {
         // we have "ADD TO CART" button
         if extract_element_from_element(element, "button.action.tocart.primary").is_ok() {

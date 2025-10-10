@@ -1,8 +1,8 @@
-use std::collections::HashMap;
-
+use crate::clients::{
+    base::Client, graphql_client::GqlClient, pagination_client::PaginationClient,
+};
 use common::result::enums::RetailerName;
 use retailers::{
-    errors::RetailerError,
     retailers::{
         gql::prophet_river::prophet_river::ProphetRiver,
         html::{
@@ -22,57 +22,55 @@ use retailers::{
     },
     structures::{GqlRetailerSuper, HtmlRetailerSuper},
 };
+use std::{collections::HashMap, sync::Arc};
+use tokio::{sync::Mutex, task::JoinHandle};
 
-use crate::clients::{
-    base::Client, graphql_client::GqlClient, pagination_client::PaginationClient,
-};
-
-type HtmlRetailerSuperFactory = fn() -> Result<Box<dyn HtmlRetailerSuper>, RetailerError>;
-type GqlRetailerSuperFactory = fn() -> Result<Box<dyn GqlRetailerSuper>, RetailerError>;
+type HtmlRetailerSuperFactory = fn() -> Box<dyn HtmlRetailerSuper>;
+type GqlRetailerSuperFactory = fn() -> Box<dyn GqlRetailerSuper>;
 
 #[rustfmt::skip]
-fn html_retailers() -> HashMap<RetailerName, fn() -> Result<Box<dyn HtmlRetailerSuper>, RetailerError>> {
+fn html_retailers() -> HashMap<RetailerName, HtmlRetailerSuperFactory> {
     // using ::from([]) might work, but I don't know how
     // to get the Rust analyzer to accept a closure inside of a tuple
     let mut retailers: HashMap<RetailerName, HtmlRetailerSuperFactory> = HashMap::new();
 
-    retailers.insert(RetailerName::AlFlahertys, || Ok(Box::new(AlFlahertys::new())));
-    retailers.insert(RetailerName::BullseyeNorth, || Ok(Box::new(BullseyeNorth::new())));
-    retailers.insert(RetailerName::CalgaryShootingCentre, || Ok(Box::new(CalgaryShootingCentre::new())));
-    retailers.insert(RetailerName::ReliableGun, || Ok(Box::new(ReliableGun::new())));
-    retailers.insert(RetailerName::LeverArms, || Ok(Box::new(LeverArms::new())));
-    retailers.insert(RetailerName::FirearmsOutletCanada, || Ok(Box::new(FirearmsOutletCanada::new())));
-    retailers.insert(RetailerName::CanadasGunStore, || Ok(Box::new(CanadasGunStore::new())));
-    retailers.insert(RetailerName::ItalianSportingGoods, || Ok(Box::new(ItalianSportingGoods::new())));
-    retailers.insert(RetailerName::TheAmmoSource, || Ok(Box::new(TheAmmoSource::new())));
-    retailers.insert(RetailerName::Rdsc, || Ok(Box::new(Rdsc::new())));
-    retailers.insert(RetailerName::G4CGunStore, || Ok(Box::new(G4CGunStore::new())));
-    retailers.insert(RetailerName::Tillsonburg, || Ok(Box::new(Tillsonburg::new())));
-    retailers.insert(RetailerName::DanteSports, || Ok(Box::new(DanteSports::new())));
-    retailers.insert(RetailerName::SelectShootingSupplies, || Ok(Box::new(SelectShootingSupplies::new())));
-    retailers.insert(RetailerName::RangeviewSports, || Ok(Box::new(RangeviewSports::new())));
-    retailers.insert(RetailerName::TrueNorthArms, || Ok(Box::new(TrueNorthArms::new())));
-    retailers.insert(RetailerName::DominionOutdoors, || Ok(Box::new(DominionOutdoors::new())));
-    retailers.insert(RetailerName::Tenda, || Ok(Box::new(Tenda::new()?)));
-    retailers.insert(RetailerName::InternationalShootingSupplies, || Ok(Box::new(InternationalShootingSupplies::new())));
-    retailers.insert(RetailerName::InterSurplus, || Ok(Box::new(InterSurplus::new())));
-    retailers.insert(RetailerName::GreatNorthGun, || Ok(Box::new(GreatNorthGun::new())));
-    retailers.insert(RetailerName::ClintonSportingGoods, || Ok(Box::new(ClintonSportingGoods::new())));
-    retailers.insert(RetailerName::AlSimmons, || Ok(Box::new(AlSimmons::new())));
-    retailers.insert(RetailerName::SJHardware, || Ok(Box::new(SJHardware::new())));
-    retailers.insert(RetailerName::VictoryRidgeSports, || Ok(Box::new(VictoryRidgeSports::new())));
-    retailers.insert(RetailerName::Marstar, || Ok(Box::new(Marstar::new()?)));
+    retailers.insert(RetailerName::AlFlahertys, || Box::new(AlFlahertys::new()));
+    retailers.insert(RetailerName::BullseyeNorth, || Box::new(BullseyeNorth::new()));
+    retailers.insert(RetailerName::CalgaryShootingCentre, || Box::new(CalgaryShootingCentre::new()));
+    retailers.insert(RetailerName::ReliableGun, || Box::new(ReliableGun::new()));
+    retailers.insert(RetailerName::LeverArms, || Box::new(LeverArms::new()));
+    retailers.insert(RetailerName::FirearmsOutletCanada, || Box::new(FirearmsOutletCanada::new()));
+    retailers.insert(RetailerName::CanadasGunStore, || Box::new(CanadasGunStore::new()));
+    retailers.insert(RetailerName::ItalianSportingGoods, || Box::new(ItalianSportingGoods::new()));
+    retailers.insert(RetailerName::TheAmmoSource, || Box::new(TheAmmoSource::new()));
+    retailers.insert(RetailerName::Rdsc, || Box::new(Rdsc::new()));
+    retailers.insert(RetailerName::G4CGunStore, || Box::new(G4CGunStore::new()));
+    retailers.insert(RetailerName::Tillsonburg, || Box::new(Tillsonburg::new()));
+    retailers.insert(RetailerName::DanteSports, || Box::new(DanteSports::new()));
+    retailers.insert(RetailerName::SelectShootingSupplies, || Box::new(SelectShootingSupplies::new()));
+    retailers.insert(RetailerName::RangeviewSports, || Box::new(RangeviewSports::new()));
+    retailers.insert(RetailerName::TrueNorthArms, || Box::new(TrueNorthArms::new()));
+    retailers.insert(RetailerName::DominionOutdoors, || Box::new(DominionOutdoors::new()));
+    retailers.insert(RetailerName::Tenda, || Box::new(Tenda::new()));
+    retailers.insert(RetailerName::InternationalShootingSupplies, || Box::new(InternationalShootingSupplies::new()));
+    retailers.insert(RetailerName::InterSurplus, || Box::new(InterSurplus::new()));
+    retailers.insert(RetailerName::GreatNorthGun, || Box::new(GreatNorthGun::new()));
+    retailers.insert(RetailerName::ClintonSportingGoods, || Box::new(ClintonSportingGoods::new()));
+    retailers.insert(RetailerName::AlSimmons, || Box::new(AlSimmons::new()));
+    retailers.insert(RetailerName::SJHardware, || Box::new(SJHardware::new()));
+    retailers.insert(RetailerName::VictoryRidgeSports, || Box::new(VictoryRidgeSports::new()));
+    retailers.insert(RetailerName::Marstar, || Box::new(Marstar::new()));
 
     retailers
 }
 
 #[rustfmt::skip]
-fn gql_retailers() -> HashMap<RetailerName, fn() -> Result<Box<dyn GqlRetailerSuper>, RetailerError>> {
+fn gql_retailers() -> HashMap<RetailerName, GqlRetailerSuperFactory> {
     // using ::from([]) might work, but I don't know how
     // to get the Rust analyzer to accept a closure inside of a tuple
     let mut retailers: HashMap<RetailerName, GqlRetailerSuperFactory> = HashMap::new();
 
-    retailers.insert(RetailerName::ProphetRiver, || Ok(Box::new(ProphetRiver::new()?)));
+    retailers.insert(RetailerName::ProphetRiver, || Box::new(ProphetRiver::new()));
 
     retailers
 }
@@ -80,9 +78,9 @@ fn gql_retailers() -> HashMap<RetailerName, fn() -> Result<Box<dyn GqlRetailerSu
 fn filter_retailers<T: ?Sized>(
     retailer_filter: &[RetailerName],
     excluded_retailer_filter: &[RetailerName],
-    retailers: HashMap<RetailerName, fn() -> Result<Box<T>, RetailerError>>,
-) -> Vec<fn() -> Result<Box<T>, RetailerError>> {
-    let mut filted_retailers: Vec<fn() -> Result<Box<T>, RetailerError>> = Vec::new();
+    retailers: HashMap<RetailerName, fn() -> Box<T>>,
+) -> Vec<fn() -> Box<T>> {
+    let mut filted_retailers: Vec<fn() -> Box<T>> = Vec::new();
 
     let included_retailers: Vec<RetailerName> = match retailer_filter.len() {
         0 => retailers.keys().copied().collect(),
@@ -103,15 +101,23 @@ fn filter_retailers<T: ?Sized>(
     filted_retailers
 }
 
+// Not sure if this should live inside the Client trait file
+// since it's only used here
+impl std::fmt::Debug for dyn Client + Send {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Client")
+    }
+}
+
 // This method contains some repeat code that can probably be
 // reduced if I had added an invariant to the constructors
 // of both HTML and GQL clients, and moved the client logic to
 // filter_retailers(), but that doesn't look nice
-pub(crate) fn get_retailers(
+pub(crate) async fn get_retailers(
     retailer_filter: Vec<RetailerName>,
     excluded_retailer_filter: Vec<RetailerName>,
-) -> Vec<Box<dyn Client + Send + Sync>> {
-    let mut boxed_clients: Vec<Box<dyn Client + Send + Sync>> = Vec::new();
+) -> Vec<Box<dyn Client + Send>> {
+    let boxed_clients: Arc<Mutex<Vec<Box<dyn Client + Send>>>> = Arc::new(Mutex::new(Vec::new()));
 
     let html_retailers: Vec<HtmlRetailerSuperFactory> = filter_retailers::<dyn HtmlRetailerSuper>(
         &retailer_filter,
@@ -125,29 +131,50 @@ pub(crate) fn get_retailers(
         gql_retailers(),
     );
 
+    let mut handles: Vec<JoinHandle<()>> = vec![];
+
     for retailer in html_retailers {
-        if let Ok(unwrapped_retailer) = retailer() {
-            boxed_clients.push(Box::new(PaginationClient::new(unwrapped_retailer)));
-        } else {
-            // discord_webhook
-            //     .lock()
-            //     .await
-            //     .send_error(RetailerName::Tenda, err)
-            //     .await
-        }
+        let cloned_clients = boxed_clients.clone();
+
+        handles.push(tokio::spawn(async move {
+            let mut boxed_retailer = retailer();
+
+            if boxed_retailer.init().await.is_ok() {
+                cloned_clients
+                    .lock()
+                    .await
+                    .push(Box::new(PaginationClient::new(boxed_retailer)));
+            }
+        }));
     }
 
     for retailer in gql_retailers {
-        if let Ok(unwrapped_retailer) = retailer() {
-            boxed_clients.push(Box::new(GqlClient::new(unwrapped_retailer)));
-        } else {
-            // discord_webhook
-            //     .lock()
-            //     .await
-            //     .send_error(RetailerName::Tenda, err)
-            //     .await
-        }
+        let cloned_clients = boxed_clients.clone();
+
+        handles.push(tokio::spawn(async move {
+            let mut boxed_retailer = retailer();
+
+            if boxed_retailer.init().await.is_ok() {
+                cloned_clients
+                    .lock()
+                    .await
+                    .push(Box::new(GqlClient::new(boxed_retailer)));
+            }
+        }));
     }
 
-    boxed_clients
+    for handle in handles {
+        let _ = handle.await;
+    }
+
+    let strong_ref =
+        Arc::try_unwrap(boxed_clients).expect("All threads to have dropped their refs");
+
+    strong_ref.into_inner()
 }
+
+// discord_webhook
+//     .lock()
+//     .await
+//     .send_error(RetailerName::Tenda, err)
+//     .await

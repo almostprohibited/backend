@@ -4,7 +4,6 @@ use common::result::{
     enums::{Category, RetailerName},
 };
 use crawler::request::{Request, RequestBuilder};
-use futures::executor;
 use scraper::{Html, Selector};
 use tracing::debug;
 
@@ -23,10 +22,10 @@ pub struct Marstar {
 }
 
 impl Marstar {
-    pub fn new() -> Result<Self, RetailerError> {
-        let search_terms = executor::block_on(Self::get_search_queries())?;
-
-        Ok(Self { search_terms })
+    pub fn new() -> Self {
+        Self {
+            search_terms: Vec::new(),
+        }
     }
 
     async fn get_search_queries() -> Result<Vec<HtmlSearchQuery>, RetailerError> {
@@ -61,7 +60,13 @@ impl Marstar {
 
 impl HtmlRetailerSuper for Marstar {}
 
+#[async_trait]
 impl Retailer for Marstar {
+    async fn init(&mut self) -> Result<(), RetailerError> {
+        self.search_terms.extend(Self::get_search_queries().await?);
+        Ok(())
+    }
+
     fn get_retailer_name(&self) -> RetailerName {
         RetailerName::Marstar
     }

@@ -10,8 +10,13 @@ use crate::errors::RetailerError;
 pub trait HtmlRetailerSuper: HtmlRetailer + Retailer + Send + Sync {}
 pub trait GqlRetailerSuper: GqlRetailer + Retailer + Send + Sync {}
 
+#[async_trait]
 pub trait Retailer {
     fn get_retailer_name(&self) -> RetailerName;
+
+    async fn init(&mut self) -> Result<(), RetailerError> {
+        Ok(())
+    }
 }
 
 #[async_trait]

@@ -44,7 +44,7 @@ async fn main() {
 
     let mongodb = Arc::new(MongoDBConnector::new().await);
 
-    for mut retailer in get_retailers(args.retailers, args.excluded_retailers) {
+    for mut retailer in get_retailers(args.retailers, args.excluded_retailers).await {
         let db = mongodb.clone();
         let discord_webhook = discord_webhook.clone();
 

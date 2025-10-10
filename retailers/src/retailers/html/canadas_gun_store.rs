@@ -23,12 +23,6 @@ const BASE_URL: &str = "https://www.canadasgunstore.ca";
 
 pub struct CanadasGunStore;
 
-impl Default for CanadasGunStore {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl CanadasGunStore {
     pub fn new() -> Self {
         Self {}

@@ -26,12 +26,6 @@ const URL: &str = "https://selectshootingsupplies.com/{category}/?in_stock=1&pag
 
 pub struct SelectShootingSupplies;
 
-impl Default for SelectShootingSupplies {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl SelectShootingSupplies {
     pub fn new() -> Self {
         Self {}

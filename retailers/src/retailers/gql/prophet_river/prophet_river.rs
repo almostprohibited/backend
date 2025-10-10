@@ -5,7 +5,6 @@ use crawler::{
     traits::HttpMethod,
     unprotected::UnprotectedCrawler,
 };
-use futures::executor;
 use regex::Regex;
 use serde_json::json;
 use tracing::warn;
@@ -29,10 +28,10 @@ pub struct ProphetRiver {
 }
 
 impl ProphetRiver {
-    pub fn new() -> Result<Self, RetailerError> {
-        Ok(Self {
-            auth_token: executor::block_on(Self::get_auth_token())?,
-        })
+    pub fn new() -> Self {
+        Self {
+            auth_token: String::new(),
+        }
     }
 
     async fn get_auth_token() -> Result<String, RetailerError> {
@@ -54,7 +53,14 @@ impl ProphetRiver {
 
 impl GqlRetailerSuper for ProphetRiver {}
 
+#[async_trait]
 impl Retailer for ProphetRiver {
+    async fn init(&mut self) -> Result<(), RetailerError> {
+        self.auth_token = Self::get_auth_token().await?;
+
+        Ok(())
+    }
+
     fn get_retailer_name(&self) -> RetailerName {
         RetailerName::ProphetRiver
     }

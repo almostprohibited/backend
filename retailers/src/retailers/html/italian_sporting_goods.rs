@@ -21,12 +21,6 @@ const URL: &str = "https://www.italiansportinggoods.com/{category}.html?product_
 
 pub struct ItalianSportingGoods;
 
-impl Default for ItalianSportingGoods {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl ItalianSportingGoods {
     pub fn new() -> Self {
         Self {}

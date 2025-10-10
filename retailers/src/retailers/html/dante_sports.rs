@@ -18,12 +18,6 @@ const URL: &str = "https://www.dantesports.com/en/product-category/{category}/pa
 
 pub struct DanteSports;
 
-impl Default for DanteSports {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl DanteSports {
     pub fn new() -> Self {
         Self {}

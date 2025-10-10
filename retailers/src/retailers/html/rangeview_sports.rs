@@ -26,12 +26,6 @@ const BLOCKED_TITLE_TERMS: [&str; 2] = ["special order*", "*in store only*"];
 
 pub struct RangeviewSports {}
 
-impl Default for RangeviewSports {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl RangeviewSports {
     pub fn new() -> Self {
         Self {}

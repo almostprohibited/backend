@@ -24,12 +24,6 @@ const URL: &str = "https://sjhardware.com/product-category/{category}/?page={pag
 
 pub struct SJHardware;
 
-impl Default for SJHardware {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl SJHardware {
     pub fn new() -> Self {
         Self {}

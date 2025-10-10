@@ -53,12 +53,6 @@ const DEFAULT_IMAGE: &str =
 
 pub struct InterSurplus;
 
-impl Default for InterSurplus {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl InterSurplus {
     pub fn new() -> Self {
         Self {}
