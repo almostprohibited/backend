@@ -32,6 +32,12 @@ pub struct Tenda {
     search_terms: Vec<HtmlSearchQuery>,
 }
 
+impl Default for Tenda {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Tenda {
     pub fn new() -> Self {
         Self {

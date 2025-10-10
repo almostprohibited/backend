@@ -17,6 +17,12 @@ const URL: &str = "https://greatnorthgunco.ca/{category}/?product-page={page}";
 
 pub struct GreatNorthGun;
 
+impl Default for GreatNorthGun {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl GreatNorthGun {
     pub fn new() -> Self {
         Self {}

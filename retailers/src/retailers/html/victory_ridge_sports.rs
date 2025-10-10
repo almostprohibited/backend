@@ -31,6 +31,12 @@ const URL: &str = "https://victoryridgesports.ca/product-category/{category}/pag
 
 pub struct VictoryRidgeSports;
 
+impl Default for VictoryRidgeSports {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl VictoryRidgeSports {
     pub fn new() -> Self {
         Self {}

@@ -27,6 +27,12 @@ pub struct ProphetRiver {
     auth_token: String,
 }
 
+impl Default for ProphetRiver {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ProphetRiver {
     pub fn new() -> Self {
         Self {

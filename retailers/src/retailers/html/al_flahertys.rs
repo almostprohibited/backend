@@ -41,6 +41,12 @@ pub struct AlFlahertys {
     crawler: UnprotectedCrawler,
 }
 
+impl Default for AlFlahertys {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AlFlahertys {
     pub fn new() -> Self {
         Self {

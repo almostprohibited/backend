@@ -21,6 +21,12 @@ const URL: &str = "https://rdsc.ca/{category}.html?p={page}";
 
 pub struct Rdsc;
 
+impl Default for Rdsc {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Rdsc {
     pub fn new() -> Self {
         Self {}

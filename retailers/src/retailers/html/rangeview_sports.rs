@@ -26,6 +26,12 @@ const BLOCKED_TITLE_TERMS: [&str; 2] = ["special order*", "*in store only*"];
 
 pub struct RangeviewSports {}
 
+impl Default for RangeviewSports {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RangeviewSports {
     pub fn new() -> Self {
         Self {}
@@ -110,7 +116,7 @@ impl HtmlRetailer for RangeviewSports {
             if element_to_text(price_element).contains("–") {
                 let link = element_extract_attr(link_element, "href")?;
 
-                woocommerce_nested.enqueue_product(link, search_term.category.clone());
+                woocommerce_nested.enqueue_product(link, search_term.category);
 
                 continue;
             };

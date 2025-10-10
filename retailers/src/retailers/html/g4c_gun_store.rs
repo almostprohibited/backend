@@ -22,6 +22,12 @@ const URL: &str =
 
 pub struct G4CGunStore;
 
+impl Default for G4CGunStore {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl G4CGunStore {
     pub fn new() -> Self {
         Self {}

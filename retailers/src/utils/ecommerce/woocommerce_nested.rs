@@ -62,7 +62,7 @@ impl WooCommerceNested {
         result: &String,
         product_url: &String,
     ) -> Result<Vec<ProductVariation>, RetailerError> {
-        let html = Html::parse_document(&result);
+        let html = Html::parse_document(result);
 
         let form_element = extract_element_from_element(
             html.root_element(),
@@ -76,7 +76,7 @@ impl WooCommerceNested {
     }
 
     fn get_nested_product_title(result: &String) -> Result<String, RetailerError> {
-        let html = Html::parse_document(&result);
+        let html = Html::parse_document(result);
         let title = extract_element_from_element(html.root_element(), "h1.product_title")?;
 
         Ok(element_to_text(title))
@@ -86,7 +86,7 @@ impl WooCommerceNested {
         result: &String,
         variations: &Vec<ProductVariation>,
     ) -> Result<HashMap<String, HashMap<String, String>>, RetailerError> {
-        let html = Html::parse_document(&result);
+        let html = Html::parse_document(result);
 
         let mut results: HashMap<String, HashMap<String, String>> = HashMap::new();
 

@@ -21,6 +21,12 @@ pub struct Marstar {
     search_terms: Vec<HtmlSearchQuery>,
 }
 
+impl Default for Marstar {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Marstar {
     pub fn new() -> Self {
         Self {
@@ -95,7 +101,7 @@ impl HtmlRetailer for Marstar {
     ) -> Result<Vec<CrawlResult>, RetailerError> {
         let mut results: Vec<CrawlResult> = Vec::new();
 
-        let html = Html::parse_document(&response);
+        let html = Html::parse_document(response);
         let product_selector =
             Selector::parse("ul.products > li.product.product-type-simple.instock.purchasable")
                 .unwrap();

@@ -20,6 +20,12 @@ const URL: &str = "https://firearmsoutletcanada.com/{category}?in_stock=1&page={
 
 pub struct FirearmsOutletCanada;
 
+impl Default for FirearmsOutletCanada {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl FirearmsOutletCanada {
     pub fn new() -> Self {
         Self {}

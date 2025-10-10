@@ -23,6 +23,12 @@ const URL: &str =
 
 pub struct BullseyeNorth;
 
+impl Default for BullseyeNorth {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BullseyeNorth {
     pub fn new() -> Self {
         Self {}

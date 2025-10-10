@@ -20,6 +20,12 @@ const URL: &str = "https://leverarms.com/product-category/{category}/page/{page}
 
 pub struct LeverArms;
 
+impl Default for LeverArms {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl LeverArms {
     pub fn new() -> Self {
         Self {}
