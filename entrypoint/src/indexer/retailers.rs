@@ -13,11 +13,11 @@ use retailers::{
             g4c_gun_store::G4CGunStore, great_north_gun::GreatNorthGun,
             international_shooting_supplies::InternationalShootingSupplies,
             intersurplus::InterSurplus, italian_sporting_goods::ItalianSportingGoods,
-            lever_arms::LeverArms, marstar::Marstar, rangeview_sports::RangeviewSports, rdsc::Rdsc,
-            reliable_gun::ReliableGun, select_shooting_supplies::SelectShootingSupplies,
-            sj_hardware::SJHardware, tenda::Tenda, the_ammo_source::TheAmmoSource,
-            tillsonburg_gun_shop::Tillsonburg, true_north_arms::TrueNorthArms,
-            victory_ridge_sports::VictoryRidgeSports,
+            lever_arms::LeverArms, magdump::MagDump, marstar::Marstar,
+            rangeview_sports::RangeviewSports, rdsc::Rdsc, reliable_gun::ReliableGun,
+            select_shooting_supplies::SelectShootingSupplies, sj_hardware::SJHardware,
+            tenda::Tenda, the_ammo_source::TheAmmoSource, tillsonburg_gun_shop::Tillsonburg,
+            true_north_arms::TrueNorthArms, victory_ridge_sports::VictoryRidgeSports,
         },
     },
     structures::{GqlRetailerSuper, HtmlRetailerSuper},
@@ -60,6 +60,7 @@ fn html_retailers() -> HashMap<RetailerName, HtmlRetailerSuperFactory> {
     retailers.insert(RetailerName::SJHardware, || Box::new(SJHardware::new()));
     retailers.insert(RetailerName::VictoryRidgeSports, || Box::new(VictoryRidgeSports::new()));
     retailers.insert(RetailerName::Marstar, || Box::new(Marstar::new()));
+    retailers.insert(RetailerName::MagDump, || Box::new(MagDump::new()));
 
     retailers
 }

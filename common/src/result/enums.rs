@@ -50,6 +50,7 @@ pub enum RetailerName {
     SJHardware,
     VictoryRidgeSports,
     Marstar,
+    MagDump,
 }
 
 impl RetailerName {

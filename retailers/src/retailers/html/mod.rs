@@ -13,6 +13,7 @@ pub mod international_shooting_supplies;
 pub mod intersurplus;
 pub mod italian_sporting_goods; // they have arsenalforce in their robots.txt
 pub mod lever_arms;
+pub mod magdump;
 pub mod marstar;
 pub mod rangeview_sports;
 pub mod rdsc;

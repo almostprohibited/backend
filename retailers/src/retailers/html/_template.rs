@@ -1,14 +1,19 @@
 use async_trait::async_trait;
 use common::result::{
-    base::CrawlResult,
+    base::{CrawlResult, Price},
     enums::{Category, RetailerName},
 };
 use crawler::request::{Request, RequestBuilder};
 use scraper::{Html, Selector};
+use tracing::{debug, error};
 
 use crate::{
     errors::RetailerError,
     structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
+    utils::{
+        conversions::{price_to_cents, string_to_u64},
+        html::{element_extract_attr, element_to_text, extract_element_from_element},
+    },
 };
 
 const URL: &str = "aaa";
@@ -30,10 +35,6 @@ impl aaa {
 impl HtmlRetailerSuper for aaa {}
 
 impl Retailer for aaa {
-    async fn new() -> Result<Self, RetailerError> {
-        Ok(Self {})
-    }
-
     fn get_retailer_name(&self) -> RetailerName {
         RetailerName::aaa
     }
@@ -48,7 +49,7 @@ impl HtmlRetailer for aaa {
     ) -> Result<Request, RetailerError> {
         let url = URL
             .replace("{category}", &search_term.term)
-            .replace("{page}", &(page_num + 1).to_string());
+            .replace("{page}", (page_num + 1).to_string().as_str());
 
         debug!("Setting page to {}", url);
 
@@ -64,40 +65,20 @@ impl HtmlRetailer for aaa {
     ) -> Result<Vec<CrawlResult>, RetailerError> {
         let mut results: Vec<CrawlResult> = Vec::new();
 
-        let html = Html::parse_document(response);
+        let fragment = Html::parse_document(response);
 
         let product_selector = Selector::parse("aaa").unwrap();
 
-        for product in html.select(&product_selector) {}
+        for element in fragment.select(&product_selector) {}
 
         Ok(results)
     }
 
     fn get_search_terms(&self) -> Vec<HtmlSearchQuery> {
-        let mut search_terms: Vec<HtmlSearchQuery> = Vec::new();
-
-        [].iter().for_each(|category| {
-            search_terms.push(HtmlSearchQuery {
-                term: category.to_string(),
-                category: Category::Firearm,
-            })
-        });
-
-        [].iter().for_each(|category| {
-            search_terms.push(HtmlSearchQuery {
-                term: category.to_string(),
-                category: Category::Ammunition,
-            })
-        });
-
-        [].iter().for_each(|category| {
-            search_terms.push(HtmlSearchQuery {
-                term: category.to_string(),
-                category: Category::Other,
-            })
-        });
-
-        search_terms
+        Vec::from_iter([HtmlSearchQuery {
+            term: "guns/rifles".into(),
+            category: Category::Firearm,
+        }])
     }
 
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {
