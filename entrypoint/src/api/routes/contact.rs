@@ -1,6 +1,5 @@
 use std::env;
 use std::sync::Arc;
-use std::time::Duration;
 
 use crate::{ServerState, routes::error_message_erasure::ApiError};
 
@@ -17,7 +16,6 @@ use serde::Deserialize;
 use serde_json::json;
 use serde_with::NoneAsEmptyString;
 use serde_with::serde_as;
-use tokio::time::sleep;
 use tracing::error;
 
 const CLOUDFLARE_SITE_VERIFY: &str = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
@@ -105,14 +103,9 @@ pub(crate) async fn contact_handler(
         return Ok(StatusCode::BAD_REQUEST);
     }
 
-    get_contact_webhook()
-        .await
-        .relay_message(message.clone())
-        .await;
+    state.db.insert_message(message.clone()).await;
 
-    state.db.insert_message(message).await;
-
-    sleep(Duration::from_secs(1)).await;
+    get_contact_webhook().await.relay_message(message).await;
 
     Ok(StatusCode::OK)
 }
