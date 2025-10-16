@@ -26,6 +26,10 @@ inputs:
     type: string
     required: true
     description: "Discord webhook URL for indexing function"
+  cloudflare-turnstile-secret-key:
+    type: string
+    required: true
+    description: "Cloudflare Turnstile secret key"
 
 runs:
   using: 'composite'
@@ -66,6 +70,7 @@ runs:
         export STAGE=${{ inputs.deployment-stage }}
         export DISCORD_CONTACT_WEBHOOK_URL=${{ inputs.discord-contact-webhook-url }}
         export DISCORD_INDEXER_WEBHOOK_URL=${{ inputs.discord-indexer-webhook-url }}
+        export CLOUDFLARE_TURNSTILE_SECRET_KEY=${{ inputs.cloudflare-turnstile-secret-key }}
 
         docker compose -f docker-compose.yaml pull backend-${{ inputs.deployment-stage }}
         docker compose -f docker-compose.yaml down backend-${{ inputs.deployment-stage }}

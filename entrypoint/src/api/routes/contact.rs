@@ -1,3 +1,4 @@
+use std::env;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -7,6 +8,7 @@ use axum::debug_handler;
 use axum::http::HeaderMap;
 use axum::{Json, extract::State, http::StatusCode, response::IntoResponse};
 use axum_extra::extract::WithRejection;
+use common::constants::CLOUDFLARE_TURNSTILE_SECRET_KEY;
 use common::deserialize_disallow_empty_string::disallow_empty_string;
 use common::messages::Message;
 use discord::get_contact_webhook;
@@ -16,13 +18,9 @@ use serde_json::json;
 use serde_with::NoneAsEmptyString;
 use serde_with::serde_as;
 use tokio::time::sleep;
+use tracing::error;
 
 const CLOUDFLARE_SITE_VERIFY: &str = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
-
-#[cfg(not(debug_assertions))]
-const CLOUDFLARE_SECRET: &str = "0x4AAAAAABhALqY4h1CMCPoEahHVHGRIjPI";
-#[cfg(debug_assertions)]
-const CLOUDFLARE_SECRET: &str = "1x0000000000000000000000000000000AA";
 
 #[derive(Deserialize, Debug)]
 struct CloudflareResponse {
@@ -55,7 +53,15 @@ pub(crate) async fn contact_handler(
     WithRejection(Json(json), _): WithRejection<Json<Payload>, ApiError>,
 ) -> Result<impl IntoResponse, StatusCode> {
     let Some(ip_addr_header) = headers.get("X-Real-IP") else {
-        return Ok(StatusCode::BAD_GATEWAY);
+        error!("Request is missing X-Real-IP header");
+
+        return Ok(StatusCode::INTERNAL_SERVER_ERROR);
+    };
+
+    let Ok(cloudflare_secret) = env::var(CLOUDFLARE_TURNSTILE_SECRET_KEY) else {
+        error!("{CLOUDFLARE_TURNSTILE_SECRET_KEY} env var is missing");
+
+        return Ok(StatusCode::INTERNAL_SERVER_ERROR);
     };
 
     let ip_addr = ip_addr_header.to_str().unwrap_or_default();
@@ -69,7 +75,7 @@ pub(crate) async fn contact_handler(
     let request = client
         .post(CLOUDFLARE_SITE_VERIFY)
         .json(&json!({
-            "secret": CLOUDFLARE_SECRET,
+            "secret": cloudflare_secret,
             "response": json.cf_turnstile_response,
             "remoteip": ip_addr
         }))
