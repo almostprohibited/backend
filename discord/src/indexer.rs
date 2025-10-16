@@ -7,20 +7,25 @@ use common::{
     },
     utils::get_current_time,
 };
-use retailers::errors::RetailerError;
-use serenity::all::{CreateEmbed, EditWebhookMessage, ExecuteWebhook, MessageId};
-use tokio::sync::OnceCell;
-use tracing::debug;
+use serenity::all::{Colour, CreateEmbed, MessageId};
+use tokio::sync::{Mutex, MutexGuard, OnceCell};
 
 use crate::client::DiscordClient;
 
-static DISCORD_INDEXER_WEBHOOK: OnceCell<DiscordClient> = OnceCell::const_new();
+static DISCORD_INDEXER_WEBHOOK: OnceCell<Mutex<IndexerWebhook>> = OnceCell::const_new();
 
 #[cfg(not(debug_assertions))]
 const INDEXER_WEBHOOK: &str = "https://discord.com/api/webhooks/1375013817091625032/2uqBwCzQGPbzHiHWvDBfY_xK7DyeFoyZ3WC40FxxwW1tD4EEDf2gYY3RzaM4vDYGiIbx";
 
 #[cfg(debug_assertions)]
 const INDEXER_WEBHOOK: &str = "https://discord.com/api/webhooks/1391665667987607592/qnLZbWGvfojAeLKUbspu59EMUxLL9aL8kkl76apvzl1oIk2vJ6VXYS0ZXF0pimlqUaQQ";
+
+enum IndexingState {
+    InProgress,
+    InProgressError,
+    FinishedSuccess,
+    FinishedError,
+}
 
 #[derive(Debug)]
 struct RetailerStats {
@@ -33,6 +38,7 @@ struct RetailerStats {
     // ammo_count >= ammo_count_with_metadata
     ammo_count_with_metadata: u64,
     other_count: u64,
+    errors: Vec<String>,
 }
 
 impl RetailerStats {
@@ -44,6 +50,7 @@ impl RetailerStats {
             ammo_count: 0,
             ammo_count_with_metadata: 0,
             other_count: 0,
+            errors: Vec::new(),
         }
     }
 
@@ -53,30 +60,36 @@ impl RetailerStats {
 }
 
 pub struct IndexerWebhook {
+    client: DiscordClient,
     // BTreeMap is used over HashMap since BTreeMap sort themselves
     retailers: BTreeMap<RetailerName, RetailerStats>,
     main_message: Option<MessageId>,
+    state: IndexingState,
 }
 
 impl IndexerWebhook {
     pub async fn new() -> Self {
         Self {
+            client: DiscordClient::new(INDEXER_WEBHOOK).await,
             retailers: BTreeMap::new(),
             main_message: None,
+            state: IndexingState::InProgress,
         }
-    }
-
-    async fn get_client() -> &'static DiscordClient {
-        DISCORD_INDEXER_WEBHOOK
-            .get_or_init(|| DiscordClient::new(INDEXER_WEBHOOK))
-            .await
     }
 
     pub fn register_retailer(&mut self, retailer: RetailerName) {
         self.retailers.insert(retailer, RetailerStats::new());
     }
 
-    pub async fn finish_retailer(&mut self, retailer: RetailerName, results: &Vec<&CrawlResult>) {
+    pub fn record_retailer_failure(&mut self, retailer: RetailerName, error: impl Into<String>) {
+        let Some(retailer_stats) = self.retailers.get_mut(&retailer) else {
+            return;
+        };
+
+        retailer_stats.errors.push(error.into());
+    }
+
+    pub fn append_retailer_stats(&mut self, retailer: RetailerName, results: &Vec<&CrawlResult>) {
         let Some(retailer_stats) = self.retailers.get_mut(&retailer) else {
             return;
         };
@@ -97,12 +110,20 @@ impl IndexerWebhook {
                 Category::_All => {}
             }
         }
-
-        self.update_main_message().await;
     }
 
-    pub async fn update_main_message(&mut self) {
-        let mut messages: Vec<String> = Vec::new();
+    fn get_embed_colour(&self) -> Colour {
+        match self.state {
+            IndexingState::InProgress => Colour::from_rgb(35, 127, 235), // blue
+            IndexingState::InProgressError => Colour::from_rgb(235, 143, 35), // orange
+            IndexingState::FinishedSuccess => Colour::from_rgb(35, 235, 143), // green
+            IndexingState::FinishedError => Colour::from_rgb(235, 35, 127), // pink?
+        }
+    }
+
+    // I don't like making this mutable, but whatever, ops tooling
+    fn create_indexer_report_embed(&mut self) -> CreateEmbed {
+        let mut fields: Vec<(String, String, bool)> = Vec::new();
 
         for (retailer, stats) in &self.retailers {
             let counts = format!(
@@ -115,62 +136,57 @@ impl IndexerWebhook {
                 100.0 * (stats.ammo_count_with_metadata as f32 / max(stats.ammo_count, 1) as f32)
             );
 
-            messages.push(format!("{retailer:?}\n{counts}",));
+            let mut retailer_field: String = format!("```\n{counts}\n```");
+
+            if stats.errors.len() > 0 {
+                self.state = IndexingState::InProgressError;
+
+                let error_blob = stats.errors.join("\n");
+                retailer_field += &format!("**```\n{error_blob}\n```**");
+            }
+
+            fields.push((retailer.to_string(), retailer_field, false));
         }
 
-        let final_message = format!("```\n{}\n```", messages.join("\n\n"));
-
-        let client = Self::get_client().await;
-
-        if let Some(ref message) = self.main_message {
-            debug!("Replaying message {}", message);
-
-            let edit_builder = EditWebhookMessage::new().content(final_message);
-
-            let _ = client
-                .webhook
-                .edit_message(client.http.clone(), *message, edit_builder)
-                .await;
-        } else {
-            let builder = ExecuteWebhook::new().content(final_message);
-
-            let result = client
-                .webhook
-                .execute(client.http.clone(), true, builder)
-                .await
-                .expect("Expected Discord API call to succeed")
-                .expect("Expected message returned");
-
-            debug!("No message set, setting to {}", result.id);
-            self.main_message = Some(result.id);
-        }
-    }
-
-    pub async fn send_message(&self, msg: String) {
-        let message = format!("```{msg}```");
-        let embed = CreateEmbed::new().description(message);
-        let builder = ExecuteWebhook::new().embed(embed);
-
-        let client = Self::get_client().await;
-
-        let _ = client
-            .webhook
-            .execute(client.http.clone(), false, builder)
-            .await;
-    }
-
-    pub async fn send_error(&self, name: RetailerName, err: RetailerError) {
-        let message = format!("```{err}```");
         let embed = CreateEmbed::new()
-            .title(format!("Error - {name:?}"))
-            .description(message);
-        let builder = ExecuteWebhook::new().embed(embed);
+            .title(format!(
+                "Indexing Report ({} retailers)",
+                self.retailers.keys().len()
+            ))
+            .fields(fields)
+            .colour(self.get_embed_colour());
 
-        let client = Self::get_client().await;
-
-        let _ = client
-            .webhook
-            .execute(client.http.clone(), false, builder)
-            .await;
+        embed
     }
+
+    pub async fn update_main_message(&mut self) {
+        let embed = self.create_indexer_report_embed();
+
+        if let Some(main_message) = self.main_message {
+            let _ = self.client.update_message(main_message, embed).await;
+        } else {
+            let returned_message_id = self
+                .client
+                .send_message(embed)
+                .await
+                .expect("Expected Discord API call to succeed");
+
+            self.main_message = Some(returned_message_id.expect("Expected message returned").id);
+        }
+    }
+
+    pub fn finish(&mut self) {
+        self.state = match self.state {
+            IndexingState::InProgressError => IndexingState::FinishedError,
+            _ => IndexingState::FinishedSuccess,
+        };
+    }
+}
+
+pub async fn get_indexer_webhook() -> MutexGuard<'static, IndexerWebhook> {
+    if !DISCORD_INDEXER_WEBHOOK.initialized() {
+        let _ = DISCORD_INDEXER_WEBHOOK.set(Mutex::new(IndexerWebhook::new().await));
+    }
+
+    DISCORD_INDEXER_WEBHOOK.get().unwrap().lock().await
 }

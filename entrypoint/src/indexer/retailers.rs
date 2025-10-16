@@ -2,6 +2,7 @@ use crate::clients::{
     base::Client, graphql_client::GqlClient, pagination_client::PaginationClient,
 };
 use common::result::enums::RetailerName;
+use discord::get_indexer_webhook;
 use retailers::{
     retailers::{
         gql::prophet_river::prophet_river::ProphetRiver,
@@ -140,7 +141,13 @@ pub(crate) async fn get_retailers(
         handles.push(tokio::spawn(async move {
             let mut boxed_retailer = retailer();
 
-            if boxed_retailer.init().await.is_ok() {
+            let mut indexer_webhook = get_indexer_webhook().await;
+            indexer_webhook.register_retailer(boxed_retailer.get_retailer_name());
+
+            if let Err(error) = boxed_retailer.init().await {
+                indexer_webhook
+                    .record_retailer_failure(boxed_retailer.get_retailer_name(), error.to_string());
+            } else {
                 cloned_clients
                     .lock()
                     .await
@@ -155,7 +162,13 @@ pub(crate) async fn get_retailers(
         handles.push(tokio::spawn(async move {
             let mut boxed_retailer = retailer();
 
-            if boxed_retailer.init().await.is_ok() {
+            let mut indexer_webhook = get_indexer_webhook().await;
+            indexer_webhook.register_retailer(boxed_retailer.get_retailer_name());
+
+            if let Err(error) = boxed_retailer.init().await {
+                indexer_webhook
+                    .record_retailer_failure(boxed_retailer.get_retailer_name(), error.to_string());
+            } else {
                 cloned_clients
                     .lock()
                     .await
@@ -167,6 +180,8 @@ pub(crate) async fn get_retailers(
     for handle in handles {
         let _ = handle.await;
     }
+
+    get_indexer_webhook().await.update_main_message().await;
 
     let strong_ref =
         Arc::try_unwrap(boxed_clients).expect("All threads to have dropped their refs");

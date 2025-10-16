@@ -9,7 +9,7 @@ use axum::{Json, extract::State, http::StatusCode, response::IntoResponse};
 use axum_extra::extract::WithRejection;
 use common::deserialize_disallow_empty_string::disallow_empty_string;
 use common::messages::Message;
-use discord::ContactWebhook;
+use discord::get_contact_webhook;
 use reqwest::ClientBuilder;
 use serde::Deserialize;
 use serde_json::json;
@@ -99,7 +99,10 @@ pub(crate) async fn contact_handler(
         return Ok(StatusCode::BAD_REQUEST);
     }
 
-    ContactWebhook::relay_message(message.clone()).await;
+    get_contact_webhook()
+        .await
+        .relay_message(message.clone())
+        .await;
 
     state.db.insert_message(message).await;
 

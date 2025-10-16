@@ -1,10 +1,10 @@
 use clap::Parser;
 use common::result::enums::RetailerName;
-use discord::IndexerWebhook;
+use discord::get_indexer_webhook;
 use metrics::_private::PROVIDER;
 use mongodb_connector::connector::MongoDBConnector;
-use std::{sync::Arc, time::Duration};
-use tokio::{sync::Mutex, task::JoinHandle, time::sleep};
+use std::sync::Arc;
+use tokio::task::JoinHandle;
 use tracing::{debug, info};
 use utils::logger::configure_logger;
 
@@ -38,43 +38,31 @@ async fn main() {
 
     configure_logger();
 
-    let discord_webhook = Arc::new(Mutex::new(IndexerWebhook::new().await));
-
     let mut handles: Vec<JoinHandle<()>> = Vec::new();
 
     let mongodb = Arc::new(MongoDBConnector::new().await);
 
     for mut retailer in get_retailers(args.retailers, args.excluded_retailers).await {
         let db = mongodb.clone();
-        let discord_webhook = discord_webhook.clone();
 
         handles.push(tokio::spawn(async move {
             let retailer_name = retailer.get_retailer_name();
-            info!("Registering {retailer_name:?}");
 
-            discord_webhook
-                .lock()
-                .await
-                .register_retailer(retailer_name);
+            info!("Executing {retailer_name:?}");
 
             let crawl_state = retailer.crawl().await;
             let results = retailer.get_results();
 
             debug!("{:?}", results);
 
+            let mut webhook = get_indexer_webhook().await;
+
             if let Err(err) = crawl_state {
-                discord_webhook
-                    .lock()
-                    .await
-                    .send_error(retailer.get_retailer_name(), err)
-                    .await;
+                webhook.record_retailer_failure(retailer_name, err.to_string());
             }
 
-            discord_webhook
-                .lock()
-                .await
-                .finish_retailer(retailer_name, &results)
-                .await;
+            webhook.append_retailer_stats(retailer_name, &results);
+            webhook.update_main_message().await;
 
             if !args.dry_run {
                 retailer.emit_metrics();
@@ -83,20 +71,14 @@ async fn main() {
         }));
     }
 
-    // TODO: fix sync problem
-    // this should run after all retailers are initialized
-    sleep(Duration::from_secs(2)).await;
-    discord_webhook.lock().await.update_main_message().await;
-
     for handle in handles {
         let _ = handle.await;
     }
 
-    discord_webhook
-        .lock()
-        .await
-        .send_message("Process complete".into())
-        .await;
+    let mut webhook = get_indexer_webhook().await;
+
+    webhook.finish();
+    webhook.update_main_message().await;
 
     let _ = PROVIDER.shutdown();
 }
