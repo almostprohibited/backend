@@ -34,7 +34,7 @@ impl ContactWebhook {
             ("Body", message.body, false),
         ]);
 
-        let _ = self.client.send_message(embed).await;
+        let _ = self.client.send_message(vec![embed]).await;
     }
 }
 

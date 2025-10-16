@@ -123,9 +123,13 @@ impl IndexerWebhook {
     }
 
     // I don't like making this mutable, but whatever, ops tooling
-    fn create_indexer_report_embed(&mut self) -> CreateEmbed {
+    fn create_indexer_report_embed(&mut self) -> Vec<CreateEmbed> {
+        let mut embeds: Vec<CreateEmbed> = Vec::new();
         let mut fields: Vec<(String, String, bool)> = Vec::new();
 
+        let mut count: u64 = 0;
+
+        // TODO: deal with splitting embeds properly
         for (retailer, stats) in &self.retailers {
             let counts = format!(
                 "F: {} | O: {} | T: {}\nA: {}/{} ({:.2}%)",
@@ -147,26 +151,38 @@ impl IndexerWebhook {
             }
 
             fields.push((retailer.to_string(), retailer_field, false));
+
+            count += 1;
+
+            if count % 25 == 0 {
+                embeds.push(
+                    CreateEmbed::new()
+                        .fields(fields.clone())
+                        .colour(self.get_embed_colour()),
+                );
+
+                fields.clear();
+            }
         }
 
-        CreateEmbed::new()
-            .title(format!(
-                "Indexing Report ({} retailers)",
-                self.retailers.keys().len()
-            ))
-            .fields(fields)
-            .colour(self.get_embed_colour())
+        embeds.push(
+            CreateEmbed::new()
+                .fields(fields)
+                .colour(self.get_embed_colour()),
+        );
+
+        embeds
     }
 
     pub async fn update_main_message(&mut self) {
-        let embed = self.create_indexer_report_embed();
+        let embeds = self.create_indexer_report_embed();
 
         if let Some(main_message) = self.main_message {
-            let _ = self.client.update_message(main_message, embed).await;
+            let _ = self.client.update_message(main_message, embeds).await;
         } else {
             let returned_message_id = self
                 .client
-                .send_message(embed)
+                .send_message(embeds)
                 .await
                 .expect("Expected Discord API call to succeed");
 

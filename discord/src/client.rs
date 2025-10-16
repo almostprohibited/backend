@@ -26,9 +26,9 @@ impl DiscordClient {
 
     pub(crate) async fn send_message(
         &self,
-        embed: CreateEmbed,
+        embeds: Vec<CreateEmbed>,
     ) -> Result<Option<Message>, serenity::Error> {
-        let builder = ExecuteWebhook::new().embed(embed);
+        let builder = ExecuteWebhook::new().embeds(embeds);
 
         self.webhook.execute(self.http.clone(), true, builder).await
     }
@@ -36,9 +36,9 @@ impl DiscordClient {
     pub(crate) async fn update_message(
         &self,
         message_id: MessageId,
-        embed: CreateEmbed,
+        embeds: Vec<CreateEmbed>,
     ) -> Result<Message, serenity::Error> {
-        let builder = EditWebhookMessage::new().embed(embed);
+        let builder = EditWebhookMessage::new().embeds(embeds);
 
         self.webhook
             .edit_message(self.http.clone(), message_id, builder)
