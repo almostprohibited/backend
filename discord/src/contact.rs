@@ -1,4 +1,6 @@
-use common::messages::Message;
+use std::env;
+
+use common::{constants::DISCORD_CONTACT_WEBHOOK_URL, messages::Message};
 use serenity::all::CreateEmbed;
 use tokio::sync::{Mutex, MutexGuard, OnceCell};
 
@@ -6,16 +8,20 @@ use crate::client::DiscordClient;
 
 static DISCORD_CONTACT_WEBHOOK: OnceCell<Mutex<ContactWebhook>> = OnceCell::const_new();
 
-const CONTACT_WEBHOOK: &str = "https://discord.com/api/webhooks/1383689431592210462/LszB63q-H2y7HiNObCDxqv8YpTRRWvRk9FPF3qqIp201bZIJoNijzm1ZcxgWGIjFxqmx";
-
 pub struct ContactWebhook {
     client: DiscordClient,
 }
 
 impl ContactWebhook {
     async fn new() -> Self {
+        // TODO: this fails when cell is populated, not during binary start
+        // potentially causing ticking time bomb
+        let webhook_env_var = env::var(DISCORD_CONTACT_WEBHOOK_URL).expect(&format!(
+            "Expecting {DISCORD_CONTACT_WEBHOOK_URL} to be set"
+        ));
+
         Self {
-            client: DiscordClient::new(CONTACT_WEBHOOK).await,
+            client: DiscordClient::new(webhook_env_var).await,
         }
     }
 

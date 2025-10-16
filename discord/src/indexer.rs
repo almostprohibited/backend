@@ -1,6 +1,7 @@
-use std::{cmp::max, collections::BTreeMap};
+use std::{cmp::max, collections::BTreeMap, env};
 
 use common::{
+    constants::DISCORD_INDEXER_WEBHOOK_URL,
     result::{
         base::CrawlResult,
         enums::{Category, RetailerName},
@@ -13,12 +14,6 @@ use tokio::sync::{Mutex, MutexGuard, OnceCell};
 use crate::client::DiscordClient;
 
 static DISCORD_INDEXER_WEBHOOK: OnceCell<Mutex<IndexerWebhook>> = OnceCell::const_new();
-
-#[cfg(not(debug_assertions))]
-const INDEXER_WEBHOOK: &str = "https://discord.com/api/webhooks/1375013817091625032/2uqBwCzQGPbzHiHWvDBfY_xK7DyeFoyZ3WC40FxxwW1tD4EEDf2gYY3RzaM4vDYGiIbx";
-
-#[cfg(debug_assertions)]
-const INDEXER_WEBHOOK: &str = "https://discord.com/api/webhooks/1391665667987607592/qnLZbWGvfojAeLKUbspu59EMUxLL9aL8kkl76apvzl1oIk2vJ6VXYS0ZXF0pimlqUaQQ";
 
 enum IndexingState {
     InProgress,
@@ -69,8 +64,14 @@ pub struct IndexerWebhook {
 
 impl IndexerWebhook {
     pub async fn new() -> Self {
+        // TODO: this fails when cell is populated, not during binary start
+        // potentially causing ticking time bomb
+        let webhook_env_var = env::var(DISCORD_INDEXER_WEBHOOK_URL).expect(&format!(
+            "Expecting {DISCORD_INDEXER_WEBHOOK_URL} to be set"
+        ));
+
         Self {
-            client: DiscordClient::new(INDEXER_WEBHOOK).await,
+            client: DiscordClient::new(webhook_env_var).await,
             retailers: BTreeMap::new(),
             main_message: None,
             state: IndexingState::InProgress,

@@ -39,3 +39,5 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           deployment-stage: ${{ env.STAGE }}
           docker-volume-path: ${{ vars.VOLUME_PATH }}
+          discord-contact-webhook-url: ${{ secrets.DISCORD_CONTACT_WEBHOOK_URL }}
+          discord-indexer-webhook-url: ${{ secrets.DISCORD_INDEXER_WEBHOOK_URL }}
