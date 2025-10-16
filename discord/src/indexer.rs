@@ -165,11 +165,13 @@ impl IndexerWebhook {
             }
         }
 
-        embeds.push(
-            CreateEmbed::new()
-                .fields(fields)
-                .colour(self.get_embed_colour()),
-        );
+        if !fields.is_empty() {
+            embeds.push(
+                CreateEmbed::new()
+                    .fields(fields)
+                    .colour(self.get_embed_colour()),
+            );
+        }
 
         embeds
     }
