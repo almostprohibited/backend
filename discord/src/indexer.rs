@@ -138,7 +138,7 @@ impl IndexerWebhook {
 
             let mut retailer_field: String = format!("```\n{counts}\n```");
 
-            if stats.errors.len() > 0 {
+            if !stats.errors.is_empty() {
                 self.state = IndexingState::InProgressError;
 
                 let error_blob = stats.errors.join("\n");
@@ -148,15 +148,13 @@ impl IndexerWebhook {
             fields.push((retailer.to_string(), retailer_field, false));
         }
 
-        let embed = CreateEmbed::new()
+        CreateEmbed::new()
             .title(format!(
                 "Indexing Report ({} retailers)",
                 self.retailers.keys().len()
             ))
             .fields(fields)
-            .colour(self.get_embed_colour());
-
-        embed
+            .colour(self.get_embed_colour())
     }
 
     pub async fn update_main_message(&mut self) {
