@@ -1,11 +1,11 @@
 use std::time::Duration;
 
 use common::{
+    constants::CRAWL_COOLDOWN_SECS,
     result::{
         base::{CrawlResult, Price},
         enums::{Category, RetailerName},
     },
-    utils::CRAWL_COOLDOWN_SECS,
 };
 use crawler::{request::RequestBuilder, traits::HttpMethod, unprotected::UnprotectedCrawler};
 use scraper::{ElementRef, Html, Selector};

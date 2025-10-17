@@ -2,11 +2,11 @@ use std::{collections::HashMap, pin::Pin, time::Duration};
 
 use async_trait::async_trait;
 use common::{
+    constants::CRAWL_COOLDOWN_SECS,
     result::{
         base::{CrawlResult, Price},
         enums::{Category, RetailerName},
     },
-    utils::CRAWL_COOLDOWN_SECS,
 };
 use crawler::{
     request::{Request, RequestBuilder},

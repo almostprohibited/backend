@@ -1,27 +1,55 @@
-pub mod al_flahertys;
-pub mod al_simmons;
-pub mod bullseye_north;
-pub mod calgary_shooting_centre; // TODO: investigate this, they have a GQL end point @ https://store.theshootingcentre.com/graphql
-pub mod canadas_gun_store;
-pub mod clinton_sporting_goods;
-pub mod dante_sports;
-pub mod dominion_outdoors;
-pub mod firearms_outlet_canada; // why is FOC so bloated it uses so much memory in a browser window
-pub mod g4c_gun_store;
-pub mod great_north_gun;
-pub mod international_shooting_supplies;
-pub mod intersurplus;
-pub mod italian_sporting_goods; // they have arsenalforce in their robots.txt
-pub mod lever_arms;
-pub mod magdump;
-pub mod marstar;
-pub mod rangeview_sports;
-pub mod rdsc;
-pub mod reliable_gun;
-pub mod select_shooting_supplies;
-pub mod sj_hardware;
-pub mod tenda;
-pub mod the_ammo_source;
-pub mod tillsonburg_gun_shop;
-pub mod true_north_arms;
-pub mod victory_ridge_sports;
+mod al_flahertys;
+mod al_simmons;
+mod bullseye_north;
+mod calgary_shooting_centre; // TODO: investigate this, they have a GQL end point @ https://store.theshootingcentre.com/graphql
+mod canadas_gun_store;
+mod clinton_sporting_goods;
+mod dante_sports;
+mod dominion_outdoors;
+mod firearms_outlet_canada; // why is FOC so bloated it uses so much memory in a browser window
+mod g4c_gun_store;
+mod great_north_gun;
+mod international_shooting_supplies;
+mod intersurplus;
+mod italian_sporting_goods; // they have arsenalforce in their robots.txt
+mod lever_arms;
+mod magdump;
+mod marstar;
+mod rangeview_sports;
+mod rdsc;
+mod reliable_gun;
+mod select_shooting_supplies;
+mod sj_hardware;
+mod tenda;
+mod the_ammo_source;
+mod tillsonburg_gun_shop;
+mod true_north_arms;
+mod victory_ridge_sports;
+
+pub use al_flahertys::AlFlahertys;
+pub use al_simmons::AlSimmons;
+pub use bullseye_north::BullseyeNorth;
+pub use calgary_shooting_centre::CalgaryShootingCentre;
+pub use canadas_gun_store::CanadasGunStore;
+pub use clinton_sporting_goods::ClintonSportingGoods;
+pub use dante_sports::DanteSports;
+pub use dominion_outdoors::DominionOutdoors;
+pub use firearms_outlet_canada::FirearmsOutletCanada;
+pub use g4c_gun_store::G4CGunStore;
+pub use great_north_gun::GreatNorthGun;
+pub use international_shooting_supplies::InternationalShootingSupplies;
+pub use intersurplus::InterSurplus;
+pub use italian_sporting_goods::ItalianSportingGoods;
+pub use lever_arms::LeverArms;
+pub use magdump::MagDump;
+pub use marstar::Marstar;
+pub use rangeview_sports::RangeviewSports;
+pub use rdsc::Rdsc;
+pub use reliable_gun::ReliableGun;
+pub use select_shooting_supplies::SelectShootingSupplies;
+pub use sj_hardware::SJHardware;
+pub use tenda::Tenda;
+pub use the_ammo_source::TheAmmoSource;
+pub use tillsonburg_gun_shop::Tillsonburg;
+pub use true_north_arms::TrueNorthArms;
+pub use victory_ridge_sports::VictoryRidgeSports;

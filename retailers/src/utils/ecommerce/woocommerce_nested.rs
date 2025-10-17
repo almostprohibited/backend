@@ -1,11 +1,11 @@
 use std::{collections::HashMap, time::Duration};
 
 use common::{
+    constants::CRAWL_COOLDOWN_SECS,
     result::{
         base::{CrawlResult, Price},
         enums::{Category, RetailerName},
     },
-    utils::CRAWL_COOLDOWN_SECS,
 };
 use crawler::{request::RequestBuilder, unprotected::UnprotectedCrawler};
 use scraper::{Html, Selector};

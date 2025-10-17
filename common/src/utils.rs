@@ -3,8 +3,6 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-pub const CRAWL_COOLDOWN_SECS: u64 = 10;
-
 const ONE_DAY_MINUTES: i64 = 1440;
 
 pub fn get_current_time() -> u64 {

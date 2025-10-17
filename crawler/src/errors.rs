@@ -1,3 +1,4 @@
+use reqwest::header::{InvalidHeaderName, InvalidHeaderValue};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -10,14 +11,14 @@ pub enum CrawlerError {
     UnprotectedClientInvalidHeader,
 }
 
-impl From<reqwest::header::InvalidHeaderName> for CrawlerError {
-    fn from(_err: reqwest::header::InvalidHeaderName) -> Self {
+impl From<InvalidHeaderName> for CrawlerError {
+    fn from(_err: InvalidHeaderName) -> Self {
         Self::UnprotectedClientInvalidHeader
     }
 }
 
-impl From<reqwest::header::InvalidHeaderValue> for CrawlerError {
-    fn from(_err: reqwest::header::InvalidHeaderValue) -> Self {
+impl From<InvalidHeaderValue> for CrawlerError {
+    fn from(_err: InvalidHeaderValue) -> Self {
         Self::UnprotectedClientInvalidHeader
     }
 }

@@ -1,4 +1,7 @@
 pub mod errors;
-pub mod retailers;
+mod retailers;
 pub mod structures;
 pub(crate) mod utils;
+
+pub use retailers::gql;
+pub use retailers::html;

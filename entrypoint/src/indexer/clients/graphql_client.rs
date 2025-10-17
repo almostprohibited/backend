@@ -2,8 +2,8 @@ use std::{collections::HashMap, time::Duration};
 
 use async_trait::async_trait;
 use common::{
+    constants::CRAWL_COOLDOWN_SECS,
     result::{base::CrawlResult, enums::RetailerName},
-    utils::CRAWL_COOLDOWN_SECS,
 };
 use crawler::unprotected::UnprotectedCrawler;
 use retailers::{errors::RetailerError, structures::GqlRetailerSuper};

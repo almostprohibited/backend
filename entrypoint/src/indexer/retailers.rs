@@ -4,22 +4,14 @@ use crate::clients::{
 use common::result::enums::RetailerName;
 use discord::get_indexer_webhook;
 use retailers::{
-    retailers::{
-        gql::prophet_river::prophet_river::ProphetRiver,
-        html::{
-            al_flahertys::AlFlahertys, al_simmons::AlSimmons, bullseye_north::BullseyeNorth,
-            calgary_shooting_centre::CalgaryShootingCentre, canadas_gun_store::CanadasGunStore,
-            clinton_sporting_goods::ClintonSportingGoods, dante_sports::DanteSports,
-            dominion_outdoors::DominionOutdoors, firearms_outlet_canada::FirearmsOutletCanada,
-            g4c_gun_store::G4CGunStore, great_north_gun::GreatNorthGun,
-            international_shooting_supplies::InternationalShootingSupplies,
-            intersurplus::InterSurplus, italian_sporting_goods::ItalianSportingGoods,
-            lever_arms::LeverArms, magdump::MagDump, marstar::Marstar,
-            rangeview_sports::RangeviewSports, rdsc::Rdsc, reliable_gun::ReliableGun,
-            select_shooting_supplies::SelectShootingSupplies, sj_hardware::SJHardware,
-            tenda::Tenda, the_ammo_source::TheAmmoSource, tillsonburg_gun_shop::Tillsonburg,
-            true_north_arms::TrueNorthArms, victory_ridge_sports::VictoryRidgeSports,
-        },
+    gql::ProphetRiver,
+    html::{
+        AlFlahertys, AlSimmons, BullseyeNorth, CalgaryShootingCentre, CanadasGunStore,
+        ClintonSportingGoods, DanteSports, DominionOutdoors, FirearmsOutletCanada, G4CGunStore,
+        GreatNorthGun, InterSurplus, InternationalShootingSupplies, ItalianSportingGoods,
+        LeverArms, MagDump, Marstar, RangeviewSports, Rdsc, ReliableGun, SJHardware,
+        SelectShootingSupplies, Tenda, TheAmmoSource, Tillsonburg, TrueNorthArms,
+        VictoryRidgeSports,
     },
     structures::{GqlRetailerSuper, HtmlRetailerSuper},
 };
@@ -188,9 +180,3 @@ pub(crate) async fn get_retailers(
 
     strong_ref.into_inner()
 }
-
-// discord_webhook
-//     .lock()
-//     .await
-//     .send_error(RetailerName::Tenda, err)
-//     .await

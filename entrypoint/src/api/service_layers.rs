@@ -7,10 +7,14 @@ use tower::{
 use tower_http::cors::CorsLayer;
 
 pub(crate) fn build_service_layers() -> ServiceBuilder<Stack<CorsLayer, Identity>> {
-    let cors_layer = CorsLayer::new()
+    let mut cors_layer = CorsLayer::new()
         .allow_methods([Method::GET, Method::POST])
-        .allow_headers([CONTENT_TYPE])
-        .allow_origin("http://localhost:3000".parse::<HeaderValue>().unwrap());
+        .allow_headers([CONTENT_TYPE]);
+
+    if cfg!(debug_assertions) {
+        cors_layer =
+            cors_layer.allow_origin("http://localhost:3000".parse::<HeaderValue>().unwrap());
+    }
 
     ServiceBuilder::new().layer(cors_layer)
 }
