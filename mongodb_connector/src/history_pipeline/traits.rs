@@ -16,12 +16,6 @@ pub struct HistoryResponse {
 }
 
 impl HistoryParams {
-    pub(crate) fn find_product_document(&self) -> Document {
-        doc! {
-            "_id": &self.id
-        }
-    }
-
     pub(crate) fn get_all_documents(&self, name: String, url: String) -> Document {
         doc! {
             "name": name,
