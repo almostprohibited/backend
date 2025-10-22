@@ -144,7 +144,9 @@ impl IndexerWebhook {
             let mut retailer_field: String = format!("```\n{counts}\n```");
 
             if !stats.errors.is_empty() {
-                self.state = IndexingState::InProgressError;
+                if matches!(self.state, IndexingState::InProgress) {
+                    self.state = IndexingState::InProgressError;
+                }
 
                 let error_blob = stats.errors.join("\n");
                 retailer_field += &format!("**```\n{error_blob}\n```**");
