@@ -21,7 +21,6 @@ impl LiveResultsView {
         let db = client.database(DATABASE_NAME);
 
         Self::create_collection(&db).await;
-        Self::create_indexes(&db).await;
 
         Self {
             collection: db.collection::<CrawlResult>(VIEW_LIVE_DATA_NAME),
@@ -34,9 +33,7 @@ impl LiveResultsView {
             .expect(&format!(
                 "Creating {VIEW_LIVE_DATA_NAME} collection to not fail"
             ));
-    }
 
-    async fn create_indexes(db: &Database) {
         let crawl_result_search_index = IndexModel::builder()
             .keys(doc! {
                 "name": "text",
@@ -91,7 +88,7 @@ impl LiveResultsView {
         }
     }
 
-    pub(crate) async fn update_view(&self, prev_days: i64) {
+    pub(crate) async fn prune_results(&self, prev_days: i64) {
         self.collection
             .delete_many(doc! {
                 "query_time": {"$lt": prev_days}

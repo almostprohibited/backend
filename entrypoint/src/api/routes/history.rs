@@ -1,4 +1,4 @@
-use std::{cmp::min, collections::BTreeMap, sync::Arc};
+use std::{collections::BTreeMap, sync::Arc};
 
 use axum::{
     Json,
@@ -8,28 +8,11 @@ use axum::{
 };
 use axum_extra::extract::WithRejection;
 use chrono::{DateTime, NaiveTime};
-use mongodb_connector::history_pipeline::traits::HistoryParams;
-use serde::Serialize;
+use common::price_history::{ApiPriceHistoryInput, ApiPriceHistoryOutput, PriceHistoryEntry};
 use tokio::time::Instant;
 use tracing::debug;
 
 use crate::{ServerState, routes::error_message_erasure::ApiError};
-
-const MAX_RESULTS: usize = 365;
-
-#[derive(Serialize, Clone, Copy)]
-struct FormattedHistory {
-    // UNIX timestamp rounded to the nearest day
-    normalized_timestamp: u64,
-    price: Option<u64>,
-}
-
-#[derive(Serialize)]
-struct OutputShape {
-    history: Vec<FormattedHistory>,
-    highest_price: FormattedHistory,
-    lowest_price: FormattedHistory,
-}
 
 fn get_normalized_timestamp(timestamp: u64) -> u64 {
     // probably not an issue of stuffing unsigned into signed int
@@ -42,116 +25,83 @@ fn get_normalized_timestamp(timestamp: u64) -> u64 {
     normalized_timestamp.timestamp() as u64
 }
 
-// TODO: the results from this will parse the entire database
-// of crawled results, meaning we'll potentially waste a bunch
-// of processing parsing stuff outside the current max window
-// which is currently 1 year back
+fn get_lowest_price(price: &PriceHistoryEntry) -> u64 {
+    price.sale_price.unwrap_or(price.regular_price)
+}
+
+// TODO: the results from this will parse and return the
+// entire database of crawled results, meaning we'll
+// potentially waste a bunch of processing parsing stuff
+// outside the current max window which is currently 1 year back
 pub(crate) async fn history_handler(
     State(state): State<Arc<ServerState>>,
-    WithRejection(Query(query), _): WithRejection<Query<HistoryParams>, ApiError>,
+    WithRejection(Query(query), _): WithRejection<Query<ApiPriceHistoryInput>, ApiError>,
 ) -> Result<impl IntoResponse, StatusCode> {
     let start_time: Instant = Instant::now();
 
-    let result = state.db.get_pricing_history(query).await;
-
-    if result.is_empty() {
+    let Some(result) = state.db.get_pricing_history(query).await else {
         return Ok(StatusCode::BAD_REQUEST.into_response());
-    }
+    };
 
-    let mut lowest_price: Option<FormattedHistory> = None;
-    let mut highest_price: Option<FormattedHistory> = None;
+    let mut lowest_price: Option<PriceHistoryEntry> = None;
+    let mut highest_price: Option<PriceHistoryEntry> = None;
 
-    let mut history: BTreeMap<u64, FormattedHistory> = BTreeMap::new();
+    let mut history: BTreeMap<u64, PriceHistoryEntry> = BTreeMap::new();
 
-    for unformatted_result in result {
-        let price = unformatted_result
-            .price
-            .sale_price
-            .unwrap_or(unformatted_result.price.regular_price);
+    for price_entry in result.price_history {
+        let normalized_timestamp = get_normalized_timestamp(price_entry.query_time);
 
-        let normalized_timestamp = get_normalized_timestamp(unformatted_result.query_time);
-
-        // create lowest price, accounting for sales
-        let formatted_history = FormattedHistory {
-            normalized_timestamp,
-            price: Some(price),
-        };
-
-        // deal with dedupes (several crawls that might have accidentially happened)
-        if let Some(existing_history) = history.get_mut(&normalized_timestamp)
-            && existing_history.price.is_some()
+        // perform this weird check since I probably won't remember to sort the output
+        // from MongoDB, I only want the most recent crawl of the day
+        if let Some(existing_entry) = history.get(&normalized_timestamp)
+            && existing_entry.query_time < price_entry.query_time
         {
-            // safe unwrap as optional condition checked above
-            let existing_price = existing_history.price.unwrap();
-
-            if existing_price > price {
-                existing_history.price = Some(price);
-            }
+            // replace if newer
+            history.insert(normalized_timestamp, price_entry.clone());
         } else {
-            history.insert(normalized_timestamp, formatted_history);
-        };
+            // insert if empty
+            history.insert(normalized_timestamp, price_entry.clone());
+        }
 
-        if let Some(ref lowest) = lowest_price {
-            if (lowest.price > formatted_history.price)
-                || (lowest.price == formatted_history.price
-                    && lowest.normalized_timestamp > formatted_history.normalized_timestamp)
+        let current_price = get_lowest_price(&price_entry);
+
+        if let Some(ref unwrapped_lowest) = lowest_price {
+            let current_lowest_price = get_lowest_price(unwrapped_lowest);
+
+            if current_lowest_price > current_price
+                || (current_lowest_price == current_price
+                    && unwrapped_lowest.query_time > price_entry.query_time)
             {
-                lowest_price = Some(formatted_history);
+                lowest_price = Some(price_entry.clone())
             }
         } else {
-            lowest_price = Some(formatted_history);
-        };
+            lowest_price = Some(price_entry.clone())
+        }
 
-        if let Some(ref highest) = highest_price {
-            if (highest.price < formatted_history.price)
-                || (highest.price == formatted_history.price
-                    && highest.normalized_timestamp > formatted_history.normalized_timestamp)
+        if let Some(ref unwrapped_highest) = highest_price {
+            let current_max_price = get_lowest_price(unwrapped_highest);
+
+            if current_max_price < current_price
+                || (current_max_price == current_price
+                    && unwrapped_highest.query_time > price_entry.query_time)
             {
-                highest_price = Some(formatted_history);
+                highest_price = Some(price_entry.clone())
             }
         } else {
-            highest_price = Some(formatted_history);
-        };
+            highest_price = Some(price_entry.clone())
+        }
     }
-
-    // insert blanks into response
-    let mut current_timestamp = match history.last_entry() {
-        Some(last_value) => *last_value.key(),
-        None => 0,
-    };
-
-    let first_timestamp = match history.first_entry() {
-        Some(first_value) => *first_value.key(),
-        None => 0,
-    };
-
-    while current_timestamp > first_timestamp {
-        history
-            .entry(current_timestamp)
-            .or_insert(FormattedHistory {
-                normalized_timestamp: current_timestamp,
-                price: None,
-            });
-
-        // rewind one day
-        current_timestamp -= 24 * 60 * 60;
-    }
-
-    // note: drain causes memory leak if iterator leaves scope
-    let final_vec = history
-        .values()
-        .copied()
-        .collect::<Vec<FormattedHistory>>()
-        .drain(history.len() - min(MAX_RESULTS, history.len())..)
-        .collect();
-
-    let response: Json<OutputShape> = Json::from(OutputShape {
-        history: final_vec,
-        lowest_price: lowest_price.expect("Expect there to be a lowest price"),
-        highest_price: highest_price.expect("Expect there to be a highest price"),
-    });
 
     debug!("Request time: {}ms", start_time.elapsed().as_millis());
+
+    let response = Json::from(ApiPriceHistoryOutput {
+        history: history
+            .values()
+            .cloned()
+            .collect::<Vec<PriceHistoryEntry>>(),
+        max_price: highest_price.expect("Max price to be populated"),
+        min_price: lowest_price.expect("Min price to be populated"),
+    });
 
     Ok(response.into_response())
 }
