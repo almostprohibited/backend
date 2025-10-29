@@ -76,7 +76,7 @@ impl PriceHistoryCollection {
             let parsed_price =
                 to_bson(&price_obj).expect("PriceHistoryEntry to deserialize correctly");
 
-            if let Err(_) = self
+            let Ok(update_result) = self
                 .collection
                 .update_one(
                     doc! {
@@ -90,7 +90,12 @@ impl PriceHistoryCollection {
                     },
                 )
                 .await
-            {
+            else {
+                // TODO: this normally shouldn't fail, but handle this better
+                continue;
+            };
+
+            if update_result.matched_count == 0 {
                 let _ = self.collection.insert_one(CollectionPriceHistory {
                     name: result.name.clone(),
                     url: result.url.clone(),
