@@ -211,7 +211,7 @@ impl HtmlRetailer for Tenda {
 
         let request = RequestBuilder::new()
             .set_url(url)
-            .set_headers(&[("Cookie".into(), self.securi_cookie.clone())].to_vec())
+            .set_headers([("Cookie".into(), self.securi_cookie.clone())].as_ref())
             .build();
 
         Ok(request)

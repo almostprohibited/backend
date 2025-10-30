@@ -70,7 +70,7 @@ impl RequestBuilder {
         self
     }
 
-    pub fn set_headers(mut self, headers: &Vec<(String, String)>) -> Self {
+    pub fn set_headers(mut self, headers: &[(String, String)]) -> Self {
         self.request.headers = Some(headers.to_vec());
 
         self

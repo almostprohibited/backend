@@ -21,9 +21,9 @@ impl CrawlResultsCollection {
     async fn create_collection(db: &Database) {
         db.create_collection(COLLECTION_CRAWL_RESULTS_NAME)
             .await
-            .expect(&format!(
-                "Creating {COLLECTION_CRAWL_RESULTS_NAME} collection to not fail"
-            ));
+            .unwrap_or_else(|_| {
+                panic!("Creating {COLLECTION_CRAWL_RESULTS_NAME} collection to not fail")
+            });
     }
 
     pub(crate) async fn insert_results(&self, results: Vec<&CrawlResult>) {

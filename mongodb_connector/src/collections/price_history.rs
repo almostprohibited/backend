@@ -30,9 +30,9 @@ impl PriceHistoryCollection {
     async fn create_collection(db: &Database) {
         db.create_collection(COLLECTION_PRICE_HISTORY_NAME)
             .await
-            .expect(&format!(
-                "Creating {COLLECTION_PRICE_HISTORY_NAME} collection to not fail"
-            ));
+            .unwrap_or_else(|_| {
+                panic!("Creating {COLLECTION_PRICE_HISTORY_NAME} collection to not fail")
+            });
 
         let index = IndexModel::builder()
             .keys(doc! {
@@ -59,10 +59,10 @@ impl PriceHistoryCollection {
                 "url": url.into()
             })
             .await
-            .expect(&format!(
-                "find_one call to not fail for {COLLECTION_PRICE_HISTORY_NAME}"
-            ))
-            .expect(&format!("find_one call to actually find something"))
+            .unwrap_or_else(|_| {
+                panic!("find_one call to not fail for {COLLECTION_PRICE_HISTORY_NAME}")
+            })
+            .expect("find_one call to actually find something")
     }
 
     pub(crate) async fn update_collection(&self, results: Vec<&CrawlResult>) {

@@ -94,11 +94,11 @@ impl GqlRetailer for ProphetRiver {
             .set_url(GQL_URL)
             .set_method(HttpMethod::POST)
             .set_headers(
-                &[
+                [
                     ("Content-Type".into(), "application/json".into()),
                     ("Authorization".into(), authorization_header),
                 ]
-                .to_vec(),
+                .as_ref(),
             )
             .set_json_body(request_json)
             .build();

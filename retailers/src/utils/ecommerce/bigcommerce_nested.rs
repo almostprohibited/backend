@@ -398,11 +398,11 @@ impl BigCommerceNested {
                     .set_url(self.api_url.replace("{product_id}", &product_id))
                     .set_method(HttpMethod::POST)
                     .set_headers(
-                        &[(
+                        [(
                             "Content-Type".into(),
                             "application/x-www-form-urlencoded".into(),
                         )]
-                        .to_vec(),
+                        .as_ref(),
                     )
                     .set_body(body)
                     .build();

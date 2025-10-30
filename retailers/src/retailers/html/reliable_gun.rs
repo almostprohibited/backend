@@ -124,7 +124,7 @@ impl HtmlRetailer for ReliableGun {
             .set_url(URL)
             .set_method(HttpMethod::POST)
             .set_json_body(serde_json::to_value(payload)?)
-            .set_headers(&[("Content-Type".into(), "application/json".into())].to_vec());
+            .set_headers([("Content-Type".into(), "application/json".into())].as_ref());
 
         Ok(request_builder.build())
     }

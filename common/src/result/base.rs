@@ -16,7 +16,7 @@ use crate::{
     utils::get_current_time,
 };
 
-const PATTERNS: LazyLock<Vec<Regex>> = LazyLock::new(|| {
+static PATTERNS: LazyLock<Vec<Regex>> = LazyLock::new(|| {
     vec![
         Regex::new(r"(?i)(?:box|case|pack|tin) of (\d+)").expect("Ammo count regex to compile"),
         Regex::new(r"(?i)(\d+)\s*/?(?:ct|count|rd|rnd|round|pack|pc|shell|box|qty)s?\b")

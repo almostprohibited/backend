@@ -54,9 +54,7 @@ impl LiveResultsView {
     async fn create_collection(db: &Database) {
         db.create_collection(VIEW_LIVE_DATA_NAME)
             .await
-            .expect(&format!(
-                "Creating {VIEW_LIVE_DATA_NAME} collection to not fail"
-            ));
+            .unwrap_or_else(|_| panic!("Creating {VIEW_LIVE_DATA_NAME} collection to not fail"));
 
         let crawl_result_search_index = IndexModel::builder()
             .keys(doc! {

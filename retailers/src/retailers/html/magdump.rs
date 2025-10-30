@@ -212,10 +212,7 @@ impl HtmlRetailer for MagDump {
 
         let request = RequestBuilder::new()
             .set_url(url)
-            .set_headers(&vec![(
-                "Accept".to_string(),
-                "application/json".to_string(),
-            )])
+            .set_headers(&[("Accept".to_string(), "application/json".to_string())])
             .build();
 
         Ok(request)

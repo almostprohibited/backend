@@ -16,6 +16,12 @@ pub struct CollectionSearchResults {
     pub total_count: u64,
 }
 
+impl Default for CollectionSearchResults {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CollectionSearchResults {
     pub fn new() -> Self {
         Self {

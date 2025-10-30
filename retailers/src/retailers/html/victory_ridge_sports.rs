@@ -1,5 +1,3 @@
-use std::u64::MAX;
-
 use async_trait::async_trait;
 use common::result::{
     base::CrawlResult,
@@ -192,6 +190,6 @@ impl HtmlRetailer for VictoryRidgeSports {
             return Ok(0);
         }
 
-        Ok(MAX)
+        Ok(u64::MAX)
     }
 }

@@ -66,9 +66,8 @@ impl IndexerWebhook {
     pub async fn new() -> Self {
         // TODO: this fails when cell is populated, not during binary start
         // potentially causing ticking time bomb
-        let webhook_env_var = env::var(DISCORD_INDEXER_WEBHOOK_URL).expect(&format!(
-            "Expecting {DISCORD_INDEXER_WEBHOOK_URL} to be set"
-        ));
+        let webhook_env_var = env::var(DISCORD_INDEXER_WEBHOOK_URL)
+            .unwrap_or_else(|_| panic!("Expecting {DISCORD_INDEXER_WEBHOOK_URL} to be set"));
 
         Self {
             client: DiscordClient::new(webhook_env_var).await,

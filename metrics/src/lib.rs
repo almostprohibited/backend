@@ -2,7 +2,7 @@ use std::{env, sync::LazyLock};
 
 use strum_macros::EnumIter;
 
-const CONNECTION_URI: LazyLock<String> = LazyLock::new(|| {
+static CONNECTION_URI: LazyLock<String> = LazyLock::new(|| {
     let host = env::var("PROMETHEUS_HOST").unwrap_or("localhost".into());
     let port = env::var("PROMETHEUS_PORT").unwrap_or("9090".into());
 

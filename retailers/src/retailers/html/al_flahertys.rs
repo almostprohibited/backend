@@ -54,8 +54,8 @@ impl AlFlahertys {
         }
     }
 
-    fn get_result(api_response: &String) -> Result<Value, RetailerError> {
-        let json = serde_json::from_str::<Value>(api_response.as_str())?;
+    fn get_result(api_response: &str) -> Result<Value, RetailerError> {
+        let json = serde_json::from_str::<Value>(api_response)?;
 
         // we can't deserialize this properly in Rust since
         // either Al Flahertys, or Klevu, has a mix of different cases and formats for their keys
@@ -89,7 +89,7 @@ impl AlFlahertys {
     }
 
     /// Theres no way to filter by in-stock models, we have to fetch them all
-    fn get_in_stock_models(&self, result: &String) -> Result<Vec<(String, String)>, RetailerError> {
+    fn get_in_stock_models(&self, result: &str) -> Result<Vec<(String, String)>, RetailerError> {
         let html = Html::parse_document(result);
         let option_selector =
             Selector::parse("section.productView-details select.form-select--small > option[data-product-attribute-value]")
@@ -173,14 +173,14 @@ impl AlFlahertys {
                 .set_url(API_URL.replace("{product_id}", &product_id))
                 .set_method(HttpMethod::POST)
                 .set_headers(
-                    &[
+                    [
                         ("Cookie".to_string(), cookie),
                         (
                             "Content-Type".to_string(),
                             "application/x-www-form-urlencoded".to_string(),
                         ),
                     ]
-                    .to_vec(),
+                    .as_ref(),
                 )
                 .set_body(body)
                 .build();

@@ -15,7 +15,7 @@ use crate::collections::{
     messages::MessagesCollection, price_history::PriceHistoryCollection,
 };
 
-const CONNECTION_URI: LazyLock<String> = LazyLock::new(|| {
+static CONNECTION_URI: LazyLock<String> = LazyLock::new(|| {
     let host = env::var("MONGO_DB_HOST").unwrap_or("localhost".into());
     let port = env::var("MONGO_DB_PORT").unwrap_or("27017".into());
 
