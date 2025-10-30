@@ -10,10 +10,7 @@ use retailers::{errors::RetailerError, structures::GqlRetailerSuper};
 use tokio::time::sleep;
 use tracing::debug;
 
-use crate::clients::{
-    base::Client,
-    utils::{get_category_tier, get_key},
-};
+use crate::clients::base::{Client, insert_result};
 
 pub(crate) struct GqlClient {
     retailer: Box<dyn GqlRetailerSuper>,
@@ -27,21 +24,6 @@ impl GqlClient {
             retailer,
             crawler: UnprotectedCrawler::new(),
             results: HashMap::new(),
-        }
-    }
-
-    // TODO: this method is repeated twice for each client, refactor this
-    fn insert_result(&mut self, crawl_result: CrawlResult) {
-        let key = get_key(&crawl_result);
-
-        // deal with retailers that have the same product in multiple places
-        if let Some(existing_result) = self.results.get_mut(&key)
-            && get_category_tier(existing_result.category)
-                < get_category_tier(crawl_result.category)
-        {
-            *existing_result = crawl_result;
-        } else {
-            self.results.insert(key, crawl_result);
         }
     }
 }
@@ -63,7 +45,7 @@ impl Client for GqlClient {
             let results = self.retailer.parse_response(&response_body).await?;
 
             for crawled_result in results {
-                self.insert_result(crawled_result);
+                insert_result(&mut self.results, crawled_result);
             }
 
             if pagination_token.is_none() {

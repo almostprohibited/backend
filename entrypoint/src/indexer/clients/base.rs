@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use async_trait::async_trait;
 use common::result::{
     base::CrawlResult,
@@ -6,6 +8,21 @@ use common::result::{
 };
 use metrics::{Metrics, put_metric};
 use retailers::errors::RetailerError;
+
+use crate::clients::utils::{get_category_tier, get_key};
+
+pub(super) fn insert_result(results: &mut HashMap<String, CrawlResult>, new_result: CrawlResult) {
+    let key = get_key(&new_result);
+
+    // deal with retailers that have the same product in multiple places
+    if let Some(existing_result) = results.get_mut(&key)
+        && get_category_tier(existing_result.category) < get_category_tier(new_result.category)
+    {
+        *existing_result = new_result;
+    } else {
+        results.insert(key, new_result);
+    }
+}
 
 #[async_trait]
 pub(crate) trait Client {
