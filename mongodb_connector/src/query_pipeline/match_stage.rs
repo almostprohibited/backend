@@ -1,36 +1,31 @@
-use common::{result::enums::Category, utils::normalized_relative_days};
+use common::{
+    result::enums::Category, search_params::ApiSearchInput, utils::normalized_relative_days,
+};
 use mongodb::bson::{Document, doc};
 use tracing::trace;
 
 use super::traits::StageDocument;
 
 pub(super) struct MatchStage {
-    query: String,
-    category: Category,
-    min_price: Option<u32>,
-    max_price: Option<u32>,
+    search_query: ApiSearchInput,
 }
 
 impl MatchStage {
-    pub(super) fn new(
-        query: String,
-        category: Category,
-        min_price: Option<u32>,
-        max_price: Option<u32>,
-    ) -> Self {
-        let mut search_terms = query
+    pub(super) fn new(search_query: ApiSearchInput) -> Self {
+        Self { search_query }
+    }
+
+    fn parse_search_terms(&self) -> String {
+        let mut terms = self
+            .search_query
+            .query
             .split(" ")
             .map(|term| format!("\"{term}\""))
             .collect::<Vec<String>>();
 
-        search_terms.sort();
+        terms.sort();
 
-        Self {
-            query: search_terms.join(" "),
-            category,
-            min_price,
-            max_price,
-        }
+        terms.join(" ")
     }
 
     fn get_price_documents(&self) -> Vec<Document> {
@@ -40,13 +35,13 @@ impl MatchStage {
 
         let mut documents: Vec<Document> = Vec::new();
 
-        if let Some(min_price) = self.min_price {
+        if let Some(min_price) = self.search_query.min_price {
             documents.push(doc! {
                 "$gte": [final_price_doc.clone(), min_price]
             });
         }
 
-        if let Some(max_price) = self.max_price {
+        if let Some(max_price) = self.search_query.max_price {
             documents.push(doc! {
                 "$lte": [final_price_doc, max_price]
             });
@@ -60,7 +55,7 @@ impl StageDocument for MatchStage {
     fn get_stage_documents(&self) -> Vec<Document> {
         let mut match_filter = doc! {
             "$text": {
-                "$search": &self.query
+                "$search": &self.parse_search_terms()
             },
             "query_time": {
                 "$gte": normalized_relative_days(2)
@@ -86,7 +81,7 @@ impl StageDocument for MatchStage {
             Category::Ammunition.to_string(),
         ];
 
-        if self.category == Category::default() {
+        if self.search_query.category == Category::default() {
             match_filter.insert(
                 "category",
                 doc! {
@@ -94,7 +89,7 @@ impl StageDocument for MatchStage {
                 },
             );
         } else {
-            match_filter.insert("category", self.category.to_string());
+            match_filter.insert("category", self.search_query.category.to_string());
         }
 
         [doc! {"$match": match_filter}].into()

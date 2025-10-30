@@ -3,4 +3,3 @@ pub mod connector;
 pub(crate) mod constants;
 pub mod errors;
 pub mod query_pipeline;
-pub mod structs;

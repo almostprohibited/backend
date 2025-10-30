@@ -1,14 +1,15 @@
+use common::search_params::{ApiSearchInput, Sort};
 use mongodb::bson::{Document, doc};
 
-use super::traits::{Sort, StageDocument};
+use super::traits::StageDocument;
 
 pub(super) struct SortStage {
-    sort: Sort,
+    search_query: ApiSearchInput,
 }
 
 impl SortStage {
-    pub(super) fn new(sort: Sort) -> Self {
-        Self { sort }
+    pub(super) fn new(search_query: ApiSearchInput) -> Self {
+        Self { search_query }
     }
 }
 
@@ -66,7 +67,7 @@ impl StageDocument for SortStage {
             },
         ];
 
-        match self.sort {
+        match self.search_query.sort {
             Sort::Relevant => {
                 sort_docs.extend([
                     doc! {

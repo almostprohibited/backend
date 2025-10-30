@@ -4,18 +4,15 @@ use common::{
     messages::Message,
     price_history::{ApiPriceHistoryInput, CollectionPriceHistory},
     result::base::CrawlResult,
+    search_params::{ApiSearchInput, CollectionSearchResults},
     utils::normalized_relative_days,
 };
 use mongodb::Client;
 use tracing::warn;
 
-use crate::{
-    collections::{
-        crawl_results::CrawlResultsCollection, live_results::LiveResultsView,
-        messages::MessagesCollection, price_history::PriceHistoryCollection,
-    },
-    query_pipeline::traits::QueryParams,
-    structs::Count,
+use crate::collections::{
+    crawl_results::CrawlResultsCollection, live_results::LiveResultsView,
+    messages::MessagesCollection, price_history::PriceHistoryCollection,
 };
 
 const CONNECTION_URI: LazyLock<String> = LazyLock::new(|| {
@@ -50,12 +47,8 @@ impl MongoDBConnector {
         self.messages.insert_message(message).await;
     }
 
-    pub async fn search_items(&self, query_params: &QueryParams) -> Vec<CrawlResult> {
+    pub async fn search_items(&self, query_params: &ApiSearchInput) -> CollectionSearchResults {
         self.live_results.search_items(query_params).await
-    }
-
-    pub async fn count_items(&self, query_params: &QueryParams) -> Count {
-        self.live_results.count_items(query_params).await
     }
 
     pub async fn insert_many_results(&self, results: Vec<&CrawlResult>) {

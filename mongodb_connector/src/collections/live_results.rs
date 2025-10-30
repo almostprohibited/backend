@@ -1,16 +1,40 @@
-use common::result::base::CrawlResult;
+use common::{
+    result::base::CrawlResult,
+    search_params::{ApiSearchInput, CollectionSearchResults},
+};
 use mongodb::{
     Client, Collection, Database, IndexModel,
     bson::{doc, oid::ObjectId},
     options::IndexOptions,
 };
+use serde::Deserialize;
 use tracing::debug;
 
 use crate::{
     constants::{DATABASE_NAME, VIEW_LIVE_DATA_NAME, VIEW_LIVE_DATA_SEARCH_INDEX},
-    query_pipeline::traits::QueryParams,
-    structs::Count,
+    query_pipeline::traits::SearchPipeline,
 };
+
+#[derive(Deserialize)]
+struct PaginatedSearchOutput {
+    items: Vec<CrawlResult>,
+    total_count: Vec<PaginatedCountOutput>,
+}
+
+impl PaginatedSearchOutput {
+    fn get_count(&self) -> u64 {
+        let Some(count_obj) = self.total_count.first() else {
+            return 0;
+        };
+
+        count_obj.count
+    }
+}
+
+#[derive(Deserialize)]
+struct PaginatedCountOutput {
+    count: u64,
+}
 
 pub(crate) struct LiveResultsView {
     collection: Collection<CrawlResult>,
@@ -51,41 +75,31 @@ impl LiveResultsView {
             .unwrap();
     }
 
-    pub(crate) async fn search_items(&self, query_params: &QueryParams) -> Vec<CrawlResult> {
+    pub(crate) async fn search_items(
+        &self,
+        query_params: &ApiSearchInput,
+    ) -> CollectionSearchResults {
+        let pipeline_documents = SearchPipeline::new(query_params.clone()).get_search_documents();
+
+        debug!("Using: {:?}", pipeline_documents);
+
         let mut cursor = self
             .collection
-            .aggregate(query_params.get_search_documents())
-            .with_type::<CrawlResult>()
+            .aggregate(pipeline_documents)
+            .with_type::<PaginatedSearchOutput>()
             .await
             .unwrap();
 
-        debug!("Using: {:?}", query_params.get_search_documents());
-
-        let mut result: Vec<CrawlResult> = Vec::new();
+        let mut result = CollectionSearchResults::new();
 
         while cursor.advance().await.unwrap_or(false) {
-            result.push(cursor.deserialize_current().unwrap());
+            let paginated_result = cursor.deserialize_current().unwrap();
+
+            result.total_count += paginated_result.get_count();
+            result.items.extend(paginated_result.items);
         }
 
         result
-    }
-
-    pub(crate) async fn count_items(&self, query_params: &QueryParams) -> Count {
-        let mut cursor = self
-            .collection
-            .aggregate(query_params.get_count_documents())
-            .with_type::<Count>()
-            .await
-            .unwrap();
-
-        let Ok(has_count) = cursor.advance().await else {
-            return Count { total_count: 0 };
-        };
-
-        match has_count {
-            true => cursor.deserialize_current().unwrap(),
-            false => Count { total_count: 0 },
-        }
     }
 
     pub(crate) async fn prune_results(&self, prev_days: i64) {

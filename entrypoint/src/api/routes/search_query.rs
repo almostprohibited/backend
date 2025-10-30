@@ -7,10 +7,9 @@ use axum::{
     response::IntoResponse,
 };
 use axum_extra::extract::WithRejection;
-use common::result::base::CrawlResult;
-use mongodb_connector::query_pipeline::traits::QueryParams;
+use common::{result::base::CrawlResult, search_params::ApiSearchInput};
 use serde::Serialize;
-use tokio::{join, time::Instant};
+use tokio::time::Instant;
 use tracing::debug;
 
 use crate::{ServerState, routes::error_message_erasure::ApiError};
@@ -23,18 +22,16 @@ struct ApiResult {
 
 pub(crate) async fn search_handler(
     State(state): State<Arc<ServerState>>,
-    WithRejection(Query(params), _): WithRejection<Query<QueryParams>, ApiError>,
+    WithRejection(Query(params), _): WithRejection<Query<ApiSearchInput>, ApiError>,
 ) -> Result<impl IntoResponse, StatusCode> {
     let start_time = Instant::now();
 
-    let (results, count) = join!(
-        state.db.search_items(&params),
-        state.db.count_items(&params)
-    );
+    let db_results = state.db.search_items(&params).await;
 
+    // TODO: can probably delete this and just return db_results
     let result = ApiResult {
-        items: results,
-        total_count: count.total_count,
+        items: db_results.items,
+        total_count: db_results.total_count,
     };
 
     debug!("{:?}", result);
