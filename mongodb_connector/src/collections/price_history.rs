@@ -7,6 +7,7 @@ use mongodb::{
     bson::{doc, to_bson},
     options::IndexOptions,
 };
+use tracing::error;
 
 use crate::constants::{COLLECTION_PRICE_HISTORY_NAME, DATABASE_NAME};
 
@@ -96,11 +97,14 @@ impl PriceHistoryCollection {
             };
 
             if update_result.matched_count == 0 {
-                let _ = self.collection.insert_one(CollectionPriceHistory {
-                    name: result.name.clone(),
-                    url: result.url.clone(),
-                    price_history: vec![price_obj],
-                });
+                let _ = self
+                    .collection
+                    .insert_one(CollectionPriceHistory {
+                        name: result.name.clone(),
+                        url: result.url.clone(),
+                        price_history: vec![price_obj],
+                    })
+                    .await;
             }
         }
     }
