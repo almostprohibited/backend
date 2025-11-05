@@ -12,7 +12,7 @@ use crate::{
     errors::RetailerError,
     structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
     utils::{
-        ecommerce::{woocommerce::WooCommerceBuilder, woocommerce_nested::WooCommerceNested},
+        ecommerce::woocommerce::WooCommerceBuilder,
         html::{element_extract_attr, element_to_text, extract_element_from_element},
     },
 };
@@ -102,11 +102,10 @@ impl HtmlRetailer for VictoryRidgeSports {
 
         let css_selector = "div.wd-product-header > h3 > a";
 
-        let woocommerce_helper = WooCommerceBuilder::default()
+        let mut woocommerce_helper = WooCommerceBuilder::default()
             .with_product_name_selector(css_selector)
             .with_product_url_selector(css_selector)
             .build();
-        let mut woocommerce_nested = WooCommerceNested::new(self.get_retailer_name());
 
         for raw_html in products {
             let parsed_html = Html::parse_fragment(&raw_html);
@@ -120,7 +119,7 @@ impl HtmlRetailer for VictoryRidgeSports {
                     let product_url_element = extract_element_from_element(product, css_selector)?;
                     let product_url = element_extract_attr(product_url_element, "href")?;
 
-                    woocommerce_nested.enqueue_product(product_url, search_term.category);
+                    woocommerce_helper.enqueue_nested_product(product_url, search_term.category);
                 }
                 "add to cart" => {
                     results.push(woocommerce_helper.parse_product(
@@ -133,7 +132,11 @@ impl HtmlRetailer for VictoryRidgeSports {
             };
         }
 
-        results.extend(woocommerce_nested.parse_nested().await?);
+        results.extend(
+            woocommerce_helper
+                .parse_nested_products(self.get_retailer_name())
+                .await?,
+        );
 
         Ok(results)
     }

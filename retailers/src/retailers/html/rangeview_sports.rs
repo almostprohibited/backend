@@ -11,10 +11,7 @@ use crate::{
     errors::RetailerError,
     structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
     utils::{
-        ecommerce::{
-            woocommerce::{WooCommerce, WooCommerceBuilder},
-            woocommerce_nested::WooCommerceNested,
-        },
+        ecommerce::woocommerce::{WooCommerce, WooCommerceBuilder},
         html::{element_extract_attr, element_to_text, extract_element_from_element},
     },
 };
@@ -76,8 +73,7 @@ impl HtmlRetailer for RangeviewSports {
     ) -> Result<Vec<CrawlResult>, RetailerError> {
         let mut results: Vec<CrawlResult> = Vec::new();
 
-        let woocommerce_helper = WooCommerceBuilder::default().build();
-        let mut woocommerce_nested = WooCommerceNested::new(self.get_retailer_name());
+        let mut woocommerce_helper = WooCommerceBuilder::default().build();
 
         let products = {
             let html = Html::parse_document(response);
@@ -116,7 +112,7 @@ impl HtmlRetailer for RangeviewSports {
             if element_to_text(price_element).contains("–") {
                 let link = element_extract_attr(link_element, "href")?;
 
-                woocommerce_nested.enqueue_product(link, search_term.category);
+                woocommerce_helper.enqueue_nested_product(link, search_term.category);
 
                 continue;
             };
@@ -130,7 +126,11 @@ impl HtmlRetailer for RangeviewSports {
             results.push(result);
         }
 
-        results.extend(woocommerce_nested.parse_nested().await?);
+        results.extend(
+            woocommerce_helper
+                .parse_nested_products(self.get_retailer_name())
+                .await?,
+        );
 
         Ok(results)
     }
