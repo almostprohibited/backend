@@ -30,7 +30,7 @@ tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 async-trait = "0.1.88"
 mongodb = "3.3.0"
 axum = "0.8.6"
-axum-extra = "0.10.3"
+axum-extra = "0.12.1"
 tower-http = "0.6.4"
 tower = "0.5.2"
 regex = "1.12.2"
@@ -42,7 +42,7 @@ strum_macros = "0.27.1"
 base64 = "0.22.1"
 futures = "0.3.31"
 openssl = { version = "0.10", features = ["vendored"] }
-clap = { version = "4.5.50", features = ["derive"] }
+clap = { version = "4.5.51", features = ["derive"] }
 mimalloc = "0.1.47"
 chrono = "0.4.42"
 opentelemetry = { version = "0.31.0", features = ["metrics"] }
