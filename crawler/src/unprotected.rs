@@ -1,4 +1,4 @@
-use std::{collections::HashMap, str::FromStr, time::Duration};
+use std::{collections::HashMap, str::FromStr, sync::OnceLock, time::Duration};
 
 use reqwest::{
     ClientBuilder as BaseClientBuilder,
@@ -22,12 +22,10 @@ const MAX_RETRY: u32 = 3;
 const USER_AGENT: &str =
     "almostprohibited/1.0 (+https://almostprohibited.ca/contact/; hello@almostprohibited.ca)";
 
+static REQWEST_CLIENT: OnceLock<ClientWithMiddleware> = OnceLock::new();
+
 #[derive(Copy, Clone)]
-pub struct UnprotectedCrawler {
-    min_backoff: u64,
-    max_backoff: u64,
-    max_retry: u32,
-}
+pub struct UnprotectedCrawler {}
 
 impl Default for UnprotectedCrawler {
     fn default() -> Self {
@@ -37,55 +35,39 @@ impl Default for UnprotectedCrawler {
 
 impl UnprotectedCrawler {
     pub fn new() -> Self {
-        Self {
-            min_backoff: PAGE_MIN_SECS_BACKOFF,
-            max_backoff: PAGE_MAX_SECS_BACKOFF,
-            max_retry: MAX_RETRY,
-        }
+        Self {}
     }
 
-    pub fn with_min_secs_backoff(mut self, backoff: u64) -> Self {
-        self.min_backoff = backoff;
-        self
-    }
+    fn create_client() -> &'static ClientWithMiddleware {
+        REQWEST_CLIENT.get_or_init(|| {
+            let base_client = BaseClientBuilder::new()
+                .gzip(true)
+                .http1_ignore_invalid_headers_in_responses(true)
+                .timeout(Duration::from_secs(PAGE_TIMEOUT_SECONDS))
+                .user_agent(USER_AGENT)
+                .https_only(true)
+                .build()
+                .expect("Valid base reqwest to be built");
 
-    pub fn with_max_secs_backoff(mut self, backoff: u64) -> Self {
-        self.max_backoff = backoff;
-        self
-    }
+            let retry_strat = ExponentialBackoff::builder()
+                .retry_bounds(
+                    Duration::from_secs(PAGE_MIN_SECS_BACKOFF),
+                    Duration::from_secs(PAGE_MAX_SECS_BACKOFF),
+                )
+                .build_with_max_retries(MAX_RETRY);
+            let retry_middleware = RetryTransientMiddleware::new_with_policy(retry_strat);
 
-    pub fn with_max_retry(mut self, retries: u32) -> Self {
-        self.max_retry = retries;
-        self
-    }
-
-    fn create_client(&self) -> Result<ClientWithMiddleware, CrawlerError> {
-        let base_client = BaseClientBuilder::new()
-            .gzip(true)
-            .http1_ignore_invalid_headers_in_responses(true)
-            .timeout(Duration::from_secs(PAGE_TIMEOUT_SECONDS))
-            .user_agent(USER_AGENT)
-            .https_only(true)
-            .build()?;
-
-        let retry_strat = ExponentialBackoff::builder()
-            .retry_bounds(
-                Duration::from_secs(self.min_backoff),
-                Duration::from_secs(self.max_backoff),
-            )
-            .build_with_max_retries(self.max_retry);
-        let retry_middleware = RetryTransientMiddleware::new_with_policy(retry_strat);
-
-        Ok(RetryableClientBuilder::new(base_client)
-            .with(retry_middleware)
-            .build())
+            RetryableClientBuilder::new(base_client)
+                .with(retry_middleware)
+                .build()
+        })
     }
 
     pub async fn make_web_request(
         &self,
         request: Request,
     ) -> Result<CrawlerResponse, CrawlerError> {
-        let client = self.create_client()?;
+        let client = Self::create_client();
 
         let mut request_builder = match request.method {
             HttpMethod::GET => client.get(request.url.clone()),
