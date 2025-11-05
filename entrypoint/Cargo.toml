@@ -36,7 +36,7 @@ tokio = { workspace = true, features = ["full"] }
 tracing.workspace = true
 tracing-subscriber.workspace = true
 axum = { workspace = true, features = ["query", "tokio", "macros"] }
-axum-extra.workspace = true
+axum-extra = { workspace = true, features = ["with-rejection"] }
 tower-http = { workspace = true, features = ["cors"] }
 tower.workspace = true
 thiserror.workspace = true
