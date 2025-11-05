@@ -7,7 +7,6 @@ use mongodb::{
     bson::{doc, to_bson},
     options::IndexOptions,
 };
-use tracing::error;
 
 use crate::constants::{COLLECTION_PRICE_HISTORY_NAME, DATABASE_NAME};
 
