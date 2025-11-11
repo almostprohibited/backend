@@ -11,17 +11,12 @@ use crate::{
     errors::RetailerError,
     structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
     utils::{
-        ecommerce::{
-            bigcommerce::BigCommerce,
-            bigcommerce_nested::{BigCommerceNested, NestedProduct},
-        },
-        html::{element_extract_attr, element_to_text, extract_element_from_element},
+        ecommerce::{BigCommerce, BigCommerceNested},
+        html::{element_to_text, extract_element_from_element},
     },
 };
 
-const API_URL: &str =
-    "https://selectshootingsupplies.com/remote/v1/product-attributes/{product_id}";
-const CART_URL: &str = "https://selectshootingsupplies.com/cart.php";
+const SITE_URL: &str = "https://selectshootingsupplies.com";
 const URL: &str = "https://selectshootingsupplies.com/{category}/?in_stock=1&page={page}";
 
 pub struct SelectShootingSupplies;
@@ -69,8 +64,7 @@ impl HtmlRetailer for SelectShootingSupplies {
         response: &String,
         search_term: &HtmlSearchQuery,
     ) -> Result<Vec<CrawlResult>, RetailerError> {
-        let mut nested_handler =
-            BigCommerceNested::new(API_URL, CART_URL, self.get_retailer_name());
+        let mut bigcommerce_helper = BigCommerce::new();
 
         let mut results: Vec<CrawlResult> = Vec::new();
 
@@ -97,17 +91,10 @@ impl HtmlRetailer for SelectShootingSupplies {
             let price_text = element_to_text(price_element);
 
             if button_text.contains("choose options") || price_text.contains("-") {
-                let title_element = extract_element_from_element(product, "h4.card-title > a")?;
-                let url = element_extract_attr(title_element, "href")?;
-
-                nested_handler.enqueue_product(NestedProduct {
-                    name: BigCommerce::get_item_name(product)?,
-                    fallback_image_url: BigCommerce::get_image_url(product)?,
-                    category: search_term.category,
-                    product_url: url,
-                });
+                let _ = bigcommerce_helper
+                    .enqueue_nested_product_element(product, search_term.category);
             } else if button_text.contains("add to cart") {
-                let result = BigCommerce::parse_product(
+                let result = bigcommerce_helper.parse_product(
                     product,
                     self.get_retailer_name(),
                     search_term.category,
@@ -117,7 +104,11 @@ impl HtmlRetailer for SelectShootingSupplies {
             }
         }
 
-        results.extend(nested_handler.parse_nested().await?);
+        results.extend(
+            bigcommerce_helper
+                .parse_nested_products(SITE_URL, self.get_retailer_name())
+                .await?,
+        );
 
         Ok(results)
     }

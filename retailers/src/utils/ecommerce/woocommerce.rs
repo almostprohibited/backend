@@ -75,7 +75,6 @@ impl WooCommerceBuilder {
     pub(crate) fn build(self) -> WooCommerce {
         WooCommerce {
             options: self,
-            crawler: UnprotectedCrawler::new(),
             nested_queue: Vec::new(),
         }
     }
@@ -83,7 +82,6 @@ impl WooCommerceBuilder {
 
 pub(crate) struct WooCommerce {
     options: WooCommerceBuilder,
-    crawler: UnprotectedCrawler,
     nested_queue: Vec<NestedProduct>,
 }
 
@@ -285,7 +283,7 @@ impl WooCommerce {
 
         for nested_product in &self.nested_queue {
             let request = RequestBuilder::new().set_url(&nested_product.url).build();
-            let result = self.crawler.make_web_request(request).await?;
+            let result = UnprotectedCrawler::make_web_request(request).await?;
 
             let product_title = Self::get_nested_product_title(&result.body)?;
 

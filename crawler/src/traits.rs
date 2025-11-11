@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use reqwest::header::HeaderMap;
 
 #[derive(Debug)]
@@ -11,5 +9,4 @@ pub enum HttpMethod {
 pub struct CrawlerResponse {
     pub body: String,
     pub headers: HeaderMap,
-    pub cookies: HashMap<String, String>,
 }

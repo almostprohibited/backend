@@ -18,7 +18,6 @@ use crate::clients::base::{Client, insert_result};
 pub(crate) struct PaginationClient {
     retailer: Box<dyn HtmlRetailerSuper>,
     max_pages: u64,
-    crawler: UnprotectedCrawler,
     results: HashMap<String, CrawlResult>,
 }
 
@@ -46,7 +45,6 @@ impl PaginationClient {
         Self {
             retailer,
             max_pages: 1,
-            crawler: UnprotectedCrawler::new(),
             results: HashMap::new(),
         }
     }
@@ -87,6 +85,6 @@ impl PaginationClient {
     }
 
     async fn send_request(&mut self, request: Request) -> Result<String, RetailerError> {
-        Ok(self.crawler.make_web_request(request).await?.body)
+        Ok(UnprotectedCrawler::make_web_request(request).await?.body)
     }
 }

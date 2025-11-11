@@ -8,9 +8,8 @@ pub(crate) async fn get_search_queries<T: Fn(String) -> Option<HtmlSearchQuery>>
     product_url_base: &str,
     filter_map_method: T,
 ) -> Result<Vec<HtmlSearchQuery>, RetailerError> {
-    let crawler = UnprotectedCrawler::new();
     let request = RequestBuilder::new().set_url(sitemap_url).build();
-    let response = crawler.make_web_request(request).await?;
+    let response = UnprotectedCrawler::make_web_request(request).await?;
 
     let sitemap = Html::parse_fragment(&response.body);
     let selector = Selector::parse("urlset > url > loc").unwrap();

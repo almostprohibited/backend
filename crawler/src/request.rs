@@ -9,7 +9,6 @@ pub struct Request {
     pub(crate) json: Option<Value>,
     pub(crate) body: Option<String>,
     pub(crate) headers: Option<Vec<(String, String)>>,
-    pub(crate) cookie: Option<String>,
 }
 
 pub struct RequestBuilder {
@@ -28,7 +27,6 @@ impl Request {
             json: None,
             body: None,
             headers: None,
-            cookie: None,
         }
     }
 }
@@ -72,12 +70,6 @@ impl RequestBuilder {
 
     pub fn set_headers(mut self, headers: &[(String, String)]) -> Self {
         self.request.headers = Some(headers.to_vec());
-
-        self
-    }
-
-    pub fn set_cookie(mut self, cookie: impl Into<String>) -> Self {
-        self.request.cookie = Some(cookie.into());
 
         self
     }

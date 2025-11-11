@@ -41,10 +41,8 @@ impl ProphetRiver {
     }
 
     async fn get_auth_token() -> Result<String, RetailerError> {
-        let crawler = UnprotectedCrawler::new();
         let request = RequestBuilder::new().set_url(MAIN_URL).build();
-
-        let response = crawler.make_web_request(request).await?.body;
+        let response = UnprotectedCrawler::make_web_request(request).await?.body;
 
         let regex = Regex::new(
             r"'Authorization'\s*:\s*'Bearer\s+([A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+)'",

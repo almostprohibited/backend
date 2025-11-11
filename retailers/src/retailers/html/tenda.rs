@@ -117,10 +117,8 @@ impl Tenda {
         let base64_regex = Regex::new(r"\bS\s*=\s*'([^']*)'")
             .expect("Regex should compile as nothing has changed");
 
-        let crawler = UnprotectedCrawler::new();
         let request = RequestBuilder::new().set_url(BASE_URL).build();
-
-        let result = crawler.make_web_request(request).await?;
+        let result = UnprotectedCrawler::make_web_request(request).await?;
 
         let base64 = unwrap_regex_capture(&base64_regex, &result.body)?;
 

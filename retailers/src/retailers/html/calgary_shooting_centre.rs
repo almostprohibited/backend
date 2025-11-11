@@ -3,10 +3,7 @@ use crate::{
     structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
     utils::{
         conversions::price_to_cents,
-        ecommerce::{
-            bigcommerce::BigCommerce,
-            bigcommerce_nested::{BigCommerceNested, NestedProduct},
-        },
+        ecommerce::{BigCommerce, BigCommerceNested},
         html::{element_extract_attr, element_to_text, extract_element_from_element},
     },
 };
@@ -21,9 +18,7 @@ use scraper::{ElementRef, Html, Selector};
 const PAGE_LIMIT: u64 = 100;
 const MAIN_URL: &str =
     "https://store.theshootingcentre.com/{category}/?limit={page_limit}&mode=6&page={page}";
-const API_URL: &str =
-    "https://store.theshootingcentre.com/remote/v1/product-attributes/{product_id}";
-const CART_URL: &str = "https://store.theshootingcentre.com/cart.php";
+const SITE_URL: &str = "https://store.theshootingcentre.com/";
 
 pub struct CalgaryShootingCentre;
 
@@ -99,8 +94,7 @@ impl HtmlRetailer for CalgaryShootingCentre {
         response: &String,
         search_term: &HtmlSearchQuery,
     ) -> Result<Vec<CrawlResult>, RetailerError> {
-        let mut nested_handler =
-            BigCommerceNested::new(API_URL, CART_URL, self.get_retailer_name());
+        let mut bigcommerce_helper = BigCommerce::new();
 
         let mut results: Vec<CrawlResult> = Vec::new();
 
@@ -133,12 +127,8 @@ impl HtmlRetailer for CalgaryShootingCentre {
             if element_to_text(price_element).contains("-")
                 || search_term.category == Category::Ammunition
             {
-                nested_handler.enqueue_product(NestedProduct {
-                    name: BigCommerce::get_item_name(product)?,
-                    fallback_image_url: BigCommerce::get_image_url(product)?,
-                    category: search_term.category,
-                    product_url: url,
-                });
+                let _ = bigcommerce_helper
+                    .enqueue_nested_product_element(product, search_term.category);
 
                 continue;
             }
@@ -157,7 +147,11 @@ impl HtmlRetailer for CalgaryShootingCentre {
             results.push(new_result);
         }
 
-        results.extend(nested_handler.parse_nested().await?);
+        results.extend(
+            bigcommerce_helper
+                .parse_nested_products(SITE_URL, self.get_retailer_name())
+                .await?,
+        );
 
         Ok(results)
     }

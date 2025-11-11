@@ -8,14 +8,23 @@ use crate::{
     errors::RetailerError,
     utils::{
         conversions::{price_to_cents, string_to_u64},
+        ecommerce::bigcommerce::structs::NestedProduct,
         html::{element_extract_attr, element_to_text, extract_element_from_element},
     },
 };
 
-pub(crate) struct BigCommerce {}
+pub(crate) struct BigCommerce {
+    pub(super) parse_queue: Vec<NestedProduct>,
+}
 
 impl BigCommerce {
-    pub(crate) fn parse_price(element: ElementRef) -> Result<Price, RetailerError> {
+    pub(crate) fn new() -> Self {
+        Self {
+            parse_queue: Vec::new(),
+        }
+    }
+
+    pub(super) fn parse_price(element: ElementRef) -> Result<Price, RetailerError> {
         let main_price_element = extract_element_from_element(
             element,
             "div.price-section.price-section--withoutTax.current-price > span.price",
@@ -58,7 +67,7 @@ impl BigCommerce {
         string_to_u64(last_page_text)
     }
 
-    pub(crate) fn get_image_url(element: ElementRef) -> Result<String, RetailerError> {
+    pub(super) fn get_image_url(element: ElementRef) -> Result<String, RetailerError> {
         let image_element =
             extract_element_from_element(element, "figure.card-figure img.card-image")?;
 
@@ -80,21 +89,21 @@ impl BigCommerce {
         ))
     }
 
-    fn get_title_element(element: ElementRef) -> Result<ElementRef, RetailerError> {
+    pub(super) fn get_title_element(element: ElementRef) -> Result<ElementRef, RetailerError> {
         let details_body_element = extract_element_from_element(element, "div.card-body")?;
         let link_element = extract_element_from_element(details_body_element, "h4.card-title > a")?;
 
         Ok(link_element)
     }
 
-    pub(crate) fn get_item_name(element: ElementRef) -> Result<String, RetailerError> {
+    pub(super) fn get_item_name(element: ElementRef) -> Result<String, RetailerError> {
         let link_element = Self::get_title_element(element)?;
         let product_name = element_to_text(link_element);
 
         Ok(product_name)
     }
 
-    pub(crate) fn get_item_link(element: ElementRef) -> Result<String, RetailerError> {
+    pub(super) fn get_item_link(element: ElementRef) -> Result<String, RetailerError> {
         let link_element = Self::get_title_element(element)?;
         let product_link = element_extract_attr(link_element, "href")?;
 
@@ -102,6 +111,7 @@ impl BigCommerce {
     }
 
     pub(crate) fn parse_product(
+        &self,
         element: ElementRef,
         retailer: RetailerName,
         category: Category,

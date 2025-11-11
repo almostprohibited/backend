@@ -1,4 +1,4 @@
-use std::{collections::HashMap, str::FromStr, sync::OnceLock, time::Duration};
+use std::{str::FromStr, sync::OnceLock, time::Duration};
 
 use reqwest::{
     ClientBuilder as BaseClientBuilder,
@@ -27,17 +27,7 @@ static REQWEST_CLIENT: OnceLock<ClientWithMiddleware> = OnceLock::new();
 #[derive(Copy, Clone)]
 pub struct UnprotectedCrawler {}
 
-impl Default for UnprotectedCrawler {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl UnprotectedCrawler {
-    pub fn new() -> Self {
-        Self {}
-    }
-
     fn create_client() -> &'static ClientWithMiddleware {
         REQWEST_CLIENT.get_or_init(|| {
             let base_client = BaseClientBuilder::new()
@@ -46,6 +36,8 @@ impl UnprotectedCrawler {
                 .timeout(Duration::from_secs(PAGE_TIMEOUT_SECONDS))
                 .user_agent(USER_AGENT)
                 .https_only(true)
+                .cookie_store(true)
+                .connection_verbose(true)
                 .build()
                 .expect("Valid base reqwest to be built");
 
@@ -63,10 +55,7 @@ impl UnprotectedCrawler {
         })
     }
 
-    pub async fn make_web_request(
-        &self,
-        request: Request,
-    ) -> Result<CrawlerResponse, CrawlerError> {
+    pub async fn make_web_request(request: Request) -> Result<CrawlerResponse, CrawlerError> {
         let client = Self::create_client();
 
         let mut request_builder = match request.method {
@@ -100,17 +89,8 @@ impl UnprotectedCrawler {
 
         let headers = response.headers().clone();
 
-        let mut cookies = HashMap::new();
-        for cookie in response.cookies() {
-            cookies.insert(cookie.name().into(), cookie.value().into());
-        }
-
         let body = response.text().await?;
 
-        Ok(CrawlerResponse {
-            body,
-            headers,
-            cookies,
-        })
+        Ok(CrawlerResponse { body, headers })
     }
 }

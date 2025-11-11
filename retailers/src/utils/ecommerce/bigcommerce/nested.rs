@@ -9,7 +9,6 @@ use common::{
 };
 use crawler::{request::RequestBuilder, traits::HttpMethod, unprotected::UnprotectedCrawler};
 use scraper::{ElementRef, Html, Selector};
-use serde_json::Value;
 use tokio::time::sleep;
 use tracing::{debug, error, info};
 
@@ -17,139 +16,61 @@ use crate::{
     errors::RetailerError,
     utils::{
         conversions::price_to_cents,
+        ecommerce::{
+            BigCommerce,
+            bigcommerce::structs::{
+                FormValuePair, JavascriptJson, NestedApiResponse, NestedApiResponsePrice,
+                NestedProduct, QueryParams,
+            },
+        },
         html::{element_extract_attr, element_to_text, extract_element_from_element},
-        json::{json_get_array, json_get_object},
     },
 };
 
-const REPLACEMENT_PATTERN: &str = "{:size}";
-const REPLACEMENT_SIZE: &str = "300w";
+pub(crate) trait BigCommerceNested {
+    fn enqueue_nested_product_element(
+        &mut self,
+        element: ElementRef,
+        category: Category,
+    ) -> Result<(), RetailerError>;
 
-#[derive(Debug, Clone)]
-struct FormValuePair {
-    form_id: String,
-    form_attr_id: String,
-    attr_name: String,
+    async fn parse_nested_products(
+        &self,
+        site_url: impl Into<String>,
+        retailer_name: RetailerName,
+    ) -> Result<Vec<CrawlResult>, RetailerError>;
+
+    // TODO: refactor this
+    // this is here because alflahertys behaves differently
+    fn enqueue_nested_product(
+        &mut self,
+        name: impl Into<String>,
+        fallback_image_url: impl Into<String>,
+        product_url: impl Into<String>,
+        category: Category,
+    ) -> Result<(), RetailerError>;
 }
 
-#[derive(Debug)]
-struct QueryParams {
-    form_pairs: Vec<Vec<FormValuePair>>,
-}
-
-impl QueryParams {
-    fn new() -> Self {
-        Self {
-            form_pairs: Vec::new(),
-        }
-    }
-
-    fn apply(&mut self, form_pairs: Vec<FormValuePair>) {
-        if self.form_pairs.is_empty() {
-            for pair in form_pairs {
-                let new_vec: Vec<FormValuePair> = vec![pair];
-
-                self.form_pairs.push(new_vec);
-            }
-        } else {
-            for new_pair in form_pairs {
-                for current_pairs in &mut self.form_pairs {
-                    current_pairs.push(new_pair.clone());
-                }
-            }
-        }
-    }
-}
-
-pub(crate) struct NestedProduct {
-    pub(crate) name: String,
-    pub(crate) fallback_image_url: String,
-    pub(crate) category: Category,
-    pub(crate) product_url: String,
-}
-
-pub(crate) struct BigCommerceNested {
-    api_url: String,
-    cart_url: String,
-    retailer: RetailerName,
-    parse_queue: Vec<NestedProduct>,
-}
-
-impl BigCommerceNested {
-    pub(crate) fn new(
-        api_url: impl Into<String>,
-        cart_url: impl Into<String>,
-        retailer: RetailerName,
-    ) -> Self {
-        Self {
-            api_url: api_url.into(),
-            cart_url: cart_url.into(),
-            retailer,
-            parse_queue: Vec::new(),
-        }
-    }
-
-    pub(crate) fn enqueue_product(&mut self, product: NestedProduct) {
-        self.parse_queue.push(product);
-    }
-
+impl BigCommerce {
     /// For nested pricing using the JSON API response
-    pub(crate) fn get_price_from_object(obj: &Value) -> Result<Price, RetailerError> {
-        // "price": {
-        //     "without_tax": {
-        //         "formatted": "$3,476.00",
-        //         "value": 3476,
-        //         "currency": "CAD"
-        //     },
-        //     "tax_label": "Tax",
-        //     "sale_price_without_tax": { <-- not included in non sales
-        //         "formatted": "$3,476.00",
-        //         "value": 3476,
-        //         "currency": "CAD"
-        //     },
-        //     "non_sale_price_without_tax": { <-- not included in non sales
-        //         "formatted": "$3,950.00",
-        //         "value": 3950,
-        //         "currency": "CAD"
-        //     }
-        // },
-        let price_obj = json_get_object(obj, "price".into())?;
-
-        let main_price = json_get_object(price_obj, "without_tax".into())?;
-        let main_price_value = json_get_object(main_price, "value".into())?;
-
-        let currency = json_get_object(main_price, "currency".into())?;
-        if let Some(currency_string) = currency.as_str()
-            && currency_string != "CAD"
-        {
-            let message = format!("Invalid pricing, API returned non CAD pricing: {currency:?}");
-            error!(message);
-            return Err(RetailerError::ApiResponseInvalidShape(message));
-        };
-
-        let Some(price_str) = main_price_value.as_f64() else {
-            let message = format!("Failed to convert {main_price_value} into f64");
+    fn get_price_from_object(api_response: NestedApiResponsePrice) -> Result<Price, RetailerError> {
+        if api_response.without_tax.currency != "CAD" {
+            let message = format!(
+                "Invalid pricing, API returned non CAD pricing: {}",
+                api_response.without_tax.currency
+            );
             error!(message);
             return Err(RetailerError::ApiResponseInvalidShape(message));
         };
 
         let mut price = Price {
-            regular_price: price_to_cents(price_str.to_string())?,
+            regular_price: price_to_cents(api_response.without_tax.value.to_string())?,
             sale_price: None,
         };
 
-        if let Ok(non_sale_price) = json_get_object(price_obj, "non_sale_price_without_tax".into())
-        {
+        if let Some(non_sale_price) = api_response.non_sale_price_without_tax {
             price.sale_price = Some(price.regular_price);
-
-            let regular_price = json_get_object(non_sale_price, "value".into())?;
-            let Some(regular_price_str) = regular_price.as_f64() else {
-                let message = format!("Failed to convert {regular_price} into f64");
-                error!(message);
-                return Err(RetailerError::ApiResponseInvalidShape(message));
-            };
-
-            price.regular_price = price_to_cents(regular_price_str.to_string())?;
+            price.regular_price = price_to_cents(non_sale_price.value.to_string())?;
         };
 
         Ok(price)
@@ -173,7 +94,9 @@ impl BigCommerceNested {
             }
 
             let json_result = match javascript.split_once(" = ") {
-                Some((_, json)) => serde_json::from_str::<Value>(json.trim_end_matches(";"))?,
+                Some((_, json)) => {
+                    serde_json::from_str::<JavascriptJson>(json.trim_end_matches(";"))?
+                }
                 None => {
                     let message = "Unexpected JS, failed to split variable and value".to_string();
 
@@ -183,20 +106,8 @@ impl BigCommerceNested {
                 }
             };
 
-            let attributes = json_get_object(&json_result, "product_attributes".into())?;
-            let in_stock_prop = json_get_object(attributes, "in_stock_attributes".into())?;
-            let in_stock_array = json_get_array(in_stock_prop)?;
-
-            for in_stock_id in in_stock_array {
-                let Some(id) = in_stock_id.as_u64() else {
-                    let message = "In stock attribute is not a number".to_string();
-
-                    error!(message);
-
-                    return Err(RetailerError::GeneralError(message));
-                };
-
-                attributes_in_stock.push(id.to_string());
+            for in_stock_id in json_result.product_attributes.in_stock_attributes {
+                attributes_in_stock.push(in_stock_id.to_string());
             }
 
             break;
@@ -229,7 +140,8 @@ impl BigCommerceNested {
         for option in element.select(&selector) {
             let attr_id = element_extract_attr(option, "data-product-attribute-value")?;
 
-            if !in_stock_attr.contains(&attr_id) {
+            // account for empty list since alflahertys does things different
+            if !in_stock_attr.contains(&attr_id) && !in_stock_attr.is_empty() {
                 continue;
             }
 
@@ -265,7 +177,8 @@ impl BigCommerceNested {
             let attr_name = element_to_text(option);
             let attr_id = element_extract_attr(option, "data-product-attribute-value")?;
 
-            if !in_stock_attr.contains(&attr_id) {
+            // account for empty list since alflahertys does things different
+            if !in_stock_attr.contains(&attr_id) && !in_stock_attr.is_empty() {
                 continue;
             }
 
@@ -301,15 +214,18 @@ impl BigCommerceNested {
         let mut form_options: Vec<Vec<FormValuePair>> = Vec::new();
 
         for variant in element.select(&variant_selector) {
-            let form_value_pairs = match extract_element_from_element(
-                variant,
-                "select.form-select.form-select--small",
-            ) {
-                Ok(_) => Self::get_pairs_dropdown(variant, &in_stock_attr_ids)?,
-                Err(_) => Self::get_pairs_radio_buttons(variant, &in_stock_attr_ids)?,
+            let form_value_pairs = match element_extract_attr(variant, "data-product-attribute")?
+                .to_lowercase()
+                .as_str()
+            {
+                "set-select" => Self::get_pairs_dropdown(variant, &in_stock_attr_ids)?,
+                "set-rectangle" => Self::get_pairs_radio_buttons(variant, &in_stock_attr_ids)?,
+                _ => vec![],
             };
 
-            form_options.push(form_value_pairs);
+            if !form_value_pairs.is_empty() {
+                form_options.push(form_value_pairs);
+            }
         }
 
         /*
@@ -329,7 +245,11 @@ impl BigCommerceNested {
         Ok(query_params)
     }
 
-    fn get_name(item_name: &String, variants: &Vec<FormValuePair>, category: Category) -> String {
+    fn get_nested_name(
+        item_name: &String,
+        variants: &Vec<FormValuePair>,
+        category: Category,
+    ) -> String {
         let combined_sub_names: String = variants
             .iter()
             .flat_map(|pair| {
@@ -354,22 +274,55 @@ impl BigCommerceNested {
 
         name
     }
+}
 
-    fn get_image_url(obj: &Value) -> Result<String, RetailerError> {
-        let image_obj = json_get_object(obj, "image".into())?;
-        let image_url_value = json_get_object(image_obj, "data".into())?;
+impl BigCommerceNested for BigCommerce {
+    fn enqueue_nested_product_element(
+        &mut self,
+        element: ElementRef,
+        category: Category,
+    ) -> Result<(), RetailerError> {
+        self.parse_queue.push(NestedProduct {
+            name: Self::get_item_name(element)?,
+            fallback_image_url: Self::get_image_url(element)?,
+            category,
+            product_url: Self::get_item_link(element)?,
+        });
 
-        let Some(image_url) = image_url_value.as_str() else {
-            return Err(RetailerError::ApiResponseInvalidShape(
-                "Expected img.data to be a string".into(),
-            ));
-        };
-
-        Ok(image_url.replace(REPLACEMENT_PATTERN, REPLACEMENT_SIZE))
+        Ok(())
     }
 
-    pub(crate) async fn parse_nested(&self) -> Result<Vec<CrawlResult>, RetailerError> {
-        let crawler = UnprotectedCrawler::new();
+    // TODO: refactor this
+    // this is here because alflahertys behaves differently
+    fn enqueue_nested_product(
+        &mut self,
+        name: impl Into<String>,
+        fallback_image_url: impl Into<String>,
+        product_url: impl Into<String>,
+        category: Category,
+    ) -> Result<(), RetailerError> {
+        self.parse_queue.push(NestedProduct {
+            name: name.into(),
+            fallback_image_url: fallback_image_url.into(),
+            category,
+            product_url: product_url.into(),
+        });
+
+        Ok(())
+    }
+
+    async fn parse_nested_products(
+        &self,
+        site_url: impl Into<String>,
+        retailer_name: RetailerName,
+    ) -> Result<Vec<CrawlResult>, RetailerError> {
+        let mut site_url = site_url.into();
+
+        if site_url.ends_with("/") {
+            site_url.pop();
+        }
+
+        let cart_url = format!("{site_url}/cart.php");
 
         let mut nested_results: Vec<CrawlResult> = Vec::new();
 
@@ -377,10 +330,12 @@ impl BigCommerceNested {
             let request = RequestBuilder::new()
                 .set_url(nested_product.product_url.clone())
                 .build();
-            let result = crawler.make_web_request(request).await?;
+            let result = UnprotectedCrawler::make_web_request(request).await?;
 
             let product_id = Self::get_product_id(&result.body)?;
-            let nested_variants = Self::get_models(&result.body, self.cart_url.clone())?;
+            let api_url = format!("{site_url}/remote/v1/product-attributes/{product_id}");
+
+            let nested_variants = Self::get_models(&result.body, cart_url.clone())?;
 
             for variants in nested_variants.form_pairs {
                 let combined_attrs: String = variants
@@ -395,7 +350,7 @@ impl BigCommerceNested {
                 debug!("Sending subrequest with {}", body);
 
                 let request = RequestBuilder::new()
-                    .set_url(self.api_url.replace("{product_id}", &product_id))
+                    .set_url(api_url.clone())
                     .set_method(HttpMethod::POST)
                     .set_headers(
                         [(
@@ -407,27 +362,29 @@ impl BigCommerceNested {
                     .set_body(body)
                     .build();
 
-                let result = crawler.make_web_request(request).await?;
+                let result = UnprotectedCrawler::make_web_request(request).await?;
+                let response = serde_json::from_str::<NestedApiResponse>(&result.body)?;
 
-                let json = serde_json::from_str::<Value>(&result.body)?;
-                let data = json_get_object(&json, "data".into())?;
-
-                if json_get_object(data, "instock".into())? == false {
+                if response.data.instock == false {
                     info!("Skipping out of stock {combined_attrs}");
                     continue;
                 }
 
-                let price = Self::get_price_from_object(data)?;
+                let price = Self::get_price_from_object(response.data.price)?;
 
-                let name = Self::get_name(&nested_product.name, &variants, nested_product.category);
-                let image =
-                    Self::get_image_url(data).unwrap_or(nested_product.fallback_image_url.clone());
+                let name =
+                    Self::get_nested_name(&nested_product.name, &variants, nested_product.category);
+
+                let image = match response.data.image {
+                    Some(image_object) => image_object.get_image(),
+                    _ => nested_product.fallback_image_url.clone(),
+                };
 
                 let new_result = CrawlResult::new(
                     name,
                     nested_product.product_url.clone(),
                     price,
-                    self.retailer,
+                    retailer_name,
                     nested_product.category,
                 )
                 .with_image_url(image);

@@ -14,7 +14,6 @@ use crate::clients::base::{Client, insert_result};
 
 pub(crate) struct GqlClient {
     retailer: Box<dyn GqlRetailerSuper>,
-    crawler: UnprotectedCrawler,
     results: HashMap<String, CrawlResult>,
 }
 
@@ -22,7 +21,6 @@ impl GqlClient {
     pub(crate) fn new(retailer: Box<dyn GqlRetailerSuper>) -> Self {
         Self {
             retailer,
-            crawler: UnprotectedCrawler::new(),
             results: HashMap::new(),
         }
     }
@@ -37,7 +35,7 @@ impl Client for GqlClient {
             debug!("Using token: {pagination_token:?}");
             let request = self.retailer.build_page_request(pagination_token).await?;
 
-            let response = self.crawler.make_web_request(request).await?;
+            let response = UnprotectedCrawler::make_web_request(request).await?;
             let response_body = response.body;
 
             pagination_token = self.retailer.get_pagination_token(&response_body)?;

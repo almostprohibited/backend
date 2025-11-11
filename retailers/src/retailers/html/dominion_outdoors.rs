@@ -25,9 +25,7 @@ use crate::{
 const CRAWL_COOLDOWN_SECS: u64 = 3;
 const URL: &str = "https://www.dominionoutdoors.ca/{category}/page{page}.html";
 
-pub struct DominionOutdoors {
-    crawler: UnprotectedCrawler,
-}
+pub struct DominionOutdoors {}
 
 impl Default for DominionOutdoors {
     fn default() -> Self {
@@ -37,14 +35,12 @@ impl Default for DominionOutdoors {
 
 impl DominionOutdoors {
     pub fn new() -> Self {
-        Self {
-            crawler: UnprotectedCrawler::new(),
-        }
+        Self {}
     }
 
     async fn send_request(&self, url: String) -> Result<String, RetailerError> {
         let request = RequestBuilder::new().set_url(url).build();
-        let response = self.crawler.make_web_request(request).await?;
+        let response = UnprotectedCrawler::make_web_request(request).await?;
 
         let response_body = response.body;
 

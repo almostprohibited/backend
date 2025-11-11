@@ -89,7 +89,6 @@ struct ResponseProductCoverImage {
 }
 
 pub struct MagDump {
-    crawler: UnprotectedCrawler,
     query: Vec<HtmlSearchQuery>,
 }
 
@@ -101,10 +100,7 @@ impl Default for MagDump {
 
 impl MagDump {
     pub fn new() -> Self {
-        Self {
-            crawler: UnprotectedCrawler::new(),
-            query: Vec::new(),
-        }
+        Self { query: Vec::new() }
     }
 
     fn init_get_uri(element: ElementRef) -> Result<String, RetailerError> {
@@ -122,7 +118,7 @@ impl Retailer for MagDump {
     // make an attempt to normalize the URIs
     async fn init(&mut self) -> Result<(), RetailerError> {
         let request = RequestBuilder::new().set_url(SITEMAP).build();
-        let response = self.crawler.make_web_request(request).await?;
+        let response = UnprotectedCrawler::make_web_request(request).await?;
 
         let fragment = Html::parse_document(&response.body);
         let link_selector =
