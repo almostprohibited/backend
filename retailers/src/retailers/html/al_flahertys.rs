@@ -114,7 +114,7 @@ impl HtmlRetailer for AlFlahertys {
         let mut bigcommerce = BigCommerce::new();
         let mut results: Vec<CrawlResult> = Vec::new();
 
-        let response = serde_json::from_str::<ApiResponse>(&response)?;
+        let response = serde_json::from_str::<ApiResponse>(response)?;
 
         let Some(query_results) = response.query_results.first() else {
             return Ok(results);
@@ -206,7 +206,7 @@ impl HtmlRetailer for AlFlahertys {
     }
 
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {
-        let response = serde_json::from_str::<ApiResponse>(&response)?;
+        let response = serde_json::from_str::<ApiResponse>(response)?;
 
         let Some(query_results) = response.query_results.first() else {
             return Ok(0);

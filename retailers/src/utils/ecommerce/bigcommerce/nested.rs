@@ -365,7 +365,7 @@ impl BigCommerceNested for BigCommerce {
                 let result = UnprotectedCrawler::make_web_request(request).await?;
                 let response = serde_json::from_str::<NestedApiResponse>(&result.body)?;
 
-                if response.data.instock == false {
+                if !response.data.instock {
                     info!("Skipping out of stock {combined_attrs}");
                     continue;
                 }
