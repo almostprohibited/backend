@@ -1,11 +1,8 @@
-use std::collections::HashMap;
-
 use common::result::{
     base::{CrawlResult, Price},
     enums::{Category, RetailerName},
 };
 use scraper::{ElementRef, Html, Selector};
-use serde::Deserialize;
 
 use crate::{
     errors::RetailerError,
