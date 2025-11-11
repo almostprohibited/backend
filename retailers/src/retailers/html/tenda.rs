@@ -17,7 +17,7 @@ use crate::{
     structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
     utils::{
         auctollo_sitemap::get_search_queries,
-        ecommerce::woocommerce::{WooCommerce, WooCommerceBuilder},
+        ecommerce::{WooCommerce, WooCommerceBuilder},
         regex::unwrap_regex_capture,
     },
 };

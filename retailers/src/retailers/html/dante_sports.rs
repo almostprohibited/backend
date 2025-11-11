@@ -10,7 +10,7 @@ use tracing::debug;
 use crate::{
     errors::RetailerError,
     structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
-    utils::ecommerce::woocommerce::{WooCommerce, WooCommerceBuilder},
+    utils::ecommerce::{WooCommerce, WooCommerceBuilder},
 };
 
 const MAX_PER_PAGE: &str = "48";

@@ -12,7 +12,7 @@ use crate::{
     errors::RetailerError,
     structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
     utils::{
-        ecommerce::woocommerce::WooCommerceBuilder,
+        ecommerce::{WooCommerceBuilder, WooCommerceNested},
         html::{element_extract_attr, element_to_text, extract_element_from_element},
     },
 };

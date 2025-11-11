@@ -10,7 +10,7 @@ use tracing::debug;
 use crate::{
     errors::RetailerError,
     structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
-    utils::{auctollo_sitemap::get_search_queries, ecommerce::woocommerce::WooCommerceBuilder},
+    utils::{auctollo_sitemap::get_search_queries, ecommerce::WooCommerceBuilder},
 };
 
 const SITE_MAP_URL: &str = "https://marstar.ca/productcat-sitemap.xml";

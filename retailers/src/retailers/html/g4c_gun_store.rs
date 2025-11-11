@@ -11,7 +11,7 @@ use crate::{
     errors::RetailerError,
     structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
     utils::{
-        ecommerce::woocommerce::{WooCommerce, WooCommerceBuilder},
+        ecommerce::{WooCommerce, WooCommerceBuilder},
         html::extract_element_from_element,
     },
 };
