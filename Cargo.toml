@@ -22,15 +22,15 @@ reqwest-retry = "0.7.0"
 reqwest-middleware = "0.4.2"
 serde = "1.0.228"
 serde_json = "1.0.145"
-serde_with = "3.15.1"
+serde_with = "3.16.0"
 tokio = "1.48.0"
 scraper = "0.24.0"
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 async-trait = "0.1.88"
 mongodb = "3.3.0"
-axum = "0.8.6"
-axum-extra = "0.12.1"
+axum = "0.8.7"
+axum-extra = "0.12.2"
 tower-http = "0.6.4"
 tower = "0.5.2"
 regex = "1.12.2"
@@ -42,7 +42,7 @@ strum_macros = "0.27.1"
 base64 = "0.22.1"
 futures = "0.3.31"
 openssl = { version = "0.10", features = ["vendored"] }
-clap = { version = "4.5.51", features = ["derive"] }
+clap = { version = "4.5.52", features = ["derive"] }
 mimalloc = "0.1.47"
 chrono = "0.4.42"
 opentelemetry = { version = "0.31.0", features = ["metrics"] }
