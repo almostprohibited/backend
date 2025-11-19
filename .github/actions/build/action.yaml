@@ -37,3 +37,4 @@ runs:
           target/${{ inputs.rust-target }}/release/api
           target/${{ inputs.rust-target }}/release/indexer
         if-no-files-found: error
+        retention-days: 3
