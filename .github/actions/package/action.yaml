@@ -76,5 +76,5 @@ runs:
         owner: almostprohibited
         package-name: backend
         package-type: container
-        min-versions-to-keep: 4
+        min-versions-to-keep: 0
         delete-only-untagged-versions: true

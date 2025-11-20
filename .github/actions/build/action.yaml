@@ -15,15 +15,11 @@ runs:
   using: composite
   steps:
     - uses: actions/checkout@v4
-    # use actions-rust-lang/setup-rust-toolchain since they setup a cache
-    # for me properly and I am too lazy to do it myself
-    - uses: actions-rust-lang/setup-rust-toolchain@v1
-      with:
-        target: ${{ inputs.rust-target }}
-        rustflags: ""
     - name: Build Rust binaries
       run: |
         set -ueo pipefail
+
+        rustup target add ${{ inputs.rust-target }}
 
         cargo +stable install --locked cross
         cross build --release --bins --target ${{ inputs.rust-target }}
