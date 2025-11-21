@@ -1,10 +1,10 @@
 name: Package
 
 inputs:
-  deployment-package-token:
+  toolbox-package-token:
     type: string
     required: true
-    description: "Github PAT for accessing the deployment repo"
+    description: "Github PAT for accessing the toolbox repo"
   github-token:
     type: string
     required: true
@@ -23,21 +23,21 @@ runs:
   using: composite
   steps:
     # this is not a typo, first checkout checkouts this backend repo
-    # the other checkout grabs the deployment package
+    # the other checkout grabs the toolbox package
     - uses: actions/checkout@v4
     - uses: actions/checkout@v4
       with:
-        repository: almostprohibited/deployment
+        repository: almostprohibited/toolbox
         ref: main
-        token: ${{ inputs.deployment-package-token }}
-        path: ./.deployment
+        token: ${{ inputs.toolbox-package-token }}
+        path: ./.toolbox
     - uses: actions/download-artifact@v4
       name: Download built files
       with:
         artifact-ids: ${{ inputs.artifact-id }}
         path: ./.download
     - run: |
-        mv ./.download/built-files/* ./.deployment/backend/
+        mv ./.download/built-files/* ./.toolbox/backend/
       shell: bash
     - name: Build Docker image
       run: |
@@ -51,7 +51,7 @@ runs:
           docker_target="--target release"
         fi
 
-        cd ./.deployment/backend/
+        cd ./.toolbox/backend/
 
         docker build \
           $docker_target \

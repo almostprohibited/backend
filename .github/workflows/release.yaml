@@ -24,7 +24,7 @@ jobs:
         uses: ./.github/actions/package
         with:
           artifact-id: ${{ steps.build.outputs.artifact-id }}
-          deployment-package-token: ${{ secrets.DEPLOYMENT_ACCESS }}
+          toolbox-package-token: ${{ secrets.DEPLOYMENT_ACCESS }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           deployment-stage: ${{ env.STAGE }}
   deploy:
@@ -35,7 +35,7 @@ jobs:
       - name: Deploy
         uses: ./.github/actions/deploy
         with:
-          deployment-package-token: ${{ secrets.DEPLOYMENT_ACCESS }}
+          toolbox-package-token: ${{ secrets.DEPLOYMENT_ACCESS }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           deployment-stage: ${{ env.STAGE }}
           docker-volume-path: ${{ vars.VOLUME_PATH }}
