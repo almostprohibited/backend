@@ -26,6 +26,8 @@ pub(crate) async fn search_handler(
 ) -> Result<impl IntoResponse, StatusCode> {
     let start_time = Instant::now();
 
+    debug!("{params:?}");
+
     let db_results = state.db.search_items(&params).await;
 
     // TODO: can probably delete this and just return db_results

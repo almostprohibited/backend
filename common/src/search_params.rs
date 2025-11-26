@@ -1,6 +1,7 @@
 use crate::deserialize_disallow_empty_string::disallow_empty_string;
 use crate::result::base::CrawlResult;
 use crate::result::enums::Category;
+use crate::result::enums::RetailerName;
 
 use mongodb::bson::doc;
 use serde::Deserialize;
@@ -8,6 +9,7 @@ use serde::Deserializer;
 use serde::de::Error;
 use serde_with::NoneAsEmptyString;
 use serde_with::serde_as;
+use std::str::FromStr;
 use strum_macros::EnumString;
 use tracing::debug;
 
@@ -51,6 +53,9 @@ pub struct ApiSearchInput {
     pub sort: Sort,
     #[serde(default)]
     pub category: Category,
+    #[serde(deserialize_with = "string_to_retailer_array")]
+    #[serde(default)]
+    pub retailers: Vec<RetailerName>,
 }
 
 #[derive(Debug, Default, Deserialize, EnumString, Clone, Copy)]
@@ -61,6 +66,27 @@ pub enum Sort {
     Relevant,
     PriceAsc,
     PriceDesc,
+}
+
+fn string_to_retailer_array<'de, D>(deserializer: D) -> Result<Vec<RetailerName>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let mut output: Vec<RetailerName> = Vec::new();
+
+    let input_string: String = String::deserialize(deserializer)?;
+    debug!("Parsing: {input_string}");
+
+    for part in input_string.split(",") {
+        if let Ok(retailer) = RetailerName::from_str(part) {
+            output.push(retailer);
+        } else {
+            debug!("Invalid retailer mapping: {part:?}");
+            return Err(Error::custom("invalid retailer"));
+        }
+    }
+
+    Ok(output)
 }
 
 // responsible for turning a String input, into an optional number

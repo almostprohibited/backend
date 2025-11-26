@@ -92,6 +92,22 @@ impl StageDocument for MatchStage {
             match_filter.insert("category", self.search_query.category.to_string());
         }
 
+        if !self.search_query.retailers.is_empty() {
+            let retailer_strings = self
+                .search_query
+                .retailers
+                .iter()
+                .map(|retailer| retailer.to_string())
+                .collect::<Vec<String>>();
+
+            match_filter.insert(
+                "retailer",
+                doc! {
+                    "$in": retailer_strings
+                },
+            );
+        }
+
         [doc! {"$match": match_filter}].into()
     }
 }
