@@ -74,14 +74,18 @@ where
 {
     let mut output: Vec<RetailerName> = Vec::new();
 
-    let input_string: String = String::deserialize(deserializer)?;
-    debug!("Parsing: {input_string}");
+    let Ok(input_array) = serde_json::from_str::<Vec<String>>(&String::deserialize(deserializer)?)
+    else {
+        return Err(Error::custom("not valid JSON array"));
+    };
 
-    for part in input_string.split(",") {
-        if let Ok(retailer) = RetailerName::from_str(part) {
+    debug!("Parsing: {input_array:?}");
+
+    for string_retailer in input_array {
+        if let Ok(retailer) = RetailerName::from_str(&string_retailer) {
             output.push(retailer);
         } else {
-            debug!("Invalid retailer mapping: {part:?}");
+            debug!("Invalid retailer mapping: {string_retailer:?}");
             return Err(Error::custom("invalid retailer"));
         }
     }
