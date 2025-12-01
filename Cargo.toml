@@ -23,15 +23,15 @@ metrics = { path = "./metrics" }
 discord = { path = "./discord" }
 
 reqwest = "0.12.24"
-reqwest-retry = "0.7.0"
+reqwest-retry = "0.8.0"
 reqwest-middleware = "0.4.2"
 serde = "1.0.228"
 serde_json = "1.0.145"
-serde_with = "3.16.0"
+serde_with = "3.16.1"
 tokio = "1.48.0"
 scraper = "0.24.0"
-tracing = "0.1.41"
-tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
+tracing = "0.1.43"
+tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
 async-trait = "0.1.88"
 mongodb = "3.4.1"
 axum = "0.8.7"
