@@ -10,7 +10,7 @@ use tracing::debug;
 use crate::{
     errors::RetailerError,
     structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
-    utils::{generic_sitemap::get_search_queries, ecommerce::WooCommerceBuilder},
+    utils::{ecommerce::WooCommerceBuilder, generic_sitemap::get_search_queries},
 };
 
 const SITE_MAP_URL: &str = "https://marstar.ca/productcat-sitemap.xml";
@@ -36,28 +36,33 @@ impl Marstar {
 
     async fn get_search_queries() -> Result<Vec<HtmlSearchQuery>, RetailerError> {
         get_search_queries(SITE_MAP_URL, PRODUCT_BASE_URL, |link| {
-            if link.starts_with("accessories/")
-                || link.starts_with("reloading/")
-                || link.starts_with("optic/")
-                || link.starts_with("firearm-parts-and-accessories/")
-                || link.starts_with("ammunition/reloading-supplies/")
-            {
-                return Some(HtmlSearchQuery {
-                    term: link,
-                    category: Category::Other,
-                });
-            } else if link.starts_with("ammunition/") {
-                return Some(HtmlSearchQuery {
-                    term: link,
-                    category: Category::Ammunition,
-                });
-            } else if link.starts_with("firearms/") {
+            // if link.starts_with("accessories/")
+            //     || link.starts_with("reloading/")
+            //     || link.starts_with("optic/")
+            //     || link.starts_with("firearm-parts-and-accessories/")
+            //     || link.starts_with("ammunition/reloading-supplies/")
+            // {
+            //     return Some(HtmlSearchQuery {
+            //         term: link,
+            //         category: Category::Other,
+            //     });
+            // } else if link.starts_with("ammunition/") {
+            //     return Some(HtmlSearchQuery {
+            //         term: link,
+            //         category: Category::Ammunition,
+            //     });
+            // } else if link.starts_with("firearms/") {
+            //     return Some(HtmlSearchQuery {
+            //         term: link,
+            //         category: Category::Firearm,
+            //     });
+            // };
+            if link.starts_with("firearms/") {
                 return Some(HtmlSearchQuery {
                     term: link,
                     category: Category::Firearm,
                 });
-            };
-
+            }
             None
         })
         .await
@@ -109,9 +114,7 @@ impl HtmlRetailer for Marstar {
         let woocommerce_helper = WooCommerceBuilder::default()
             .with_product_url_selector("div.woocommerce-loop-product__title > a")
             .with_product_name_selector("div.woocommerce-loop-product__title > a")
-            .with_image_url_selector(
-                "div.woocommerce-image__wrapper > a.woocommerce-LoopProduct-link img",
-            )
+            .with_image_url_selector("div.woocommerce-image__wrapper img")
             .build();
 
         for product in html.select(&product_selector) {
