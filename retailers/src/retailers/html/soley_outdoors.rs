@@ -238,7 +238,6 @@ impl HtmlRetailer for SoleyOutdoors {
         let mut product_links: Vec<ProductPair> = Vec::new();
 
         for html_doc in products {
-            println!("{html_doc}");
             let product_inner = Html::parse_fragment(&html_doc);
             let product = product_inner.root_element();
 
