@@ -11,12 +11,17 @@ pub(crate) async fn get_search_queries<T: Fn(String) -> Option<HtmlSearchQuery>>
     let request = RequestBuilder::new().set_url(sitemap_url).build();
     let response = UnprotectedCrawler::make_web_request(request).await?;
 
+    let mut base_url = product_url_base.to_string();
+    if !base_url.ends_with("/") {
+        base_url = format!("{base_url}/");
+    }
+
     let sitemap = Html::parse_fragment(&response.body);
     let selector = Selector::parse("urlset > url > loc").unwrap();
     let links: Vec<HtmlSearchQuery> = sitemap
         .select(&selector)
         .map(|el| {
-            let mut cleaned_text = element_to_text(el).replace(product_url_base, "");
+            let mut cleaned_text = element_to_text(el).replace(&base_url, "");
 
             if cleaned_text.ends_with("/") {
                 cleaned_text.pop();

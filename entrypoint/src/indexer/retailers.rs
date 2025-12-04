@@ -10,7 +10,7 @@ use retailers::{
         ClintonSportingGoods, DanteSports, DominionOutdoors, FirearmsOutletCanada, G4CGunStore,
         GreatNorthGun, InterSurplus, InternationalShootingSupplies, ItalianSportingGoods,
         LeverArms, MagDump, Marstar, RangeviewSports, Rdsc, ReliableGun, SJHardware,
-        SelectShootingSupplies, Tenda, TheAmmoSource, Tillsonburg, TrueNorthArms,
+        SelectShootingSupplies, SoleyOutdoors, Tenda, TheAmmoSource, Tillsonburg, TrueNorthArms,
         VictoryRidgeSports,
     },
     structures::{GqlRetailerSuper, HtmlRetailerSuper},
@@ -54,6 +54,7 @@ fn html_retailers() -> HashMap<RetailerName, HtmlRetailerSuperFactory> {
     retailers.insert(RetailerName::VictoryRidgeSports, || Box::new(VictoryRidgeSports::new()));
     retailers.insert(RetailerName::Marstar, || Box::new(Marstar::new()));
     retailers.insert(RetailerName::MagDump, || Box::new(MagDump::new()));
+    retailers.insert(RetailerName::SoleyOutdoors, || Box::new(SoleyOutdoors::new()));
 
     retailers
 }

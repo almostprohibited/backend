@@ -16,8 +16,8 @@ use crate::{
     errors::RetailerError,
     structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
     utils::{
-        auctollo_sitemap::get_search_queries,
         ecommerce::{WooCommerce, WooCommerceBuilder},
+        generic_sitemap::get_search_queries,
         regex::unwrap_regex_capture,
     },
 };

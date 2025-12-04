@@ -63,6 +63,7 @@ pub enum RetailerName {
     VictoryRidgeSports,
     Marstar,
     MagDump,
+    SoleyOutdoors,
 }
 
 impl RetailerName {
