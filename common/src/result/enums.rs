@@ -64,6 +64,7 @@ pub enum RetailerName {
     Marstar,
     MagDump,
     SoleyOutdoors,
+    BartonsBigCountry,
 }
 
 impl RetailerName {

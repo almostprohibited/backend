@@ -6,12 +6,12 @@ use discord::get_indexer_webhook;
 use retailers::{
     gql::ProphetRiver,
     html::{
-        AlFlahertys, AlSimmons, BullseyeNorth, CalgaryShootingCentre, CanadasGunStore,
-        ClintonSportingGoods, DanteSports, DominionOutdoors, FirearmsOutletCanada, G4CGunStore,
-        GreatNorthGun, InterSurplus, InternationalShootingSupplies, ItalianSportingGoods,
-        LeverArms, MagDump, Marstar, RangeviewSports, Rdsc, ReliableGun, SJHardware,
-        SelectShootingSupplies, SoleyOutdoors, Tenda, TheAmmoSource, Tillsonburg, TrueNorthArms,
-        VictoryRidgeSports,
+        AlFlahertys, AlSimmons, BartonsBigCountry, BullseyeNorth, CalgaryShootingCentre,
+        CanadasGunStore, ClintonSportingGoods, DanteSports, DominionOutdoors, FirearmsOutletCanada,
+        G4CGunStore, GreatNorthGun, InterSurplus, InternationalShootingSupplies,
+        ItalianSportingGoods, LeverArms, MagDump, Marstar, RangeviewSports, Rdsc, ReliableGun,
+        SJHardware, SelectShootingSupplies, SoleyOutdoors, Tenda, TheAmmoSource, Tillsonburg,
+        TrueNorthArms, VictoryRidgeSports,
     },
     structures::{GqlRetailerSuper, HtmlRetailerSuper},
 };
@@ -55,6 +55,7 @@ fn html_retailers() -> HashMap<RetailerName, HtmlRetailerSuperFactory> {
     retailers.insert(RetailerName::Marstar, || Box::new(Marstar::new()));
     retailers.insert(RetailerName::MagDump, || Box::new(MagDump::new()));
     retailers.insert(RetailerName::SoleyOutdoors, || Box::new(SoleyOutdoors::new()));
+    retailers.insert(RetailerName::BartonsBigCountry, || Box::new(BartonsBigCountry::new()));
 
     retailers
 }

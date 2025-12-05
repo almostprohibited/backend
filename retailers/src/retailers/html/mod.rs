@@ -1,5 +1,6 @@
 mod al_flahertys;
 mod al_simmons;
+mod bartons_big_country;
 mod bullseye_north;
 mod calgary_shooting_centre; // TODO: investigate this, they have a GQL end point @ https://store.theshootingcentre.com/graphql
 mod canadas_gun_store;
@@ -29,6 +30,7 @@ mod victory_ridge_sports;
 
 pub use al_flahertys::AlFlahertys;
 pub use al_simmons::AlSimmons;
+pub use bartons_big_country::BartonsBigCountry;
 pub use bullseye_north::BullseyeNorth;
 pub use calgary_shooting_centre::CalgaryShootingCentre;
 pub use canadas_gun_store::CanadasGunStore;
