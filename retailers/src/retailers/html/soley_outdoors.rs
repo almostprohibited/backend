@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{collections::HashMap, time::Duration};
 
 use async_trait::async_trait;
 use common::result::{
@@ -10,9 +10,9 @@ use crawler::{
     unprotected::UnprotectedCrawler,
 };
 use scraper::{ElementRef, Html, Selector};
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer};
 use tokio::time::sleep;
-use tracing::{debug, error, warn};
+use tracing::{debug, warn};
 
 use crate::{
     errors::RetailerError,
@@ -30,6 +30,24 @@ const PRODUCT_BASE_URL: &str = "https://www.solelyoutdoors.com/";
 const URL: &str =
     "https://www.solelyoutdoors.com/{category}/page{page}.html?limit={page_limit}&sort=default";
 
+// convert [hashmap | bool] into vec of variants
+fn variants_boolean_to_variants<'de, D>(
+    deserializer: D,
+) -> Result<Vec<ApiResponseVariant>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let input: Result<HashMap<String, ApiResponseVariant>, D::Error> =
+        HashMap::deserialize(deserializer);
+
+    let Ok(input_as_hashmap) = input else {
+        debug!("Received non f32 value");
+        return Ok(Vec::new());
+    };
+
+    Ok(input_as_hashmap.into_values().collect())
+}
+
 #[derive(Debug)]
 struct ProductPair {
     url: String,
@@ -46,7 +64,8 @@ struct ApiResponseProduct {
     title: String,
     stock: ApiResponseStock,
     price: ApiResponsePrice,
-    variants: bool,
+    #[serde(deserialize_with = "variants_boolean_to_variants")]
+    variants: Vec<ApiResponseVariant>,
 }
 
 #[derive(Deserialize)]
@@ -58,6 +77,13 @@ struct ApiResponseStock {
 struct ApiResponsePrice {
     price: f32,
     price_old: f32,
+}
+
+#[derive(Deserialize)]
+struct ApiResponseVariant {
+    title: String,
+    stock: ApiResponseStock,
+    price: ApiResponsePrice,
 }
 
 pub struct SoleyOutdoors {
@@ -75,6 +101,20 @@ impl SoleyOutdoors {
         Self {
             search_queries: Vec::new(),
         }
+    }
+
+    fn get_price(api_price: ApiResponsePrice) -> Result<Price, RetailerError> {
+        let mut price = Price {
+            regular_price: price_to_cents(api_price.price.to_string())?,
+            sale_price: None,
+        };
+
+        if api_price.price_old != 0.0 {
+            price.sale_price = Some(price.regular_price);
+            price.regular_price = price_to_cents(api_price.price_old.to_string())?;
+        }
+
+        Ok(price)
     }
 
     // logic copied from woocommerce parser
@@ -115,43 +155,48 @@ impl SoleyOutdoors {
 
             let parsed_product = serde_json::from_str::<ApiResponse>(&crawler.body)?.product;
 
-            if !parsed_product.stock.available {
-                continue;
-            }
-
-            if parsed_product.variants {
-                let message = format!("{} contains variants", product.url);
-
-                error!(message);
-
-                return Err(RetailerError::ApiResponseInvalidShape(message));
-            }
-
-            let mut price = Price {
-                regular_price: price_to_cents(parsed_product.price.price.to_string())?,
-                sale_price: None,
-            };
-
-            if parsed_product.price.price_old != 0.0 {
-                price.sale_price = Some(price.regular_price);
-                price.regular_price = price_to_cents(parsed_product.price.price_old.to_string())?;
-            }
-
-            let new_result = CrawlResult::new(
-                parsed_product.title,
-                product.url.replace("?format=json", ""),
-                price,
-                self.get_retailer_name(),
-                search_term.category,
-            )
-            .with_image_url(product.image_url);
-
-            results.push(new_result);
-
             // wait 2 seconds instead of default 10 since
             // their robots.txt seems to be fine with 2
             // (not that I would have listened anyways)
             sleep(Duration::from_secs(2)).await;
+
+            if !parsed_product.stock.available {
+                continue;
+            }
+
+            let product_url = product.url.replace("?format=json", "");
+
+            if parsed_product.variants.len() == 0 {
+                let new_result = CrawlResult::new(
+                    parsed_product.title,
+                    product_url,
+                    Self::get_price(parsed_product.price)?,
+                    self.get_retailer_name(),
+                    search_term.category,
+                )
+                .with_image_url(product.image_url);
+
+                results.push(new_result);
+
+                continue;
+            }
+
+            for nested_product in parsed_product.variants {
+                if !nested_product.stock.available {
+                    continue;
+                }
+
+                let new_result = CrawlResult::new(
+                    format!("{} - {}", parsed_product.title, nested_product.title),
+                    product_url.clone(),
+                    Self::get_price(nested_product.price)?,
+                    self.get_retailer_name(),
+                    search_term.category,
+                )
+                .with_image_url(product.image_url.clone());
+
+                results.push(new_result);
+            }
         }
 
         Ok(results)
