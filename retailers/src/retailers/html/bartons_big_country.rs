@@ -189,7 +189,7 @@ impl BartonsBigCountry {
                     search_term.category,
                 );
 
-                let mut image_url = parsed_product.image.clone();
+                let mut image_url = parsed_product.image.replace("/50x50", "/512x512");
 
                 if let Some(nested_image_id) = nested_product.image {
                     image_url = image_url.replace(
