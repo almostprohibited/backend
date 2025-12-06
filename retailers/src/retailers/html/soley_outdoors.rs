@@ -41,7 +41,7 @@ where
         HashMap::deserialize(deserializer);
 
     let Ok(input_as_hashmap) = input else {
-        debug!("Received non f32 value");
+        debug!("Received non hashmap value");
         return Ok(Vec::new());
     };
 
