@@ -150,8 +150,13 @@ impl HtmlRetailer for ReliableGun {
 
             let price = Self::find_prices(element)?;
 
+            let formatted_name = match search_term.category {
+                Category::Ammunition => format!("{} {}", name, description.clone()),
+                _ => name,
+            };
+
             let new_result = CrawlResult::new(
-                name,
+                formatted_name,
                 format!("{BASE_URL}{url_href}"),
                 price,
                 self.get_retailer_name(),
