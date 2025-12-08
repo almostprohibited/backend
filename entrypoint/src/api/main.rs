@@ -2,6 +2,7 @@ use axum::{
     Router,
     routing::{get, post},
 };
+use common::utils::is_beta_environment;
 use mongodb_connector::connector::MongoDBConnector;
 use service_layers::build_service_layers;
 use std::{env, net::SocketAddr, sync::Arc};
@@ -10,7 +11,10 @@ use tracing::info;
 use utils::logger::configure_logger;
 
 use crate::{
-    routes::{contact::contact_handler, history::history_handler, search_query::search_handler},
+    routes::{
+        contact::contact_handler, history::history_handler, image::image_handler,
+        search_query::search_handler,
+    },
     structs::ServerState,
 };
 
@@ -39,10 +43,14 @@ async fn main() {
     info!("MongoDB client ready");
     info!("Starting web server on: {addr}");
 
-    let router = Router::new()
+    let mut router = Router::new()
         .route("/api/search", get(search_handler))
         .route("/api/contact", post(contact_handler))
         .route("/api/history", get(history_handler));
+
+    if is_beta_environment() {
+        router = router.route("/api/image", get(image_handler));
+    }
 
     let type_erased_router = router.with_state(state).layer(build_service_layers());
     let service = type_erased_router.into_make_service_with_connect_info::<SocketAddr>();

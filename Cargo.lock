@@ -443,6 +443,7 @@ dependencies = [
  "clap",
  "mongodb",
  "regex",
+ "reqwest 0.12.24",
  "serde",
  "serde_json",
  "serde_with",
@@ -842,6 +843,7 @@ dependencies = [
  "common",
  "crawler",
  "discord",
+ "image_cache",
  "metrics",
  "mimalloc",
  "mongodb_connector",
@@ -1564,6 +1566,17 @@ checksum = "3acae9609540aa318d1bc588455225fb2085b9ed0c4f6bd0d9d5bcd86f1a0344"
 dependencies = [
  "icu_normalizer",
  "icu_properties",
+]
+
+[[package]]
+name = "image_cache"
+version = "0.1.0"
+dependencies = [
+ "common",
+ "crawler",
+ "retailers",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]

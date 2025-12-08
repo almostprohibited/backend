@@ -89,8 +89,13 @@ impl UnprotectedCrawler {
 
         let headers = response.headers().clone();
 
-        let body = response.text().await?;
+        let body_bytes = response.bytes().await?.to_vec();
+        let body_str = String::from_utf8(body_bytes.clone()).unwrap_or_default();
 
-        Ok(CrawlerResponse { body, headers })
+        Ok(CrawlerResponse {
+            body: body_str,
+            raw_bytes: body_bytes,
+            headers,
+        })
     }
 }

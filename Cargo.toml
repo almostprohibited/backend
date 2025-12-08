@@ -21,6 +21,7 @@ mongodb_connector = { path = "./mongodb_connector" }
 common = { path = "./common" }
 metrics = { path = "./metrics" }
 discord = { path = "./discord" }
+image_cache = { path = "./image_cache" }
 
 reqwest = "0.12.24"
 reqwest-retry = "0.8.0"

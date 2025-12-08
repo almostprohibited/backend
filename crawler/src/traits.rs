@@ -8,5 +8,6 @@ pub enum HttpMethod {
 
 pub struct CrawlerResponse {
     pub body: String,
+    pub raw_bytes: Vec<u8>,
     pub headers: HeaderMap,
 }

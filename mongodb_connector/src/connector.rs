@@ -1,4 +1,4 @@
-use std::{env, sync::LazyLock};
+use std::{env, str::FromStr, sync::LazyLock};
 
 use common::{
     messages::Message,
@@ -7,7 +7,7 @@ use common::{
     search_params::{ApiSearchInput, CollectionSearchResults},
     utils::normalized_relative_days,
 };
-use mongodb::Client;
+use mongodb::{Client, bson::oid::ObjectId};
 use tracing::warn;
 
 use crate::collections::{
@@ -76,5 +76,13 @@ impl MongoDBConnector {
                 .get_price_history(result.name, result.url)
                 .await,
         )
+    }
+
+    pub async fn find_result(&self, object_id: String) -> Option<CrawlResult> {
+        let Ok(id) = ObjectId::from_str(&object_id) else {
+            return None;
+        };
+
+        self.live_results.find_result(id).await
     }
 }

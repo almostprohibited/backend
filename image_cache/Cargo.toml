@@ -1,0 +1,19 @@
+[package]
+name = "image_cache"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "image_cache"
+path = "./src/lib.rs"
+doctest = false
+test = false
+doc = false
+
+[dependencies]
+retailers.workspace = true
+crawler.workspace = true
+common.workspace = true
+
+tokio = { workspace = true, features = ["full"] }
+tracing.workspace = true
