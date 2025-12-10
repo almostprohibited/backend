@@ -36,33 +36,28 @@ impl Marstar {
 
     async fn get_search_queries() -> Result<Vec<HtmlSearchQuery>, RetailerError> {
         get_search_queries(SITE_MAP_URL, PRODUCT_BASE_URL, |link| {
-            // if link.starts_with("accessories/")
-            //     || link.starts_with("reloading/")
-            //     || link.starts_with("optic/")
-            //     || link.starts_with("firearm-parts-and-accessories/")
-            //     || link.starts_with("ammunition/reloading-supplies/")
-            // {
-            //     return Some(HtmlSearchQuery {
-            //         term: link,
-            //         category: Category::Other,
-            //     });
-            // } else if link.starts_with("ammunition/") {
-            //     return Some(HtmlSearchQuery {
-            //         term: link,
-            //         category: Category::Ammunition,
-            //     });
-            // } else if link.starts_with("firearms/") {
-            //     return Some(HtmlSearchQuery {
-            //         term: link,
-            //         category: Category::Firearm,
-            //     });
-            // };
-            if link.starts_with("firearms/") {
+            if link.starts_with("accessories/")
+                || link.starts_with("reloading/")
+                || link.starts_with("optic/")
+                || link.starts_with("firearm-parts-and-accessories/")
+                || link.starts_with("ammunition/reloading-supplies/")
+            {
+                return Some(HtmlSearchQuery {
+                    term: link,
+                    category: Category::Other,
+                });
+            } else if link.starts_with("ammunition/") {
+                return Some(HtmlSearchQuery {
+                    term: link,
+                    category: Category::Ammunition,
+                });
+            } else if link.starts_with("firearms/") {
                 return Some(HtmlSearchQuery {
                     term: link,
                     category: Category::Firearm,
                 });
-            }
+            };
+
             None
         })
         .await
