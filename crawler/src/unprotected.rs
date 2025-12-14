@@ -90,7 +90,7 @@ impl UnprotectedCrawler {
         let headers = response.headers().clone();
 
         let body_bytes = response.bytes().await?.to_vec();
-        let body_str = String::from_utf8(body_bytes.clone()).unwrap_or_default();
+        let body_str = String::from_utf8_lossy(&body_bytes.clone()).into_owned();
 
         Ok(CrawlerResponse {
             body: body_str,
