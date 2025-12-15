@@ -23,7 +23,7 @@ metrics = { path = "./metrics" }
 discord = { path = "./discord" }
 image_cache = { path = "./image_cache" }
 
-reqwest = "0.12.24"
+reqwest = "0.12.26"
 reqwest-retry = "0.8.0"
 reqwest-middleware = "0.4.2"
 serde = "1.0.228"
