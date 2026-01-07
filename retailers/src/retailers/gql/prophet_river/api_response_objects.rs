@@ -52,7 +52,7 @@ pub(super) struct ApiProductNode {
 #[serde(rename_all = "camelCase")]
 pub(super) struct ApiProductPrice {
     pub(super) sale_price: Option<ApiPrice>,
-    pub(super) price: ApiPrice,
+    pub(super) base_price: ApiPrice,
 }
 
 impl ApiProductPrice {
@@ -62,7 +62,7 @@ impl ApiProductPrice {
 
     pub(super) fn get_price(&self) -> Result<Price, RetailerError> {
         let mut price = Price {
-            regular_price: Self::float_to_cents(self.price.value)?,
+            regular_price: Self::float_to_cents(self.base_price.value)?,
             sale_price: None,
         };
 
