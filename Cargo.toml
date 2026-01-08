@@ -54,3 +54,4 @@ chrono = "0.4.42"
 opentelemetry = { version = "0.31.0", features = ["metrics"] }
 opentelemetry-otlp = "0.31.0"
 opentelemetry_sdk = "0.31.0"
+lru = "0.16.3"
