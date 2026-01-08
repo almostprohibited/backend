@@ -39,10 +39,10 @@ pub(super) const API_QUERY_REQUEST: &str = r#"
 					url(width: 800)
 				}
 				prices(currencyCode: CAD) {
-					price {
+					salePrice {
 						value
 					}
-					salePrice {
+					basePrice {
 						value
 					}
 				}
