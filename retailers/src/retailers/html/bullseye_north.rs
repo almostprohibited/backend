@@ -174,9 +174,6 @@ impl HtmlRetailer for BullseyeNorth {
             "accessories-shooting-gear",
             "accessories-stock-bipod-sling",
             "accessories-targets",
-            "optics",
-            "optics",
-            "optics",
         ];
 
         for other in other_terms {
