@@ -53,7 +53,10 @@ impl Retailer for FrontierFirearms {
                     term: link,
                     category: Category::Other,
                 });
-            } else if link.contains("ammunition/") {
+            } else if (link.contains("ammunition.html") && !link.contains("rimfire"))
+                || link.contains("shells.html")
+            {
+                // they don't really do ammo, but lets at least try
                 return Some(HtmlSearchQuery {
                     term: link,
                     category: Category::Ammunition,
