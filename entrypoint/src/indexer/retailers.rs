@@ -8,7 +8,7 @@ use retailers::{
     html::{
         AlFlahertys, AlSimmons, BartonsBigCountry, BullseyeNorth, CalgaryShootingCentre,
         CanadasGunStore, ClintonSportingGoods, DanteSports, DominionOutdoors, FirearmsOutletCanada,
-        G4CGunStore, GreatNorthGun, InterSurplus, InternationalShootingSupplies,
+        FrontierFirearms, G4CGunStore, GreatNorthGun, InterSurplus, InternationalShootingSupplies,
         ItalianSportingGoods, LeverArms, MagDump, Marstar, RangeviewSports, Rdsc, ReliableGun,
         SJHardware, SelectShootingSupplies, SoleyOutdoors, Tenda, TheAmmoSource, Tillsonburg,
         TrueNorthArms, VictoryRidgeSports,
@@ -56,6 +56,7 @@ fn html_retailers() -> HashMap<RetailerName, HtmlRetailerSuperFactory> {
     retailers.insert(RetailerName::MagDump, || Box::new(MagDump::new()));
     retailers.insert(RetailerName::SoleyOutdoors, || Box::new(SoleyOutdoors::new()));
     retailers.insert(RetailerName::BartonsBigCountry, || Box::new(BartonsBigCountry::new()));
+    retailers.insert(RetailerName::FrontierFirearms, || Box::new(FrontierFirearms::new()));
 
     retailers
 }

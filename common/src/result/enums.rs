@@ -65,6 +65,7 @@ pub enum RetailerName {
     MagDump,
     SoleyOutdoors,
     BartonsBigCountry,
+    FrontierFirearms,
 }
 
 impl RetailerName {

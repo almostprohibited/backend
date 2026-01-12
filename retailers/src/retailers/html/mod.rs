@@ -8,6 +8,7 @@ mod clinton_sporting_goods;
 mod dante_sports;
 mod dominion_outdoors;
 mod firearms_outlet_canada; // why is FOC so bloated it uses so much memory in a browser window
+mod frontier_firearms;
 mod g4c_gun_store;
 mod great_north_gun;
 mod international_shooting_supplies;
@@ -38,6 +39,7 @@ pub use clinton_sporting_goods::ClintonSportingGoods;
 pub use dante_sports::DanteSports;
 pub use dominion_outdoors::DominionOutdoors;
 pub use firearms_outlet_canada::FirearmsOutletCanada;
+pub use frontier_firearms::FrontierFirearms;
 pub use g4c_gun_store::G4CGunStore;
 pub use great_north_gun::GreatNorthGun;
 pub use international_shooting_supplies::InternationalShootingSupplies;
