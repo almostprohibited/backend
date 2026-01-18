@@ -63,6 +63,11 @@ impl UnprotectedCrawler {
             HttpMethod::POST => client.post(request.url.clone()),
         };
 
+        info!(
+            "Sending request to {} (body: {:?}) (json: {:?})",
+            request.url, request.body, request.json
+        );
+
         if let Some(json) = request.json {
             request_builder = request_builder.json(&json);
         }
@@ -80,8 +85,6 @@ impl UnprotectedCrawler {
 
             request_builder = request_builder.headers(header_map);
         }
-
-        info!("Sending request to {}", request.url);
 
         let response = request_builder.send().await?;
 

@@ -66,6 +66,7 @@ pub enum RetailerName {
     SoleyOutdoors,
     BartonsBigCountry,
     FrontierFirearms,
+    GoldNLoan,
 }
 
 impl RetailerName {

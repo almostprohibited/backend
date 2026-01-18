@@ -10,6 +10,7 @@ mod dominion_outdoors;
 mod firearms_outlet_canada; // why is FOC so bloated it uses so much memory in a browser window
 mod frontier_firearms;
 mod g4c_gun_store;
+mod goldnloan;
 mod great_north_gun;
 mod international_shooting_supplies;
 mod intersurplus;
@@ -41,6 +42,7 @@ pub use dominion_outdoors::DominionOutdoors;
 pub use firearms_outlet_canada::FirearmsOutletCanada;
 pub use frontier_firearms::FrontierFirearms;
 pub use g4c_gun_store::G4CGunStore;
+pub use goldnloan::GoldNLoan;
 pub use great_north_gun::GreatNorthGun;
 pub use international_shooting_supplies::InternationalShootingSupplies;
 pub use intersurplus::InterSurplus;

@@ -25,3 +25,4 @@ thiserror.workspace = true
 urlencoding.workspace = true
 base64.workspace = true
 futures = { workspace = true, features = ["executor"] }
+itertools.workspace = true
