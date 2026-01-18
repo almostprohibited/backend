@@ -62,12 +62,14 @@ impl Retailer for GoldNLoan {
                     term: link,
                     category: Category::Firearm,
                 });
+            } else if !link.contains("/firearms-") {
+                return Some(HtmlSearchQuery {
+                    term: link,
+                    category: Category::Other,
+                });
             };
 
-            Some(HtmlSearchQuery {
-                term: link,
-                category: Category::Other,
-            })
+            None
         })
         .await?;
 
