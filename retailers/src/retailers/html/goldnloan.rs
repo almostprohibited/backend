@@ -55,7 +55,7 @@ impl Retailer for GoldNLoan {
                     term: link,
                     category: Category::Ammunition,
                 });
-            } else if link.starts_with("/firearms-")
+            } else if link.contains("/firearms-")
                 && link.chars().filter(|char| *char == '-').count() == 1
             {
                 return Some(HtmlSearchQuery {
