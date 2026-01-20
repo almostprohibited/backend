@@ -56,3 +56,6 @@ opentelemetry-otlp = "0.31.0"
 opentelemetry_sdk = "0.31.0"
 lru = "0.16.3"
 itertools = "0.14.0"
+# note: don't use this library to do anything
+# it's only here to solve site ground challenges
+sha1 = "0.10.6"
