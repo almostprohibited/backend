@@ -13,35 +13,35 @@ use crate::{
 };
 
 const URL: &str =
-    "https://intersurplus.com/collections/{category}/products.json?limit={page_limit}&page={page}";
-const BASE_URL: &str = "https://intersurplus.com";
+    "https://crafm.com/collections/{category}/products.json?limit={page_limit}&page={page}";
+const BASE_URL: &str = "https://crafm.com";
 const DEFAULT_IMAGE: &str =
     "https://intersurplus.com/cdn/shopifycloud/storefront/assets/no-image-50-e6fb86f4_360x.gif";
 
-pub struct InterSurplus;
+pub struct Crafm;
 
-impl Default for InterSurplus {
+impl Default for Crafm {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl InterSurplus {
+impl Crafm {
     pub fn new() -> Self {
         Self {}
     }
 }
 
-impl HtmlRetailerSuper for InterSurplus {}
+impl HtmlRetailerSuper for Crafm {}
 
-impl Retailer for InterSurplus {
+impl Retailer for Crafm {
     fn get_retailer_name(&self) -> RetailerName {
-        RetailerName::InterSurplus
+        RetailerName::Crafm
     }
 }
 
 #[async_trait]
-impl HtmlRetailer for InterSurplus {
+impl HtmlRetailer for Crafm {
     async fn build_page_request(
         &self,
         page_num: u64,
@@ -71,32 +71,21 @@ impl HtmlRetailer for InterSurplus {
     fn get_search_terms(&self) -> Vec<HtmlSearchQuery> {
         let mut terms = vec![
             HtmlSearchQuery {
-                term: "all-firearms".into(),
+                term: "firearms".into(),
                 category: Category::Firearm,
             },
             HtmlSearchQuery {
-                term: "ammunitions".into(),
+                term: "ammunition".into(),
                 category: Category::Ammunition,
             },
         ];
 
         vec![
-            "all-arms-accessories",
-            "bayonets",
-            "stripped-receiver",
-            "combination-combo-barrels",
-            "pistol-barrels",
-            "riffle-barrels", // lol
-            "shotgun-barrels",
-            // TODO: this section does have a "parent"
-            // so categories might change?
-            "stock",
-            "magazine",
-            "m98-parts",
-            "m96-parts",
-            "husqvarna-1600-parts",
-            // end TODO
-            "reloading-components",
+            "optics-flashlights",
+            "parts-accessories",
+            "competitive-accessories",
+            "reloading-equipment",
+            // "miscellaneous",
         ]
         .iter()
         .for_each(|term| {

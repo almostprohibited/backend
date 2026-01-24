@@ -67,6 +67,7 @@ pub enum RetailerName {
     BartonsBigCountry,
     FrontierFirearms,
     GoldNLoan,
+    Crafm,
 }
 
 impl RetailerName {

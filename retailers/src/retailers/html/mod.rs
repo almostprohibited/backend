@@ -5,6 +5,7 @@ mod bullseye_north;
 mod calgary_shooting_centre; // TODO: investigate this, they have a GQL end point @ https://store.theshootingcentre.com/graphql
 mod canadas_gun_store;
 mod clinton_sporting_goods;
+mod crafm;
 mod dante_sports;
 mod dominion_outdoors;
 mod firearms_outlet_canada; // why is FOC so bloated it uses so much memory in a browser window
@@ -37,6 +38,7 @@ pub use bullseye_north::BullseyeNorth;
 pub use calgary_shooting_centre::CalgaryShootingCentre;
 pub use canadas_gun_store::CanadasGunStore;
 pub use clinton_sporting_goods::ClintonSportingGoods;
+pub use crafm::Crafm;
 pub use dante_sports::DanteSports;
 pub use dominion_outdoors::DominionOutdoors;
 pub use firearms_outlet_canada::FirearmsOutletCanada;
