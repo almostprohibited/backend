@@ -69,10 +69,14 @@ impl Shopify {
         let api_response = serde_json::from_str::<ApiResponse>(response)?;
 
         for product in api_response.products {
-            let image = match product.images.first() {
+            let mut image = match product.images.first() {
                 Some(image_obj) => image_obj.src.clone(),
                 None => self.default_image.clone(),
             };
+
+            if let Some(index) = image.find("?v=") {
+                let _ = image.split_off(index);
+            }
 
             for variant in product.variants {
                 if !variant.available {
