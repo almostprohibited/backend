@@ -161,10 +161,9 @@ impl G4CGunStore {
 
         info!("Begin proof of work");
 
-        // max iterations should be 2^(difficulty - 1)
-        // so basically 20 should be max of 1 million-ish
-        // this will fail if they give us difficulty > 32
-        while counter < (2 << difficulty - 1) {
+        // https://www.desmos.com/calculator/mitivszs7g
+        // 99% confidence
+        while counter < 4828869 {
             let big_endian_counter = Self::convert_counter(counter);
 
             // delete counter and re-append
