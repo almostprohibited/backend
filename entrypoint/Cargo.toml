@@ -38,7 +38,7 @@ tracing.workspace = true
 tracing-subscriber.workspace = true
 axum = { workspace = true, features = ["query", "tokio", "macros"] }
 axum-extra = { workspace = true, features = ["with-rejection"] }
-tower-http = { workspace = true, features = ["cors"] }
+tower-http = { workspace = true, features = ["cors", "timeout"] }
 tower.workspace = true
 thiserror.workspace = true
 serde.workspace = true
