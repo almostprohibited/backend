@@ -13,6 +13,8 @@ use crate::{
     },
 };
 
+const VALID_IMAGE_ATTRS: [&str; 3] = ["data-src", "src", "data-wood-src"];
+
 pub(crate) struct WooCommerceBuilder {
     product_name_selector: String,
     product_url_selector: String,
@@ -105,22 +107,17 @@ impl WooCommerce {
         let image_element =
             extract_element_from_element(element, self.options.image_url_selector.clone())?;
 
-        if let Ok(data_src) = element_extract_attr(image_element, "data-src")
-            && data_src.starts_with("https")
-            && !data_src.contains("lazy")
-        {
-            return Ok(data_src);
-        };
-
-        if let Ok(regular_src) = element_extract_attr(image_element, "src")
-            && regular_src.starts_with("https")
-            && !regular_src.contains("lazy")
-        {
-            return Ok(regular_src);
+        for attr in VALID_IMAGE_ATTRS {
+            if let Ok(data_src) = element_extract_attr(image_element, attr)
+                && data_src.starts_with("https")
+                && !data_src.contains("lazy")
+            {
+                return Ok(data_src);
+            };
         }
 
         Err(RetailerError::HtmlElementMissingAttribute(
-            "'valid data-src or src'".into(),
+            "Image element missing valid attribute (check for theme updates)".into(),
             element_to_text(image_element),
         ))
     }
