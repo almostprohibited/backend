@@ -1,8 +1,6 @@
-mod al_flahertys;
 mod al_simmons;
 mod bartons_big_country;
 mod bullseye_north;
-mod calgary_shooting_centre; // TODO: investigate this, they have a GQL end point @ https://store.theshootingcentre.com/graphql
 mod canadas_gun_store;
 mod clinton_sporting_goods;
 mod crafm;
@@ -22,7 +20,6 @@ mod marstar;
 mod rangeview_sports;
 mod rdsc;
 mod reliable_gun;
-mod select_shooting_supplies;
 mod sj_hardware;
 mod soley_outdoors;
 mod tenda;
@@ -31,11 +28,9 @@ mod tillsonburg_gun_shop;
 mod true_north_arms;
 mod victory_ridge_sports;
 
-pub use al_flahertys::AlFlahertys;
 pub use al_simmons::AlSimmons;
 pub use bartons_big_country::BartonsBigCountry;
 pub use bullseye_north::BullseyeNorth;
-pub use calgary_shooting_centre::CalgaryShootingCentre;
 pub use canadas_gun_store::CanadasGunStore;
 pub use clinton_sporting_goods::ClintonSportingGoods;
 pub use crafm::Crafm;
@@ -55,7 +50,6 @@ pub use marstar::Marstar;
 pub use rangeview_sports::RangeviewSports;
 pub use rdsc::Rdsc;
 pub use reliable_gun::ReliableGun;
-pub use select_shooting_supplies::SelectShootingSupplies;
 pub use sj_hardware::SJHardware;
 pub use soley_outdoors::SoleyOutdoors;
 pub use tenda::Tenda;

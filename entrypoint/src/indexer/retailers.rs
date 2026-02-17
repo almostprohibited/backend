@@ -4,14 +4,14 @@ use crate::clients::{
 use common::result::enums::RetailerName;
 use discord::get_indexer_webhook;
 use retailers::{
-    gql::ProphetRiver,
+    gql::{AlFlahertys, CalgaryShootingCentre, ProphetRiver, SelectShootingSupplies},
     html::{
-        AlFlahertys, AlSimmons, BartonsBigCountry, BullseyeNorth, CalgaryShootingCentre,
-        CanadasGunStore, ClintonSportingGoods, Crafm, DanteSports, DominionOutdoors,
-        FirearmsOutletCanada, FrontierFirearms, G4CGunStore, GoldNLoan, GreatNorthGun,
-        InterSurplus, InternationalShootingSupplies, ItalianSportingGoods, LeverArms, MagDump,
-        Marstar, RangeviewSports, Rdsc, ReliableGun, SJHardware, SelectShootingSupplies,
-        SoleyOutdoors, Tenda, TheAmmoSource, Tillsonburg, TrueNorthArms, VictoryRidgeSports,
+        AlSimmons, BartonsBigCountry, BullseyeNorth, CanadasGunStore, ClintonSportingGoods, Crafm,
+        DanteSports, DominionOutdoors, FirearmsOutletCanada, FrontierFirearms, G4CGunStore,
+        GoldNLoan, GreatNorthGun, InterSurplus, InternationalShootingSupplies,
+        ItalianSportingGoods, LeverArms, MagDump, Marstar, RangeviewSports, Rdsc, ReliableGun,
+        SJHardware, SoleyOutdoors, Tenda, TheAmmoSource, Tillsonburg, TrueNorthArms,
+        VictoryRidgeSports,
     },
     structures::{GqlRetailerSuper, HtmlRetailerSuper},
 };
@@ -27,9 +27,7 @@ fn html_retailers() -> HashMap<RetailerName, HtmlRetailerSuperFactory> {
     // to get the Rust analyzer to accept a closure inside of a tuple
     let mut retailers: HashMap<RetailerName, HtmlRetailerSuperFactory> = HashMap::new();
 
-    retailers.insert(RetailerName::AlFlahertys, || Box::new(AlFlahertys::new()));
     retailers.insert(RetailerName::BullseyeNorth, || Box::new(BullseyeNorth::new()));
-    retailers.insert(RetailerName::CalgaryShootingCentre, || Box::new(CalgaryShootingCentre::new()));
     retailers.insert(RetailerName::ReliableGun, || Box::new(ReliableGun::new()));
     retailers.insert(RetailerName::LeverArms, || Box::new(LeverArms::new()));
     retailers.insert(RetailerName::FirearmsOutletCanada, || Box::new(FirearmsOutletCanada::new()));
@@ -40,7 +38,6 @@ fn html_retailers() -> HashMap<RetailerName, HtmlRetailerSuperFactory> {
     retailers.insert(RetailerName::G4CGunStore, || Box::new(G4CGunStore::new()));
     retailers.insert(RetailerName::Tillsonburg, || Box::new(Tillsonburg::new()));
     retailers.insert(RetailerName::DanteSports, || Box::new(DanteSports::new()));
-    retailers.insert(RetailerName::SelectShootingSupplies, || Box::new(SelectShootingSupplies::new()));
     retailers.insert(RetailerName::RangeviewSports, || Box::new(RangeviewSports::new()));
     retailers.insert(RetailerName::TrueNorthArms, || Box::new(TrueNorthArms::new()));
     retailers.insert(RetailerName::DominionOutdoors, || Box::new(DominionOutdoors::new()));
@@ -70,6 +67,9 @@ fn gql_retailers() -> HashMap<RetailerName, GqlRetailerSuperFactory> {
     let mut retailers: HashMap<RetailerName, GqlRetailerSuperFactory> = HashMap::new();
 
     retailers.insert(RetailerName::ProphetRiver, || Box::new(ProphetRiver::new()));
+    retailers.insert(RetailerName::AlFlahertys, || Box::new(AlFlahertys::new()));
+    retailers.insert(RetailerName::SelectShootingSupplies, || Box::new(SelectShootingSupplies::new()));
+    retailers.insert(RetailerName::CalgaryShootingCentre, || Box::new(CalgaryShootingCentre::new()));
 
     retailers
 }

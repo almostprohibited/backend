@@ -1,4 +1,4 @@
-mod bigcommerce;
+pub(crate) mod bigcommerce;
 mod odoo;
 pub(crate) mod shopify;
 mod woocommerce;
