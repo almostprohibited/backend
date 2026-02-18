@@ -42,7 +42,7 @@ runs:
     - name: Build Docker image
       run: |
         set -ueo pipefail
-        
+
         docker run --privileged --rm tonistiigi/binfmt --install arm64
 
         docker_target=""
@@ -52,6 +52,8 @@ runs:
         fi
 
         cd ./.toolbox/backend/
+
+        export BUILDX_NO_DEFAULT_ATTESTATIONS=1
 
         docker build \
           $docker_target \
