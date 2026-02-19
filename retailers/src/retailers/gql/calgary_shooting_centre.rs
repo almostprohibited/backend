@@ -10,25 +10,29 @@ use crate::{
     structures::{GqlRetailer, GqlRetailerSuper, Retailer},
     utils::ecommerce::bigcommerce::{
         gql_helpers::{build_request, get_gql_token},
-        gql_structs::ApiResponse,
+        gql_structs::{ApiResponse, CategoryMatch},
     },
 };
 
 const MAIN_URL: &str = "https://store.theshootingcentre.com/";
 
-fn product_classifier(path_node: &str) -> Option<Category> {
+fn product_classifier(path_node: &str) -> CategoryMatch {
     if path_node.starts_with("/clearance/")
         || path_node.starts_with("/gear/camp-hike/")
         || path_node.starts_with("/gear/apparel/")
     {
-        return None;
+        return CategoryMatch::Ignore;
     }
 
-    match path_node {
-        "/firearms/" => Some(Category::Firearm),
-        "/ammunition/" => Some(Category::Ammunition),
-        _ => Some(Category::Other),
+    if path_node.starts_with("/firearms/") {
+        return CategoryMatch::Match(Category::Firearm);
     }
+
+    if path_node.starts_with("/ammunition/") {
+        return CategoryMatch::Match(Category::Ammunition);
+    }
+
+    CategoryMatch::Match(Category::Other)
 }
 
 pub struct CalgaryShootingCentre {
@@ -86,7 +90,19 @@ impl GqlRetailer for CalgaryShootingCentre {
     async fn parse_response(&self, response: &str) -> Result<Vec<CrawlResult>, RetailerError> {
         let response_objects = serde_json::from_str::<ApiResponse>(response)?;
 
-        response_objects.get_products(MAIN_URL, self.get_retailer_name(), product_classifier)
+        let mut products = response_objects.get_products(
+            MAIN_URL,
+            self.get_retailer_name(),
+            product_classifier,
+        )?;
+
+        products.iter_mut().for_each(|product| {
+            if product.category == Category::Ammunition {
+                product.update_name(&format!("{}rds", product.name));
+            }
+        });
+
+        Ok(products)
     }
 
     fn get_pagination_token(&self, response: &str) -> Result<Option<String>, RetailerError> {

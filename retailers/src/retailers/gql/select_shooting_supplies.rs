@@ -10,13 +10,13 @@ use crate::{
     structures::{GqlRetailer, GqlRetailerSuper, Retailer},
     utils::ecommerce::bigcommerce::{
         gql_helpers::{build_request, get_gql_token},
-        gql_structs::ApiResponse,
+        gql_structs::{ApiResponse, CategoryMatch},
     },
 };
 
-fn parse_category(path_node: &str) -> Option<Category> {
+fn parse_category(path_node: &str) -> CategoryMatch {
     if path_node == "/firearms/" {
-        return Some(Category::Firearm);
+        return CategoryMatch::Match(Category::Firearm);
     }
 
     // /reloading/ is duplicated a bunch here
@@ -46,10 +46,10 @@ fn parse_category(path_node: &str) -> Option<Category> {
         || path_node.starts_with("/optics-sights-sight-mounts/")
         || path_node.starts_with("/reloading/reloading-presses/")
     {
-        return Some(Category::Other);
+        return CategoryMatch::Match(Category::Other);
     }
 
-    None
+    CategoryMatch::Skip
 }
 
 const MAIN_URL: &str = "https://selectshootingsupplies.com";

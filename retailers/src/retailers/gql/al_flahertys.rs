@@ -4,14 +4,13 @@ use common::result::{
     enums::{Category, RetailerName},
 };
 use crawler::request::Request;
-use itertools::Itertools;
 
 use crate::{
     errors::RetailerError,
     structures::{GqlRetailer, GqlRetailerSuper, Retailer},
     utils::ecommerce::bigcommerce::{
         gql_helpers::{build_request, get_gql_token},
-        gql_structs::ApiResponse,
+        gql_structs::{ApiResponse, CategoryMatch},
     },
 };
 
@@ -20,7 +19,7 @@ const MAIN_URL: &str = "https://alflahertys.com/";
 // ordering in this method is important
 // there are products that belong under same parent
 // that are not actually related for what we need
-fn product_classifier(path_node: &str) -> Option<Category> {
+fn product_classifier(path_node: &str) -> CategoryMatch {
     if path_node.starts_with("/optics/")
         | path_node.starts_with(
             "/shooting-supplies-and-firearms/ammunition/reloading-powders-and-primers/",
@@ -35,28 +34,28 @@ fn product_classifier(path_node: &str) -> Option<Category> {
         | path_node
             .starts_with("/shooting-supplies-firearms-and-ammunition/stocks-parts-barrels-kits/")
     {
-        return Some(Category::Other);
+        return CategoryMatch::Match(Category::Other);
     }
 
     if path_node == "/shooting-supplies-firearms-and-ammunition/firearms/"
         || path_node.starts_with("/shooting-supplies-firearms-ammunition/firearms/")
     {
-        return Some(Category::Firearm);
+        return CategoryMatch::Match(Category::Firearm);
     }
 
     if path_node == "/shooting-supplies-and-firearms/ammunition/bulk-centerfire/"
         || path_node.starts_with("/shooting-supplies-firearms-ammunition/ammunition/")
     {
-        return Some(Category::Ammunition);
+        return CategoryMatch::Match(Category::Ammunition);
     }
 
     // this is here on purpose, ammo and other stuff gets matched above
     // this will hopefully catch everything else
     if path_node.starts_with("/shooting-supplies-firearms-ammunition/") {
-        return Some(Category::Other);
+        return CategoryMatch::Match(Category::Other);
     }
 
-    None
+    return CategoryMatch::Skip;
 }
 
 pub struct AlFlahertys {

@@ -10,22 +10,22 @@ use crate::{
     structures::{GqlRetailer, GqlRetailerSuper, Retailer},
     utils::ecommerce::bigcommerce::{
         gql_helpers::{build_request, get_gql_token},
-        gql_structs::ApiResponse,
+        gql_structs::{ApiResponse, CategoryMatch},
     },
 };
 
-fn parse_category(path_node: &str) -> Option<Category> {
+fn parse_category(path_node: &str) -> CategoryMatch {
     match path_node {
-        "/categories/rifles/" | "/categories/shotguns/" => Some(Category::Firearm),
-        "/ammunition/" => Some(Category::Ammunition),
+        "/categories/rifles/" | "/categories/shotguns/" => CategoryMatch::Match(Category::Firearm),
+        "/ammunition/" => CategoryMatch::Match(Category::Ammunition),
         "/reloading-equipment/"
         | "/reloading-components/"
         | "/rifle-scopes/"
         | "/optics-accessories/"
         | "/other-optics/"
         | "/stocks/"
-        | "/accessories/" => Some(Category::Other),
-        _ => None,
+        | "/accessories/" => CategoryMatch::Match(Category::Other),
+        _ => CategoryMatch::Ignore,
     }
 }
 

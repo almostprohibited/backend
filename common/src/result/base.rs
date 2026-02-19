@@ -142,6 +142,17 @@ impl CrawlResult {
         self
     }
 
+    pub fn update_name(&mut self, name: &str) {
+        self.name = name.to_string();
+
+        let metadata = match self.category == Category::Ammunition {
+            true => Self::get_ammo_metadata(&self.name),
+            false => None,
+        };
+
+        self.metadata = metadata;
+    }
+
     fn get_ammo_metadata(product_name: &String) -> Option<Metadata> {
         for pattern in PATTERNS.iter() {
             if let Some(capture) = pattern.captures(product_name) {

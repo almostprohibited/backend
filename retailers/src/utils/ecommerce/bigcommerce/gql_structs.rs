@@ -12,6 +12,14 @@ use crate::{errors::RetailerError, utils::conversions::price_to_cents};
 // we can just reuse it for all
 const DEFAULT_IMAGE_URL: &str = "https://cdn11.bigcommerce.com/s-dcynby20nc/stencil/be1fd970-0d6b-013e-f9b9-6613132a0701/e/092afc30-45f5-013e-ca76-52b5c4b168da/img/ProductDefault.gif";
 
+// TODO: revisit how matching works
+// not the most elegant solution anyways
+pub(crate) enum CategoryMatch {
+    Match(Category),
+    Skip,
+    Ignore,
+}
+
 #[derive(Deserialize, Debug)]
 pub(crate) struct ApiResponse {
     data: ApiData,
@@ -22,7 +30,7 @@ impl ApiResponse {
         &self,
         main_url: &str,
         retailer: RetailerName,
-        product_classifier: fn(&str) -> Option<Category>,
+        product_classifier: fn(&str) -> CategoryMatch,
     ) -> Result<Vec<CrawlResult>, RetailerError> {
         let mut main_url = main_url.to_string();
 
@@ -236,7 +244,7 @@ impl ApiProductNode {
 
     fn get_category<F>(&self, product_classifier: F) -> Option<Category>
     where
-        F: Fn(&str) -> Option<Category>,
+        F: Fn(&str) -> CategoryMatch,
     {
         // so there should only be a single edge, but I can't
         // know for sure because the GQL response says that
@@ -257,8 +265,10 @@ impl ApiProductNode {
                         .as_str(),
                 );
 
-                if result.is_some() {
-                    return result;
+                match result {
+                    CategoryMatch::Match(category) => return Some(category),
+                    CategoryMatch::Ignore => return None,
+                    CategoryMatch::Skip => {}
                 }
             }
         }
