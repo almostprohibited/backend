@@ -25,7 +25,7 @@ fn parse_category(path_node: &str) -> CategoryMatch {
         | "/other-optics/"
         | "/stocks/"
         | "/accessories/" => CategoryMatch::Match(Category::Other),
-        _ => CategoryMatch::Ignore,
+        _ => CategoryMatch::Skip,
     }
 }
 
