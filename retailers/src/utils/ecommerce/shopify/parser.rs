@@ -96,9 +96,13 @@ impl Shopify {
                     sale_price: None,
                 };
 
-                if let Some(regular_price) = variant.compare_at_price {
-                    price.sale_price = Some(price.regular_price);
-                    price.regular_price = price_to_cents(regular_price)?;
+                if let Some(compare_at_price) = variant.compare_at_price {
+                    let compare_at_price_cents = price_to_cents(compare_at_price)?;
+
+                    if compare_at_price_cents > price.regular_price {
+                        price.sale_price = Some(price.regular_price);
+                        price.regular_price = compare_at_price_cents;
+                    }
                 };
 
                 let url = format!(
