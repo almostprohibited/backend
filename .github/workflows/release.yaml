@@ -44,3 +44,4 @@ jobs:
           discord-contact-webhook-url: ${{ secrets.DISCORD_CONTACT_WEBHOOK_URL }}
           discord-indexer-webhook-url: ${{ secrets.DISCORD_INDEXER_WEBHOOK_URL }}
           cloudflare-turnstile-secret-key: ${{ secrets.CLOUDFLARE_TURNSTILE_SECRET_KEY }}
+          proxy-address: ${{ secrets.PROXY_ADDRESS }}

@@ -30,9 +30,13 @@ inputs:
     type: string
     required: true
     description: "Cloudflare Turnstile secret key"
+  proxy-address:
+    type: string
+    required: true
+    description: "Reqwest client HTTP proxy address"
 
 runs:
-  using: 'composite'
+  using: "composite"
   steps:
     - uses: actions/checkout@v4
     - uses: actions/checkout@v4
@@ -63,7 +67,7 @@ runs:
     - name: Update and deploy backend
       run: |
         set -ueo pipefail
-        
+
         cd ./.toolbox/backend
 
         export VOLUME_PATH=${{ inputs.docker-volume-path }}
@@ -71,6 +75,7 @@ runs:
         export DISCORD_CONTACT_WEBHOOK_URL=${{ inputs.discord-contact-webhook-url }}
         export DISCORD_INDEXER_WEBHOOK_URL=${{ inputs.discord-indexer-webhook-url }}
         export CLOUDFLARE_TURNSTILE_SECRET_KEY=${{ inputs.cloudflare-turnstile-secret-key }}
+        export PROXY_ADDRESS=${{ inputs.proxy-address }}
 
         docker compose -f docker-compose.yaml pull backend-${{ inputs.deployment-stage }}
         docker compose -f docker-compose.yaml down backend-${{ inputs.deployment-stage }}

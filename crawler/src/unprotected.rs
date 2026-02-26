@@ -1,7 +1,7 @@
-use std::{str::FromStr, sync::OnceLock, time::Duration};
+use std::{env, str::FromStr, sync::OnceLock, time::Duration};
 
 use reqwest::{
-    ClientBuilder as BaseClientBuilder,
+    ClientBuilder as BaseClientBuilder, Proxy, Url,
     header::{HeaderMap, HeaderName, HeaderValue},
 };
 use reqwest_middleware::{ClientBuilder as RetryableClientBuilder, ClientWithMiddleware};
@@ -22,6 +22,8 @@ const MAX_RETRY: u32 = 3;
 const USER_AGENT: &str =
     "almostprohibited/1.0 (+https://almostprohibited.ca/contact/; hello@almostprohibited.ca)";
 
+const PROXY_DOMAINS: [&str; 1] = ["www.italiansportinggoods.com"];
+
 static REQWEST_CLIENT: OnceLock<ClientWithMiddleware> = OnceLock::new();
 
 #[derive(Copy, Clone)]
@@ -30,14 +32,41 @@ pub struct UnprotectedCrawler {}
 impl UnprotectedCrawler {
     fn create_client() -> &'static ClientWithMiddleware {
         REQWEST_CLIENT.get_or_init(|| {
-            let base_client = BaseClientBuilder::new()
+            let mut base_client_builder = BaseClientBuilder::new()
                 .gzip(true)
                 .http1_ignore_invalid_headers_in_responses(true)
                 .timeout(Duration::from_secs(PAGE_TIMEOUT_SECONDS))
                 .user_agent(USER_AGENT)
                 .https_only(true)
                 .cookie_store(true)
-                .connection_verbose(true)
+                .connection_verbose(true);
+
+            if let Ok(proxy_address) = env::var("PROXY_ADDRESS") {
+                debug!("Configuring proxy");
+
+                let proxy_url = Url::parse(&proxy_address).expect("Valid proxy domain");
+
+                base_client_builder = base_client_builder.proxy(Proxy::custom(move |url| {
+                    let Some(checked_url) = url.host_str() else {
+                        debug!("Failed to parse host as string: {url}");
+
+                        return None;
+                    };
+
+                    if PROXY_DOMAINS
+                        .into_iter()
+                        .any(|proxied_domain| checked_url == proxied_domain)
+                    {
+                        debug!("Proxying {checked_url}");
+
+                        return Some(proxy_url.clone());
+                    }
+
+                    None
+                }));
+            }
+
+            let base_client = base_client_builder
                 .build()
                 .expect("Valid base reqwest to be built");
 
