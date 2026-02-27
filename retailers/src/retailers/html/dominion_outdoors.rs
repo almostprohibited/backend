@@ -25,6 +25,8 @@ use crate::{
 const CRAWL_COOLDOWN_SECS: u64 = 3;
 const URL: &str = "https://www.dominionoutdoors.ca/{category}/page{page}.html";
 
+// TODO: Move dominion outdoors to lightspeed API calls
+// this is based on soley and barton having usable API
 pub struct DominionOutdoors {}
 
 impl Default for DominionOutdoors {
@@ -80,15 +82,27 @@ impl DominionOutdoors {
             extract_element_from_element(page_element, "div.product-price > div > span.price")?;
 
         let mut price = element_to_text(price_element);
+
         if price.starts_with("C") {
             price = price.split_off(1);
         }
 
-        // I don't know what the sale price looks like
-        // YOLO
-        let price = Price {
+        let mut price = Price {
             regular_price: price_to_cents(price)?,
             sale_price: None,
+        };
+
+        if let Ok(old_price_element) =
+            extract_element_from_element(page_element, "div.product-price > div > span.old-price")
+        {
+            let mut old_price = element_to_text(old_price_element);
+
+            if old_price.starts_with("C") {
+                old_price = old_price.split_off(1);
+            }
+
+            price.sale_price = Some(price.regular_price);
+            price.regular_price = price_to_cents(old_price)?
         };
 
         let result = CrawlResult::new(name, url, price, retailer, category).with_image_url(image);
