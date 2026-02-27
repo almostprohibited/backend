@@ -14,29 +14,45 @@ use crate::{
 
 const VALID_IMAGE_ATTRS: [&str; 3] = ["data-src", "src", "data-wood-src"];
 
+const DEFAULT_PRODUCT_NAME_SELECTORS: [&str; 2] = [
+    "div.product-element-bottom > h3 > a",
+    "a.woocommerce-LoopProduct-link > h2.woocommerce-loop-product__title",
+];
+
+const DEFAULT_PRODUCT_URL_SELECTORS: [&str; 2] = [
+    "div.product-element-bottom > h3 > a",
+    "a.woocommerce-LoopProduct-link",
+];
+
 pub(crate) struct WooCommerceBuilder {
-    product_name_selector: String,
-    product_url_selector: String,
+    product_name_selector: Vec<String>,
+    product_url_selector: Vec<String>,
     image_url_selector: String,
 }
 
 impl WooCommerceBuilder {
     pub(crate) fn default() -> Self {
         Self {
-            product_name_selector: "div.product-element-bottom > h3 > a".into(),
-            product_url_selector: "div.product-element-bottom > h3 > a".into(),
+            product_name_selector: DEFAULT_PRODUCT_NAME_SELECTORS
+                .iter()
+                .map(|selector| selector.to_string())
+                .collect(),
+            product_url_selector: DEFAULT_PRODUCT_URL_SELECTORS
+                .iter()
+                .map(|selector| selector.to_string())
+                .collect(),
             image_url_selector: "a.product-image-link > img".into(),
         }
     }
 
     pub(crate) fn with_product_name_selector(mut self, selector: impl Into<String>) -> Self {
-        self.product_name_selector = selector.into();
+        self.product_name_selector = vec![selector.into()];
 
         self
     }
 
     pub(crate) fn with_product_url_selector(mut self, selector: impl Into<String>) -> Self {
-        self.product_url_selector = selector.into();
+        self.product_url_selector = vec![selector.into()];
 
         self
     }
@@ -123,10 +139,35 @@ impl WooCommerce {
         retailer: RetailerName,
         category: Category,
     ) -> Result<CrawlResult, RetailerError> {
-        let url_element =
-            extract_element_from_element(element, self.options.product_url_selector.clone())?;
-        let name_element =
-            extract_element_from_element(element, self.options.product_name_selector.clone())?;
+        let url_element = self
+            .options
+            .product_url_selector
+            .iter()
+            .find_map(|selector| {
+                if let Ok(element) = extract_element_from_element(element, selector) {
+                    return Some(element);
+                }
+
+                None
+            })
+            .ok_or(RetailerError::HtmlMissingElement(
+                "Missing valid URL element".to_string(),
+            ))?;
+
+        let name_element = self
+            .options
+            .product_name_selector
+            .iter()
+            .find_map(|selector| {
+                if let Ok(element) = extract_element_from_element(element, selector) {
+                    return Some(element);
+                }
+
+                None
+            })
+            .ok_or(RetailerError::HtmlMissingElement(
+                "Missing valid name element".to_string(),
+            ))?;
 
         let name = element_to_text(name_element);
         let url = element_extract_attr(url_element, "href")?;

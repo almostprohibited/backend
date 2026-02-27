@@ -67,10 +67,6 @@ impl HtmlRetailer for ClintonSportingGoods {
         let product_selector = Selector::parse("ul.products > li.product").unwrap();
 
         let woocommerce_helper = WooCommerceBuilder::default()
-            .with_product_url_selector("a.woocommerce-LoopProduct-link")
-            .with_product_name_selector(
-                "a.woocommerce-LoopProduct-link > h2.woocommerce-loop-product__title",
-            )
             .with_image_url_selector("a.woocommerce-LoopProduct-link img")
             .build();
 
