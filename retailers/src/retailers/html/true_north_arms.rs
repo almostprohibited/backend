@@ -68,19 +68,11 @@ impl HtmlRetailer for TrueNorthArms {
 
         let mut results: Vec<CrawlResult> = Vec::new();
 
-        let products = {
-            let html = Html::parse_document(response);
-            let product_selector =
-                Selector::parse("ul.productGrid > li.product > article.card").unwrap();
-            html.select(&product_selector)
-                .map(|element| element.html().clone())
-                .collect::<Vec<_>>()
-        };
+        let html = Html::parse_document(response);
+        let product_selector =
+            Selector::parse("ul.productGrid > li.product > article.card").unwrap();
 
-        for html_doc in products {
-            let product_inner = Html::parse_document(&html_doc);
-            let product = product_inner.root_element();
-
+        for product in html.select(&product_selector) {
             let title_element = extract_element_from_element(product, "h4.card-title > a")?;
 
             if element_to_text(title_element).contains("Custom Magpul") {

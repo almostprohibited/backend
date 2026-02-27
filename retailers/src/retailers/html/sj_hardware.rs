@@ -65,18 +65,10 @@ impl HtmlRetailer for SJHardware {
 
         let mut results: Vec<CrawlResult> = Vec::new();
 
-        let products = {
-            let html = Html::parse_document(response);
-            let product_selector = Selector::parse("ul.productGrid > li.product").unwrap();
-            html.select(&product_selector)
-                .map(|element| element.html().clone())
-                .collect::<Vec<_>>()
-        };
+        let html = Html::parse_document(response);
+        let product_selector = Selector::parse("ul.productGrid > li.product").unwrap();
 
-        for html_doc in products {
-            let product_inner = Html::parse_document(&html_doc);
-            let product = product_inner.root_element();
-
+        for product in html.select(&product_selector) {
             let cart_button =
                 extract_element_from_element(product, "div.card-text.add-to-cart-button")?;
             let button_text = element_to_text(cart_button).to_lowercase();

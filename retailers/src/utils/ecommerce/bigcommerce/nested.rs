@@ -39,16 +39,6 @@ pub(crate) trait BigCommerceNested {
         site_url: impl Into<String>,
         retailer_name: RetailerName,
     ) -> Result<Vec<CrawlResult>, RetailerError>;
-
-    // TODO: refactor this
-    // this is here because alflahertys behaves differently
-    fn enqueue_nested_product(
-        &mut self,
-        name: impl Into<String>,
-        fallback_image_url: impl Into<String>,
-        product_url: impl Into<String>,
-        category: Category,
-    ) -> Result<(), RetailerError>;
 }
 
 impl BigCommerce {
@@ -287,25 +277,6 @@ impl BigCommerceNested for BigCommerce {
             fallback_image_url: Self::get_image_url(element)?,
             category,
             product_url: Self::get_item_link(element)?,
-        });
-
-        Ok(())
-    }
-
-    // TODO: refactor this
-    // this is here because alflahertys behaves differently
-    fn enqueue_nested_product(
-        &mut self,
-        name: impl Into<String>,
-        fallback_image_url: impl Into<String>,
-        product_url: impl Into<String>,
-        category: Category,
-    ) -> Result<(), RetailerError> {
-        self.parse_queue.push(NestedProduct {
-            name: name.into(),
-            fallback_image_url: fallback_image_url.into(),
-            category,
-            product_url: product_url.into(),
         });
 
         Ok(())
