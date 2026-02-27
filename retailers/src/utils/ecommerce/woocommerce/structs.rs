@@ -1,12 +1,6 @@
 use std::collections::HashMap;
 
-use common::result::enums::Category;
 use serde::Deserialize;
-
-pub(super) struct NestedProduct {
-    pub(super) url: String,
-    pub(super) category: Category,
-}
 
 #[derive(Deserialize, Debug)]
 pub(super) struct ProductImage {

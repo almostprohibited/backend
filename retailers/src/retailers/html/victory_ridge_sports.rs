@@ -12,7 +12,7 @@ use crate::{
     errors::RetailerError,
     structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
     utils::{
-        ecommerce::{WooCommerceBuilder, WooCommerceNested},
+        ecommerce::{WooCommerce, WooCommerceBuilder, WooCommerceNested},
         html::{element_extract_attr, element_to_text, extract_element_from_element},
     },
 };
@@ -92,25 +92,19 @@ impl HtmlRetailer for VictoryRidgeSports {
 
         let parsed_response = serde_json::from_str::<ApiResponse>(response)?;
 
-        let products = {
-            let html = Html::parse_document(&parsed_response.items);
-            let product_selector = Selector::parse("div.instock > div.product-wrapper").unwrap();
-            html.select(&product_selector)
-                .map(|element| element.html().clone())
-                .collect::<Vec<_>>()
-        };
+        let html = Html::parse_document(&parsed_response.items);
+        let product_selector = Selector::parse("div.instock > div.product-wrapper").unwrap();
 
         let css_selector = "div.wd-product-header > h3 > a";
 
-        let mut woocommerce_helper = WooCommerceBuilder::default()
+        let woocommerce_helper = WooCommerceBuilder::default()
             .with_product_name_selector(css_selector)
             .with_product_url_selector(css_selector)
             .build();
 
-        for raw_html in products {
-            let parsed_html = Html::parse_fragment(&raw_html);
-            let product = parsed_html.root_element();
+        let mut variant_links: Vec<String> = vec![];
 
+        for product in html.select(&product_selector) {
             let add_cart_button =
                 extract_element_from_element(product, "div.wd-product-footer > div > a")?;
 
@@ -119,7 +113,7 @@ impl HtmlRetailer for VictoryRidgeSports {
                     let product_url_element = extract_element_from_element(product, css_selector)?;
                     let product_url = element_extract_attr(product_url_element, "href")?;
 
-                    woocommerce_helper.enqueue_nested_product(product_url, search_term.category);
+                    variant_links.push(product_url);
                 }
                 "add to cart" => {
                     results.push(woocommerce_helper.parse_product(
@@ -132,11 +126,16 @@ impl HtmlRetailer for VictoryRidgeSports {
             };
         }
 
-        results.extend(
-            woocommerce_helper
-                .parse_nested_products(self.get_retailer_name())
+        for link in variant_links {
+            results.extend(
+                WooCommerce::parse_nested_products(
+                    link,
+                    search_term.category,
+                    self.get_retailer_name(),
+                )
                 .await?,
-        );
+            );
+        }
 
         Ok(results)
     }

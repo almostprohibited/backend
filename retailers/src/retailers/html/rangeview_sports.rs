@@ -73,21 +73,15 @@ impl HtmlRetailer for RangeviewSports {
     ) -> Result<Vec<CrawlResult>, RetailerError> {
         let mut results: Vec<CrawlResult> = Vec::new();
 
-        let mut woocommerce_helper = WooCommerceBuilder::default().build();
+        let woocommerce_helper = WooCommerceBuilder::default().build();
 
-        let products = {
-            let html = Html::parse_document(response);
-            let product_selector =
-                Selector::parse("div.products > div.product > div.product-wrapper").unwrap();
-            html.select(&product_selector)
-                .map(|element| element.html().clone())
-                .collect::<Vec<_>>()
-        };
+        let html = Html::parse_document(response);
+        let product_selector =
+            Selector::parse("div.products > div.product > div.product-wrapper").unwrap();
 
-        for doc in products {
-            let product_inner = Html::parse_fragment(&doc);
-            let product = product_inner.root_element();
+        let mut variant_links: Vec<String> = vec![];
 
+        for product in html.select(&product_selector) {
             if Self::is_out_of_stock(product) {
                 break;
             }
@@ -112,7 +106,7 @@ impl HtmlRetailer for RangeviewSports {
             if element_to_text(price_element).contains("–") {
                 let link = element_extract_attr(link_element, "href")?;
 
-                woocommerce_helper.enqueue_nested_product(link, search_term.category);
+                variant_links.push(link);
 
                 continue;
             };
@@ -126,11 +120,16 @@ impl HtmlRetailer for RangeviewSports {
             results.push(result);
         }
 
-        results.extend(
-            woocommerce_helper
-                .parse_nested_products(self.get_retailer_name())
+        for link in variant_links {
+            results.extend(
+                WooCommerce::parse_nested_products(
+                    link,
+                    search_term.category,
+                    self.get_retailer_name(),
+                )
                 .await?,
-        );
+            );
+        }
 
         Ok(results)
     }

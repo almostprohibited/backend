@@ -8,7 +8,6 @@ use crate::{
     errors::RetailerError,
     utils::{
         conversions::{price_to_cents, string_to_u64},
-        ecommerce::woocommerce::structs::NestedProduct,
         html::{element_extract_attr, element_to_text, extract_element_from_element},
     },
 };
@@ -49,16 +48,12 @@ impl WooCommerceBuilder {
     }
 
     pub(crate) fn build(self) -> WooCommerce {
-        WooCommerce {
-            options: self,
-            nested_queue: Vec::new(),
-        }
+        WooCommerce { options: self }
     }
 }
 
 pub(crate) struct WooCommerce {
     options: WooCommerceBuilder,
-    pub(super) nested_queue: Vec<NestedProduct>,
 }
 
 impl WooCommerce {

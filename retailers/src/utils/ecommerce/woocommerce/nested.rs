@@ -1,5 +1,6 @@
 use std::{collections::HashMap, time::Duration};
 
+use async_trait::async_trait;
 use common::{
     constants::CRAWL_COOLDOWN_SECS,
     result::{
@@ -15,19 +16,16 @@ use crate::{
     errors::RetailerError,
     utils::{
         conversions::price_to_cents,
-        ecommerce::{
-            WooCommerce,
-            woocommerce::structs::{NestedProduct, ProductVariation},
-        },
+        ecommerce::{WooCommerce, woocommerce::structs::ProductVariation},
         html::{element_extract_attr, element_to_text, extract_element_from_element},
     },
 };
 
+#[async_trait]
 pub(crate) trait WooCommerceNested {
-    fn enqueue_nested_product(&mut self, url: String, category: Category);
-
     async fn parse_nested_products(
-        &self,
+        url: String,
+        category: Category,
         retailer_name: RetailerName,
     ) -> Result<Vec<CrawlResult>, RetailerError>;
 }
@@ -131,68 +129,57 @@ impl WooCommerce {
     }
 }
 
+#[async_trait]
 impl WooCommerceNested for WooCommerce {
-    fn enqueue_nested_product(&mut self, url: String, category: Category) {
-        self.nested_queue.push(NestedProduct { url, category });
-    }
-
     async fn parse_nested_products(
-        &self,
+        url: String,
+        category: Category,
         retailer_name: RetailerName,
     ) -> Result<Vec<CrawlResult>, RetailerError> {
         let mut results: Vec<CrawlResult> = Vec::new();
 
-        for nested_product in &self.nested_queue {
-            let request = RequestBuilder::new().set_url(&nested_product.url).build();
-            let result = UnprotectedCrawler::make_web_request(request).await?;
+        let request = RequestBuilder::new().set_url(&url).build();
+        let result = UnprotectedCrawler::make_web_request(request).await?;
 
-            let product_title = Self::get_nested_product_title(&result.body)?;
+        let product_title = Self::get_nested_product_title(&result.body)?;
 
-            let product_variations =
-                Self::get_nested_product_variations(&result.body, &nested_product.url)?;
+        let product_variations = Self::get_nested_product_variations(&result.body, &url)?;
 
-            let attribute_mapping =
-                Self::get_nested_product_attribute_name_mapping(&result.body, &product_variations)?;
+        let attribute_mapping =
+            Self::get_nested_product_attribute_name_mapping(&result.body, &product_variations)?;
 
-            for variation in product_variations {
-                if !variation.is_in_stock {
-                    continue;
-                }
-
-                let regular_price = price_to_cents(variation.display_regular_price.to_string())?;
-                let sale_price = price_to_cents(variation.display_price.to_string())?;
-
-                let price = Price {
-                    regular_price,
-                    sale_price: if regular_price == sale_price {
-                        None
-                    } else {
-                        Some(sale_price)
-                    },
-                };
-
-                let Some(name) =
-                    Self::format_nested_name(&product_title, &variation, &attribute_mapping)?
-                else {
-                    // none indicating extra product that is not
-                    // shown to public
-                    continue;
-                };
-
-                let new_result = CrawlResult::new(
-                    name,
-                    nested_product.url.clone(),
-                    price,
-                    retailer_name,
-                    nested_product.category,
-                )
-                .with_image_url(variation.image.url);
-
-                results.push(new_result);
+        for variation in product_variations {
+            if !variation.is_in_stock {
+                continue;
             }
 
-            sleep(Duration::from_secs(CRAWL_COOLDOWN_SECS)).await;
+            let regular_price = price_to_cents(variation.display_regular_price.to_string())?;
+            let sale_price = price_to_cents(variation.display_price.to_string())?;
+
+            let price = Price {
+                regular_price,
+                sale_price: if regular_price == sale_price {
+                    None
+                } else {
+                    Some(sale_price)
+                },
+            };
+
+            let Some(name) =
+                Self::format_nested_name(&product_title, &variation, &attribute_mapping)?
+            else {
+                // none indicating extra product that is not
+                // shown to public
+                continue;
+            };
+
+            let new_result = CrawlResult::new(name, url.clone(), price, retailer_name, category)
+                .with_image_url(variation.image.url);
+
+            results.push(new_result);
         }
+
+        sleep(Duration::from_secs(CRAWL_COOLDOWN_SECS)).await;
 
         Ok(results)
     }
