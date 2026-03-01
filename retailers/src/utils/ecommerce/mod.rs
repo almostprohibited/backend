@@ -1,4 +1,5 @@
 pub(crate) mod bigcommerce;
+mod lightspeed;
 mod odoo;
 pub(crate) mod shopify;
 mod woocommerce;
@@ -7,6 +8,7 @@ pub(crate) use bigcommerce::nested::BigCommerceNested;
 pub(crate) use bigcommerce::normal::BigCommerce;
 #[allow(unused_imports)]
 pub(crate) use bigcommerce::sitemap::BigCommerceSitemap;
+pub(crate) use lightspeed::parser::LightSpeed;
 pub(crate) use odoo::parser::Odoo;
 pub(crate) use shopify::parser::Shopify;
 pub(crate) use woocommerce::nested::WooCommerceNested;

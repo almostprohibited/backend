@@ -68,6 +68,8 @@ pub enum RetailerName {
     FrontierFirearms,
     GoldNLoan,
     Crafm,
+    CabinCreekSupply,
+    Latulippe,
 }
 
 impl RetailerName {

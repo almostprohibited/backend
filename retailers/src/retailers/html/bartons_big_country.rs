@@ -18,9 +18,10 @@ use crate::{
     errors::RetailerError,
     structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
     utils::{
-        conversions::{price_to_cents, string_to_u64},
+        conversions::price_to_cents,
+        ecommerce::LightSpeed,
         generic_sitemap::get_search_queries,
-        html::{element_extract_attr, element_to_text, extract_element_from_element},
+        html::{element_extract_attr, extract_element_from_element},
     },
 };
 
@@ -315,16 +316,6 @@ impl HtmlRetailer for BartonsBigCountry {
     }
 
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {
-        let fragment = Html::parse_document(response);
-        let page_number_selector =
-            Selector::parse("div.pager > ul > li:not(.active).number > a").unwrap();
-
-        let mut page_links = fragment.select(&page_number_selector);
-
-        let Some(last_page_element) = page_links.next_back() else {
-            return Ok(0);
-        };
-
-        string_to_u64(element_to_text(last_page_element))
+        LightSpeed::get_max_pages(response, "div.pager > ul > li:not(.active).number > a")
     }
 }

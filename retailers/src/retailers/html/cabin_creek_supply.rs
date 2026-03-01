@@ -13,22 +13,22 @@ use crate::{
 };
 
 const PAGE_LIMIT: u64 = 100;
-const SITE_MAP: &str = "https://www.solelyoutdoors.com/sitemap.xml";
-const PRODUCT_BASE_URL: &str = "https://www.solelyoutdoors.com/";
+const SITE_MAP: &str = "https://www.cabincreeksupply.ca/sitemap.xml";
+const PRODUCT_BASE_URL: &str = "https://www.cabincreeksupply.ca/";
 const URL: &str =
-    "https://www.solelyoutdoors.com/{category}/page{page}.html?limit={page_limit}&sort=default";
+    "https://www.cabincreeksupply.ca/{category}/page{page}.html?limit={page_limit}&sort=default";
 
-pub struct SoleyOutdoors {
+pub struct CabinCreekSupply {
     search_queries: Vec<HtmlSearchQuery>,
 }
 
-impl Default for SoleyOutdoors {
+impl Default for CabinCreekSupply {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl SoleyOutdoors {
+impl CabinCreekSupply {
     pub fn new() -> Self {
         Self {
             search_queries: Vec::new(),
@@ -36,34 +36,27 @@ impl SoleyOutdoors {
     }
 }
 
-impl HtmlRetailerSuper for SoleyOutdoors {}
+impl HtmlRetailerSuper for CabinCreekSupply {}
 
 #[async_trait]
-impl Retailer for SoleyOutdoors {
+impl Retailer for CabinCreekSupply {
     fn get_retailer_name(&self) -> RetailerName {
-        RetailerName::SoleyOutdoors
+        RetailerName::CabinCreekSupply
     }
 
     async fn init(&mut self) -> Result<(), RetailerError> {
         let queries = get_search_queries(SITE_MAP, PRODUCT_BASE_URL, |link| {
-            if link.contains("firearms/barrels/") {
-                return None;
-            }
-
-            if link.starts_with("opitcs-plus/") // listen, soley is the one that misspelled optics here
-                || link.starts_with("reloading/")
-                || link.starts_with("shooting-firearm-acessories/")
-            {
+            if ["optics", "shooting/shooting-accessories"].contains(&link.as_str()) {
                 return Some(HtmlSearchQuery {
                     term: link,
                     category: Category::Other,
                 });
-            } else if link.starts_with("ammunition/") {
+            } else if link == "shooting/ammunition" {
                 return Some(HtmlSearchQuery {
                     term: link,
                     category: Category::Ammunition,
                 });
-            } else if link.starts_with("firearms/") {
+            } else if link == "shooting/firearms" {
                 return Some(HtmlSearchQuery {
                     term: link,
                     category: Category::Firearm,
@@ -81,7 +74,7 @@ impl Retailer for SoleyOutdoors {
 }
 
 #[async_trait]
-impl HtmlRetailer for SoleyOutdoors {
+impl HtmlRetailer for CabinCreekSupply {
     async fn build_page_request(
         &self,
         page_num: u64,
@@ -106,7 +99,7 @@ impl HtmlRetailer for SoleyOutdoors {
     ) -> Result<Vec<CrawlResult>, RetailerError> {
         LightSpeed::parse_products(
             PRODUCT_BASE_URL,
-            "div.product-grid > div.product-block-holder > div",
+            "div.rowmargin > div.product-block-holder",
             response,
             search_term,
             self.get_retailer_name(),
@@ -119,6 +112,9 @@ impl HtmlRetailer for SoleyOutdoors {
     }
 
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {
-        LightSpeed::get_max_pages(response, "div.paginate > ul > li:not(.active).number > a")
+        LightSpeed::get_max_pages(
+            response,
+            "div.collection-pagination ul > li:not(.active).number > a",
+        )
     }
 }
