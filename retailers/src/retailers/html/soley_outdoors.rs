@@ -106,7 +106,7 @@ impl HtmlRetailer for SoleyOutdoors {
     ) -> Result<Vec<CrawlResult>, RetailerError> {
         LightSpeed::parse_products(
             PRODUCT_BASE_URL,
-            "div.product-grid > div.product-block-holder > div",
+            "div.product-grid > div.product-block-holder",
             response,
             search_term,
             self.get_retailer_name(),
