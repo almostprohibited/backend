@@ -87,20 +87,31 @@ impl WooCommerce {
             sale_price: None,
         };
 
-        let regular_non_sale_price = extract_element_from_element(
-            element,
-            "span.price :not(ins):not(del) > span.amount > bdi",
-        );
+        let price_wrapper = extract_element_from_element(element, "span.price")?;
+
+        // this is to handle the gun dealer wrapping prices in a <span>
+        let price_element =
+            match extract_element_from_element(price_wrapper, ":scope > span.electro-price") {
+                Ok(element) => element,
+                Err(_) => price_wrapper,
+            };
+
+        let regular_non_sale_price =
+            extract_element_from_element(price_element, ":scope > span.amount > bdi");
 
         match regular_non_sale_price {
             Ok(regular_price_element) => {
                 price.regular_price = price_to_cents(element_to_text(regular_price_element))?;
             }
             Err(_) => {
-                let sale_price =
-                    extract_element_from_element(element, "span.price ins > span.amount > bdi")?;
-                let previous_price =
-                    extract_element_from_element(element, "span.price del > span.amount > bdi")?;
+                let sale_price = extract_element_from_element(
+                    price_element,
+                    ":scope > ins > span.amount > bdi",
+                )?;
+                let previous_price = extract_element_from_element(
+                    price_element,
+                    ":scope > del > span.amount > bdi",
+                )?;
 
                 price.regular_price = price_to_cents(element_to_text(previous_price))?;
                 price.sale_price = Some(price_to_cents(element_to_text(sale_price))?);
