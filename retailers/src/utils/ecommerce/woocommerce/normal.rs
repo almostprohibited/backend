@@ -24,10 +24,15 @@ const DEFAULT_PRODUCT_URL_SELECTORS: [&str; 2] = [
     "a.woocommerce-LoopProduct-link",
 ];
 
+const DEFAULT_IMAGE_URL_SELECTORS: [&str; 2] = [
+    "a.product-image-link > img",
+    "a.woocommerce-LoopProduct-link img",
+];
+
 pub(crate) struct WooCommerceBuilder {
     product_name_selector: Vec<String>,
     product_url_selector: Vec<String>,
-    image_url_selector: String,
+    image_url_selector: Vec<String>,
 }
 
 impl WooCommerceBuilder {
@@ -41,7 +46,10 @@ impl WooCommerceBuilder {
                 .iter()
                 .map(|selector| selector.to_string())
                 .collect(),
-            image_url_selector: "a.product-image-link > img".into(),
+            image_url_selector: DEFAULT_IMAGE_URL_SELECTORS
+                .iter()
+                .map(|selector| selector.to_string())
+                .collect(),
         }
     }
 
@@ -58,7 +66,7 @@ impl WooCommerceBuilder {
     }
 
     pub(crate) fn with_image_url_selector(mut self, selector: impl Into<String>) -> Self {
-        self.image_url_selector = selector.into();
+        self.image_url_selector = vec![selector.into()];
 
         self
     }
@@ -79,8 +87,10 @@ impl WooCommerce {
             sale_price: None,
         };
 
-        let regular_non_sale_price =
-            extract_element_from_element(element, "span.price > span.amount > bdi");
+        let regular_non_sale_price = extract_element_from_element(
+            element,
+            "span.price :not(ins):not(del) > span.amount > bdi",
+        );
 
         match regular_non_sale_price {
             Ok(regular_price_element) => {
@@ -88,9 +98,9 @@ impl WooCommerce {
             }
             Err(_) => {
                 let sale_price =
-                    extract_element_from_element(element, "span.price > ins > span.amount > bdi")?;
+                    extract_element_from_element(element, "span.price ins > span.amount > bdi")?;
                 let previous_price =
-                    extract_element_from_element(element, "span.price > del > span.amount > bdi")?;
+                    extract_element_from_element(element, "span.price del > span.amount > bdi")?;
 
                 price.regular_price = price_to_cents(element_to_text(previous_price))?;
                 price.sale_price = Some(price_to_cents(element_to_text(sale_price))?);
@@ -115,8 +125,20 @@ impl WooCommerce {
     }
 
     fn get_image_url(&self, element: ElementRef) -> Result<String, RetailerError> {
-        let image_element =
-            extract_element_from_element(element, self.options.image_url_selector.clone())?;
+        let image_element = self
+            .options
+            .image_url_selector
+            .iter()
+            .find_map(|selector| {
+                if let Ok(element) = extract_element_from_element(element, selector) {
+                    return Some(element);
+                }
+
+                None
+            })
+            .ok_or(RetailerError::HtmlMissingElement(
+                "Missing valid image element".to_string(),
+            ))?;
 
         for attr in VALID_IMAGE_ATTRS {
             if let Ok(data_src) = element_extract_attr(image_element, attr)

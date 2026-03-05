@@ -67,9 +67,7 @@ impl HtmlRetailer for GreatNorthGun {
         let product_selector =
             Selector::parse("div.woocommerce > ul.products > li.product").unwrap();
 
-        let woocommerce_helper = WooCommerceBuilder::default()
-            .with_image_url_selector("a.woocommerce-LoopProduct-link > img")
-            .build();
+        let woocommerce_helper = WooCommerceBuilder::default().build();
 
         for product in html.select(&product_selector) {
             results.push(woocommerce_helper.parse_product(

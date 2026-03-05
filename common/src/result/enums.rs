@@ -70,6 +70,7 @@ pub enum RetailerName {
     Crafm,
     CabinCreekSupply,
     Latulippe,
+    TheGunDealer,
 }
 
 impl RetailerName {

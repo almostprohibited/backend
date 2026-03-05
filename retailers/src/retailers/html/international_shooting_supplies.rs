@@ -71,7 +71,6 @@ impl HtmlRetailer for InternationalShootingSupplies {
             .with_product_name_selector(
                 "div.astra-shop-summary-wrap > a.ast-loop-product__link > h2.woocommerce-loop-product__title"
             )
-            .with_image_url_selector("a.woocommerce-LoopProduct-link > img")
             .build();
 
         for product in html.select(&product_selector) {
