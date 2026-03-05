@@ -88,8 +88,6 @@ impl Retailer for TheGunDealer {
             self.search_queries.extend(queries);
         }
 
-        println!("{:?}", self.search_queries);
-
         Ok(())
     }
 
