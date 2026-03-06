@@ -10,7 +10,10 @@ use tracing::debug;
 use crate::{
     errors::RetailerError,
     structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
-    utils::ecommerce::{WooCommerce, WooCommerceBuilder},
+    utils::{
+        ecommerce::{WooCommerce, WooCommerceBuilder},
+        html::element_to_text,
+    },
 };
 
 const MAX_PER_PAGE: &str = "48";
@@ -73,6 +76,12 @@ impl HtmlRetailer for DanteSports {
             .build();
 
         for product in html.select(&product_selector) {
+            // hacky way to avoid the weird product they have for
+            // special pricing
+            if element_to_text(product).contains("PRICE ON REQUEST") {
+                continue;
+            }
+
             results.push(woocommerce_helper.parse_product(
                 product,
                 self.get_retailer_name(),
