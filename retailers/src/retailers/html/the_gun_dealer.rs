@@ -13,6 +13,7 @@ use crate::{
     utils::{
         ecommerce::{WooCommerce, WooCommerceBuilder},
         generic_sitemap::get_search_queries,
+        html::extract_element_from_element,
     },
 };
 
@@ -130,6 +131,12 @@ impl HtmlRetailer for TheGunDealer {
             .build();
 
         for product in html.select(&product_selector) {
+            // they have products listed as in stock, but with no price
+            if extract_element_from_element(product, "span.price span.amount").is_err() {
+                debug!("Skipping product, missing price");
+                continue;
+            }
+
             let new_product = woocommerce_helper.parse_product(
                 product,
                 self.get_retailer_name(),
