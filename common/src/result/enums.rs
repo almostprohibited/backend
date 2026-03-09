@@ -71,6 +71,7 @@ pub enum RetailerName {
     CabinCreekSupply,
     Latulippe,
     TheGunDealer,
+    PDEnterprises,
 }
 
 impl RetailerName {

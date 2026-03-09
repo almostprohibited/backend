@@ -29,6 +29,8 @@ const DEFAULT_IMAGE_URL_SELECTORS: [&str; 2] = [
     "a.woocommerce-LoopProduct-link img",
 ];
 
+const PRICE_WRAPPER: [&str; 2] = ["span.price", "div.price"];
+
 pub(crate) struct WooCommerceBuilder {
     product_name_selector: Vec<String>,
     product_url_selector: Vec<String>,
@@ -81,13 +83,39 @@ pub(crate) struct WooCommerce {
 }
 
 impl WooCommerce {
+    fn select_element_list<'a>(
+        element: ElementRef<'a>,
+        selector_list: &Vec<String>,
+        error: RetailerError,
+    ) -> Result<ElementRef<'a>, RetailerError> {
+        let found_element = selector_list
+            .iter()
+            .find_map(|selector| {
+                if let Ok(element) = extract_element_from_element(element, selector) {
+                    return Some(element);
+                }
+
+                None
+            })
+            .ok_or(error)?;
+
+        Ok(found_element)
+    }
+
     fn parse_price(element: ElementRef) -> Result<Price, RetailerError> {
         let mut price = Price {
             regular_price: 0,
             sale_price: None,
         };
 
-        let price_wrapper = extract_element_from_element(element, "span.price")?;
+        let price_wrapper = Self::select_element_list(
+            element,
+            &PRICE_WRAPPER
+                .iter()
+                .map(|selector| selector.to_string())
+                .collect(),
+            RetailerError::HtmlMissingElement("Missing price wrapper".to_string()),
+        )?;
 
         // this is to handle the gun dealer wrapping prices in a <span>
         let price_element =
@@ -136,20 +164,11 @@ impl WooCommerce {
     }
 
     fn get_image_url(&self, element: ElementRef) -> Result<String, RetailerError> {
-        let image_element = self
-            .options
-            .image_url_selector
-            .iter()
-            .find_map(|selector| {
-                if let Ok(element) = extract_element_from_element(element, selector) {
-                    return Some(element);
-                }
-
-                None
-            })
-            .ok_or(RetailerError::HtmlMissingElement(
-                "Missing valid image element".to_string(),
-            ))?;
+        let image_element = Self::select_element_list(
+            element,
+            &self.options.image_url_selector,
+            RetailerError::HtmlMissingElement("Missing valid image element".to_string()),
+        )?;
 
         for attr in VALID_IMAGE_ATTRS {
             if let Ok(data_src) = element_extract_attr(image_element, attr)
@@ -172,35 +191,17 @@ impl WooCommerce {
         retailer: RetailerName,
         category: Category,
     ) -> Result<CrawlResult, RetailerError> {
-        let url_element = self
-            .options
-            .product_url_selector
-            .iter()
-            .find_map(|selector| {
-                if let Ok(element) = extract_element_from_element(element, selector) {
-                    return Some(element);
-                }
+        let url_element = Self::select_element_list(
+            element,
+            &self.options.product_url_selector,
+            RetailerError::HtmlMissingElement("Missing valid URL element".to_string()),
+        )?;
 
-                None
-            })
-            .ok_or(RetailerError::HtmlMissingElement(
-                "Missing valid URL element".to_string(),
-            ))?;
-
-        let name_element = self
-            .options
-            .product_name_selector
-            .iter()
-            .find_map(|selector| {
-                if let Ok(element) = extract_element_from_element(element, selector) {
-                    return Some(element);
-                }
-
-                None
-            })
-            .ok_or(RetailerError::HtmlMissingElement(
-                "Missing valid name element".to_string(),
-            ))?;
+        let name_element = Self::select_element_list(
+            element,
+            &self.options.product_name_selector,
+            RetailerError::HtmlMissingElement("Missing valid name element".to_string()),
+        )?;
 
         let name = element_to_text(name_element);
         let url = element_extract_attr(url_element, "href")?;
