@@ -72,6 +72,7 @@ pub enum RetailerName {
     Latulippe,
     TheGunDealer,
     PDEnterprises,
+    EllwoodEpps,
 }
 
 impl RetailerName {
