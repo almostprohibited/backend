@@ -20,7 +20,11 @@ impl MatchStage {
             .search_query
             .query
             .split(" ")
-            .map(|term| format!("\"{term}\""))
+            // trim match instead of replace, I don't know what effect of
+            // getting rid of all double quotes does
+            // this is to deal with tanstack in the frontend default serializing
+            // numbers with wrapped quotes
+            .map(|term| format!("\"{}\"", term.trim_matches('"')))
             .collect::<Vec<String>>();
 
         terms.sort();
