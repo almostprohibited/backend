@@ -1,8 +1,11 @@
 mod al_simmons;
 mod bartons_big_country;
+mod budget_shooter_supply;
 mod bullseye_north;
 mod cabin_creek_supply;
 mod canadas_gun_store;
+// holding off on adding CanFirearm until I can look deeper into company
+// mod canfirearm;
 mod clinton_sporting_goods;
 mod crafm;
 mod dante_sports;
@@ -35,9 +38,12 @@ mod victory_ridge_sports;
 
 pub use al_simmons::AlSimmons;
 pub use bartons_big_country::BartonsBigCountry;
+pub use budget_shooter_supply::BudgetShooterSupply;
 pub use bullseye_north::BullseyeNorth;
 pub use cabin_creek_supply::CabinCreekSupply;
 pub use canadas_gun_store::CanadasGunStore;
+// holding off on adding CanFirearm until I can look deeper into company
+// pub use canfirearm::CanFirearm;
 pub use clinton_sporting_goods::ClintonSportingGoods;
 pub use crafm::Crafm;
 pub use dante_sports::DanteSports;

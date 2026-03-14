@@ -12,7 +12,7 @@ use crate::{
     },
 };
 
-const VALID_IMAGE_ATTRS: [&str; 3] = ["data-src", "src", "data-wood-src"];
+const VALID_IMAGE_ATTRS: [&str; 4] = ["data-src", "src", "data-wood-src", "data-lazy-src"];
 
 const DEFAULT_PRODUCT_NAME_SELECTORS: [&str; 2] = [
     "div.product-element-bottom > h3 > a",
