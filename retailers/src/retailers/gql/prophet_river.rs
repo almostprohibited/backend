@@ -15,8 +15,16 @@ use crate::{
 };
 
 fn parse_category(path_node: &str) -> CategoryMatch {
-    match path_node {
-        "/categories/rifles/" | "/categories/shotguns/" => CategoryMatch::Match(Category::Firearm),
+    let lowercase_path = path_node.to_ascii_lowercase();
+
+    if lowercase_path.starts_with("/categories/rifles/")
+        || lowercase_path.starts_with("/categories/shotguns/")
+        || lowercase_path == "/shotguns/"
+    {
+        return CategoryMatch::Match(Category::Firearm);
+    }
+
+    match lowercase_path.as_str() {
         "/ammunition/" => CategoryMatch::Match(Category::Ammunition),
         "/reloading-equipment/"
         | "/reloading-components/"

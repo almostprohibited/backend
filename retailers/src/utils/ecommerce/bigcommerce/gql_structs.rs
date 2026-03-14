@@ -55,6 +55,8 @@ impl ApiResponse {
             }
 
             let Some(category) = product.get_category(product_classifier) else {
+                debug!("Ignoring, unsupported category: {:?}", product);
+
                 continue;
             };
 
