@@ -52,12 +52,10 @@ impl Retailer for BudgetShooterSupply {
                 });
             }
 
-            // Some(HtmlSearchQuery {
-            //     term: link,
-            //     category: Category::Other,
-            // })
-
-            None
+            Some(HtmlSearchQuery {
+                term: link,
+                category: Category::Other,
+            })
         })
         .await?;
 
