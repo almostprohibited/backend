@@ -13,6 +13,7 @@ use crate::{
     utils::{
         ecommerce::{WooCommerce, WooCommerceBuilder},
         generic_sitemap::get_search_queries,
+        html::extract_element_from_element,
     },
 };
 
@@ -103,6 +104,13 @@ impl HtmlRetailer for BudgetShooterSupply {
         let woocommerce = WooCommerceBuilder::default().build();
 
         for element in fragment.select(&product_selector) {
+            if extract_element_from_element(element, "div.wrapp-product-price > span.price")
+                .is_err()
+            {
+                debug!("Ignoring in stock product with no price");
+                continue;
+            }
+
             results.push(woocommerce.parse_product(
                 element,
                 self.get_retailer_name(),
