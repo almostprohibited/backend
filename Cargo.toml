@@ -28,11 +28,11 @@ reqwest-retry = "0.9.1"
 reqwest-middleware = "0.5.1"
 serde = "1.0.228"
 serde_json = "1.0.149"
-serde_with = "3.17.0"
+serde_with = "3.18.0"
 tokio = "1.50.0"
 scraper = { version = "0.25.0", features = ["atomic"] }
 tracing = "0.1.44"
-tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 async-trait = "0.1.88"
 mongodb = "3.5.1"
 axum = "0.8.8"
@@ -48,7 +48,7 @@ strum_macros = "0.28.0"
 base64 = "0.22.1"
 futures = "0.3.32"
 openssl = { version = "0.10", features = ["vendored"] }
-clap = { version = "4.5.60", features = ["derive"] }
+clap = { version = "4.6.0", features = ["derive"] }
 mimalloc = "0.1.47"
 chrono = "0.4.44"
 opentelemetry = { version = "0.31.0", features = ["metrics"] }
