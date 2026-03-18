@@ -76,6 +76,7 @@ pub enum RetailerName {
     // holding off on adding CanFirearm until I can look deeper into company
     // CanFirearm,
     BudgetShooterSupply,
+    WolverineSupplies,
 }
 
 impl RetailerName {

@@ -3,6 +3,7 @@ use common::result::{
     enums::{Category, RetailerName},
 };
 use scraper::{ElementRef, Html, Selector};
+use tracing::debug;
 
 use crate::{
     errors::RetailerError,
@@ -25,10 +26,8 @@ impl BigCommerce {
     }
 
     pub(super) fn parse_price(element: ElementRef) -> Result<Price, RetailerError> {
-        let main_price_element = extract_element_from_element(
-            element,
-            "div.price-section.price-section--withoutTax.current-price > span.price",
-        )?;
+        let main_price_element =
+            extract_element_from_element(element, "span[data-product-price-without-tax].price")?;
         let main_price_text = element_to_text(main_price_element);
 
         let mut price = Price {
@@ -38,12 +37,27 @@ impl BigCommerce {
 
         if let Ok(non_sale_element) = extract_element_from_element(
             element,
-            "div.price-section.price-section--withoutTax.non-sale-price > span.price",
+            "span[data-product-non-sale-price-without-tax].price",
         ) {
-            price.sale_price = Some(price.regular_price);
+            // handle wolverine supplies combining english and price into same element
+            // eg. "Was: $979.99"
+            let text = element_to_text(non_sale_element);
 
-            let non_sale_text = element_to_text(non_sale_element);
-            price.regular_price = price_to_cents(non_sale_text)?;
+            debug!("Unwrapping sale string for parsing: {text}");
+
+            let non_sale_texts = text.split(" ");
+
+            for chunk in non_sale_texts {
+                match price_to_cents(chunk.to_string()) {
+                    Ok(sale_price) => {
+                        price.sale_price = Some(price.regular_price);
+                        price.regular_price = sale_price;
+
+                        break;
+                    }
+                    Err(_) => {}
+                }
+            }
         }
 
         Ok(price)

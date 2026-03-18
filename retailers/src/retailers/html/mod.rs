@@ -35,6 +35,7 @@ mod the_gun_dealer;
 mod tillsonburg_gun_shop;
 mod true_north_arms;
 mod victory_ridge_sports;
+mod wolverine_supplies;
 
 pub use al_simmons::AlSimmons;
 pub use bartons_big_country::BartonsBigCountry;
@@ -73,3 +74,4 @@ pub use the_gun_dealer::TheGunDealer;
 pub use tillsonburg_gun_shop::Tillsonburg;
 pub use true_north_arms::TrueNorthArms;
 pub use victory_ridge_sports::VictoryRidgeSports;
+pub use wolverine_supplies::WolverineSupplies;
