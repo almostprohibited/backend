@@ -22,7 +22,7 @@ const MAX_RETRY: u32 = 3;
 const USER_AGENT: &str =
     "almostprohibited/1.0 (+https://almostprohibited.ca/contact/; hello@almostprohibited.ca)";
 
-const PROXY_DOMAINS: [&str; 1] = ["www.italiansportinggoods.com"];
+const PROXY_DOMAINS: [&str; 2] = ["www.italiansportinggoods.com", "ellwoodepps.com"];
 
 static REQWEST_CLIENT: OnceLock<ClientWithMiddleware> = OnceLock::new();
 
