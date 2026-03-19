@@ -46,6 +46,10 @@ impl HtmlRetailerSuper for BudgetShooterSupply {}
 impl Retailer for BudgetShooterSupply {
     async fn init(&mut self) -> Result<(), RetailerError> {
         let queries = get_search_queries(SITEMAP_URL, BASE_URL, |link| {
+            if link == "pal-ups" {
+                return None;
+            }
+
             if link.starts_with("ammunition/") {
                 return Some(HtmlSearchQuery {
                     term: link,
