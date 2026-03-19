@@ -7,8 +7,8 @@ use retailers::{
     gql::{AlFlahertys, CalgaryShootingCentre, ProphetRiver, SelectShootingSupplies},
     html::{
         AlSimmons, BartonsBigCountry, BudgetShooterSupply, BullseyeNorth, CabinCreekSupply,
-        CanadasGunStore, ClintonSportingGoods, Crafm, DanteSports, DominionOutdoors, EllwoodEpps,
-        FirearmsOutletCanada, FrontierFirearms, G4CGunStore, GoldNLoan, GreatNorthGun,
+        CanFirearm, CanadasGunStore, ClintonSportingGoods, Crafm, DanteSports, DominionOutdoors,
+        EllwoodEpps, FirearmsOutletCanada, FrontierFirearms, G4CGunStore, GoldNLoan, GreatNorthGun,
         InterSurplus, InternationalShootingSupplies, ItalianSportingGoods, Latulippe, LeverArms,
         MagDump, Marstar, PDEnterprises, RangeviewSports, Rdsc, ReliableGun, SJHardware,
         SoleyOutdoors, Tenda, TheAmmoSource, TheGunDealer, Tillsonburg, TrueNorthArms,
@@ -62,8 +62,7 @@ fn html_retailers() -> HashMap<RetailerName, HtmlRetailerSuperFactory> {
     retailers.insert(RetailerName::TheGunDealer, || Box::new(TheGunDealer::new()));
     retailers.insert(RetailerName::PDEnterprises, || Box::new(PDEnterprises::new()));
     retailers.insert(RetailerName::EllwoodEpps, || Box::new(EllwoodEpps::new()));
-    // holding off on adding CanFirearm until I can look deeper into company
-    // retailers.insert(RetailerName::CanFirearm, || Box::new(CanFirearm::new()));
+    retailers.insert(RetailerName::CanFirearm, || Box::new(CanFirearm::new()));
     retailers.insert(RetailerName::BudgetShooterSupply, || Box::new(BudgetShooterSupply::new()));
     retailers.insert(RetailerName::WolverineSupplies, || Box::new(WolverineSupplies::new()));
 
