@@ -32,6 +32,7 @@ mongodb_connector.workspace = true
 common.workspace = true
 discord.workspace = true
 image_cache.workspace = true
+openid_connect.workspace = true
 
 tokio = { workspace = true, features = ["full"] }
 tracing.workspace = true

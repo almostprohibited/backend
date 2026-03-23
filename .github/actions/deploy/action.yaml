@@ -34,6 +34,14 @@ inputs:
     type: string
     required: true
     description: "Reqwest client HTTP proxy address"
+  oidc-client-id-discord:
+    type: string
+    required: true
+    description: "Discord oauth2 client ID"
+  oidc-client-secret-discord:
+    type: string
+    required: true
+    description: "Discord oauth2 client secret"
 
 runs:
   using: "composite"
@@ -76,6 +84,8 @@ runs:
         export DISCORD_INDEXER_WEBHOOK_URL=${{ inputs.discord-indexer-webhook-url }}
         export CLOUDFLARE_TURNSTILE_SECRET_KEY=${{ inputs.cloudflare-turnstile-secret-key }}
         export PROXY_ADDRESS=${{ inputs.proxy-address }}
+        export OIDC_CLIENT_ID_DISCORD=${{ inputs.oidc-client-id-discord }}
+        export OIDC_CLIENT_SECRET_DISCORD=${{ inputs.oidc-secret-id-discord }}
 
         docker compose -f docker-compose.yaml pull backend-${{ inputs.deployment-stage }}
         docker compose -f docker-compose.yaml down backend-${{ inputs.deployment-stage }}

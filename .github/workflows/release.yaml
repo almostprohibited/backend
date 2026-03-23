@@ -45,3 +45,5 @@ jobs:
           discord-indexer-webhook-url: ${{ secrets.DISCORD_INDEXER_WEBHOOK_URL }}
           cloudflare-turnstile-secret-key: ${{ secrets.CLOUDFLARE_TURNSTILE_SECRET_KEY }}
           proxy-address: ${{ secrets.PROXY_ADDRESS }}
+          oidc-client-id-discord: ${{ secrets.OIDC_CLIENT_ID_DISCORD }}
+          oidc-client-secret-discord: ${{ secrets.OIDC_CLIENT_SECRET_DISCORD }}

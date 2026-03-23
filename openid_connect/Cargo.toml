@@ -1,0 +1,18 @@
+[package]
+name = "openid_connect"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "openid_connect"
+path = "./src/lib.rs"
+doctest = false
+test = false
+doc = false
+
+[dependencies]
+common.workspace = true
+
+openidconnect.workspace = true
+async-trait.workspace = true
+tracing.workspace = true

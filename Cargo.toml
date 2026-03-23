@@ -22,6 +22,7 @@ common = { path = "./common" }
 metrics = { path = "./metrics" }
 discord = { path = "./discord" }
 image_cache = { path = "./image_cache" }
+openid_connect = { path = "./openid_connect" }
 
 reqwest = "0.13.2"
 reqwest-retry = "0.9.1"
@@ -59,3 +60,4 @@ itertools = "0.14.0"
 # note: don't use this library to do anything
 # it's only here to solve site ground challenges
 sha1 = "0.10.6"
+openidconnect = { version = "4.0.1", features = ["reqwest"] }

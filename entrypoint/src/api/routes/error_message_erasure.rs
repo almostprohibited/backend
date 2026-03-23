@@ -1,5 +1,5 @@
 use axum::{
-    extract::rejection::{JsonRejection, QueryRejection},
+    extract::rejection::{JsonRejection, PathRejection, QueryRejection},
     http::StatusCode,
     response::{IntoResponse, Response},
 };
@@ -12,6 +12,8 @@ pub(crate) enum ApiError {
     QueryExtractorRejection(#[from] QueryRejection),
     #[error(transparent)]
     JsonExtractorRejection(#[from] JsonRejection),
+    #[error(transparent)]
+    PathExtractorRejection(#[from] PathRejection),
 }
 
 impl IntoResponse for ApiError {
@@ -19,6 +21,7 @@ impl IntoResponse for ApiError {
         let (status, message) = match self {
             Self::QueryExtractorRejection(rejection) => (rejection.status(), rejection.body_text()),
             Self::JsonExtractorRejection(rejection) => (rejection.status(), rejection.body_text()),
+            Self::PathExtractorRejection(rejection) => (rejection.status(), rejection.body_text()),
         };
 
         debug!("Failed to parse incoming request: {}, {}", status, message);

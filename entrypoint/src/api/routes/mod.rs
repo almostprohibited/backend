@@ -1,3 +1,4 @@
+pub(crate) mod auth;
 pub(crate) mod contact;
 pub(crate) mod error_message_erasure;
 pub(crate) mod history;

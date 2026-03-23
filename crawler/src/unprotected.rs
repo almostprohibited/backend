@@ -1,5 +1,6 @@
 use std::{env, str::FromStr, sync::OnceLock, time::Duration};
 
+use common::constants::PROXY_ADDRESS;
 use reqwest::{
     ClientBuilder as BaseClientBuilder, Proxy, Url,
     header::{HeaderMap, HeaderName, HeaderValue},
@@ -41,7 +42,7 @@ impl UnprotectedCrawler {
                 .cookie_store(true)
                 .connection_verbose(true);
 
-            if let Ok(proxy_address) = env::var("PROXY_ADDRESS") {
+            if let Ok(proxy_address) = env::var(PROXY_ADDRESS) {
                 debug!("Configuring proxy");
 
                 let proxy_url = Url::parse(&proxy_address).expect("Valid proxy domain");
