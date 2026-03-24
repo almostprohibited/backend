@@ -13,33 +13,32 @@ use crate::{
     utils::ecommerce::Magento,
 };
 
-const ITEMS_PER_PAGE: u64 = 25;
-const URL: &str = "https://www.italiansportinggoods.com/{category}.html?product_list_limit={items_per_page}&p={page}";
+const URL: &str = "https://x-reload.com/{category}.html?p={page}&product_list_limit=96&stock=1";
 
-pub struct ItalianSportingGoods;
+pub struct XReload;
 
-impl Default for ItalianSportingGoods {
+impl Default for XReload {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl ItalianSportingGoods {
+impl XReload {
     pub fn new() -> Self {
         Self {}
     }
 }
 
-impl HtmlRetailerSuper for ItalianSportingGoods {}
+impl HtmlRetailerSuper for XReload {}
 
-impl Retailer for ItalianSportingGoods {
+impl Retailer for XReload {
     fn get_retailer_name(&self) -> RetailerName {
-        RetailerName::ItalianSportingGoods
+        RetailerName::XReload
     }
 }
 
 #[async_trait]
-impl HtmlRetailer for ItalianSportingGoods {
+impl HtmlRetailer for XReload {
     async fn build_page_request(
         &self,
         page_num: u64,
@@ -47,12 +46,13 @@ impl HtmlRetailer for ItalianSportingGoods {
     ) -> Result<Request, RetailerError> {
         let url = URL
             .replace("{category}", &search_term.term)
-            .replace("{page}", &(page_num + 1).to_string())
-            .replace("{items_per_page}", &ITEMS_PER_PAGE.to_string());
+            .replace("{page}", (page_num + 1).to_string().as_str());
 
         debug!("Setting page to {}", url);
 
-        Ok(RequestBuilder::new().set_url(url).build())
+        let request = RequestBuilder::new().set_url(url).build();
+
+        Ok(request)
     }
 
     async fn parse_response(
@@ -62,11 +62,11 @@ impl HtmlRetailer for ItalianSportingGoods {
     ) -> Result<Vec<CrawlResult>, RetailerError> {
         let mut results: Vec<CrawlResult> = Vec::new();
 
-        let html = Html::parse_document(response);
+        let fragment = Html::parse_document(response);
 
-        let product_selector = Selector::parse("div.product-item-info").unwrap();
+        let product_selector = Selector::parse("ol.products > li.product").unwrap();
 
-        for element in html.select(&product_selector) {
+        for element in fragment.select(&product_selector) {
             match Magento::is_valid_product(element) {
                 Ok(is_valid) => {
                     if !is_valid {
@@ -87,34 +87,39 @@ impl HtmlRetailer for ItalianSportingGoods {
     }
 
     fn get_search_terms(&self) -> Vec<HtmlSearchQuery> {
-        let mut terms = Vec::from_iter([
+        // unfortunately I don't have a way to filter out ammo specifically
+        // otherwise, I would have just sent it with /products/
+
+        let mut categories: Vec<HtmlSearchQuery> = vec![
+            // they don't have firearms, but include anyways
             HtmlSearchQuery {
-                term: "firearms".into(),
+                term: "shooting/firearms".into(),
                 category: Category::Firearm,
             },
             HtmlSearchQuery {
-                term: "ammunition".into(),
+                term: "products/ammunition".into(),
                 category: Category::Ammunition,
             },
-        ]);
-
-        let other_terms = [
-            "optics",
-            "reloading",
-            "shooting",
-            "ar-accessories",
-            "gun-care",
-            "gun-cases-and-storage",
         ];
 
-        for other in other_terms {
-            terms.push(HtmlSearchQuery {
-                term: other.into(),
+        for category in [
+            "products/reloading-components",
+            "products/reloading",
+            "products/shotshell-reloading",
+            "shooting/cleaning-chemicals",
+            "shooting/gun-parts-accessories",
+            "shooting/shooting-acc",
+            "shooting/firearm-safe",
+            "shooting/tools",
+            "optics",
+        ] {
+            categories.push(HtmlSearchQuery {
+                term: category.into(),
                 category: Category::Other,
             });
         }
 
-        terms
+        categories
     }
 
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {

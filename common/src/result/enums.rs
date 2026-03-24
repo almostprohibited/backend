@@ -76,6 +76,7 @@ pub enum RetailerName {
     CanFirearm,
     BudgetShooterSupply,
     WolverineSupplies,
+    XReload,
 }
 
 impl RetailerName {
