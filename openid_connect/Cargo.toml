@@ -16,3 +16,6 @@ common.workspace = true
 openidconnect.workspace = true
 async-trait.workspace = true
 tracing.workspace = true
+tokio.workspace = true
+lru.workspace = true
+thiserror.workspace = true

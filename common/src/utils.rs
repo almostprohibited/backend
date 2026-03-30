@@ -3,6 +3,9 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
+use mongodb::bson::oid::ObjectId;
+use serde::{Deserialize, Deserializer, de::Error};
+
 const ONE_DAY_MINUTES: i64 = 1440;
 
 pub fn get_current_time() -> u64 {
@@ -13,7 +16,7 @@ pub fn get_current_time() -> u64 {
 }
 
 pub fn is_beta_environment() -> bool {
-    env::var("STAGE").unwrap_or_default() == "beta"
+    env::var("STAGE").unwrap_or("beta".to_string()) == "beta"
 }
 
 /// Returns the UNIX timestamp of whatever `today - delta_days`
@@ -25,4 +28,17 @@ pub fn normalized_relative_days(delta_days: i64) -> i64 {
     let offset_time = current_time - past_days;
 
     (offset_time / ONE_DAY_MINUTES) * ONE_DAY_MINUTES
+}
+
+pub(crate) fn object_id_to_string<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value: Option<ObjectId> = Option::deserialize(deserializer)?;
+
+    let Some(object_id) = value else {
+        return Err(Error::custom("field is not MongoDB ObjectId"));
+    };
+
+    Ok(Some(object_id.to_string()))
 }

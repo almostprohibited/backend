@@ -51,3 +51,6 @@ clap.workspace = true
 mimalloc.workspace = true
 async-trait.workspace = true
 chrono.workspace = true
+rand.workspace = true
+sha2.workspace = true
+base64.workspace = true

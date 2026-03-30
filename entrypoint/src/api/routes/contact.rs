@@ -1,6 +1,8 @@
 use std::env;
 use std::sync::Arc;
 
+use crate::constants::IP_HEADER;
+use crate::helpers::get_ip_addr;
 use crate::{ServerState, routes::error_message_erasure::ApiError};
 
 use axum::debug_handler;
@@ -18,7 +20,6 @@ use serde_with::NoneAsEmptyString;
 use serde_with::serde_as;
 use tracing::error;
 
-const IP_HEADER: &str = "X-Real-IP";
 const CLOUDFLARE_SITE_VERIFY: &str = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 
 #[derive(Deserialize, Debug)]
@@ -51,7 +52,7 @@ pub(crate) async fn contact_handler(
     State(state): State<Arc<ServerState>>,
     WithRejection(Json(json), _): WithRejection<Json<Payload>, ApiError>,
 ) -> Result<impl IntoResponse, StatusCode> {
-    let Some(ip_addr_header) = headers.get(IP_HEADER) else {
+    let Some(ip_addr) = get_ip_addr(headers) else {
         error!("Request is missing {IP_HEADER} header");
 
         return Ok(StatusCode::INTERNAL_SERVER_ERROR);
@@ -62,8 +63,6 @@ pub(crate) async fn contact_handler(
 
         return Ok(StatusCode::INTERNAL_SERVER_ERROR);
     };
-
-    let ip_addr = ip_addr_header.to_str().unwrap_or_default();
 
     let client = ClientBuilder::new()
         .gzip(true)

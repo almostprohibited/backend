@@ -47,3 +47,5 @@ jobs:
           proxy-address: ${{ secrets.PROXY_ADDRESS }}
           oidc-client-id-discord: ${{ secrets.OIDC_CLIENT_ID_DISCORD }}
           oidc-client-secret-discord: ${{ secrets.OIDC_CLIENT_SECRET_DISCORD }}
+          oidc-client-id-google: ${{ secrets.OIDC_CLIENT_ID_GOOGLE }}
+          oidc-client-secret-google: ${{ secrets.OIDC_CLIENT_SECRET_GOOGLE }}

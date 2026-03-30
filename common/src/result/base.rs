@@ -1,10 +1,9 @@
+use crate::utils::object_id_to_string;
 use std::hash::{Hash, Hasher};
 use std::sync::LazyLock;
 
-use mongodb::bson::oid::ObjectId;
 use regex::Regex;
-use serde::de::Error;
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Serialize};
 use tracing::error;
 
 use crate::result::metadata::Ammunition;
@@ -49,19 +48,6 @@ pub struct CrawlResult {
     pub description: Option<String>,
     pub image_url: Option<String>,
     pub metadata: Option<Metadata>,
-}
-
-fn object_id_to_string<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let value: Option<ObjectId> = Option::deserialize(deserializer)?;
-
-    let Some(object_id) = value else {
-        return Err(Error::custom("field is not MongoDB ObjectId"));
-    };
-
-    Ok(Some(object_id.to_string()))
 }
 
 // TNA forced my hand because they have so many products

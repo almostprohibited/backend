@@ -5,14 +5,19 @@ use common::{
     price_history::{ApiPriceHistoryInput, CollectionPriceHistory},
     result::base::CrawlResult,
     search_params::{ApiSearchInput, CollectionSearchResults},
+    user_sessions::{ServiceType, Session},
     utils::normalized_relative_days,
 };
-use mongodb::{Client, bson::oid::ObjectId};
+use mongodb::{
+    Client,
+    bson::{DateTime, oid::ObjectId},
+};
 use tracing::warn;
 
 use crate::collections::{
-    crawl_results::CrawlResultsCollection, live_results::LiveResultsView,
-    messages::MessagesCollection, price_history::PriceHistoryCollection,
+    authentication::AuthenticationCollections, crawl_results::CrawlResultsCollection,
+    live_results::LiveResultsView, messages::MessagesCollection,
+    price_history::PriceHistoryCollection,
 };
 
 static CONNECTION_URI: LazyLock<String> = LazyLock::new(|| {
@@ -27,6 +32,7 @@ pub struct MongoDBConnector {
     live_results: LiveResultsView,
     messages: MessagesCollection,
     price_history: PriceHistoryCollection,
+    authentication: AuthenticationCollections,
 }
 
 impl MongoDBConnector {
@@ -39,7 +45,8 @@ impl MongoDBConnector {
             crawl_results: CrawlResultsCollection::new(client.clone()).await,
             live_results: LiveResultsView::new(client.clone()).await,
             messages: MessagesCollection::new(client.clone()).await,
-            price_history: PriceHistoryCollection::new(client).await,
+            price_history: PriceHistoryCollection::new(client.clone()).await,
+            authentication: AuthenticationCollections::new(client).await,
         }
     }
 
@@ -84,5 +91,35 @@ impl MongoDBConnector {
         };
 
         self.live_results.find_result(id).await
+    }
+
+    pub async fn create_session(
+        &self,
+        service_identifier: &str,
+        service_type: ServiceType,
+        hashed_token: &str,
+        created_at: u64,
+    ) {
+        let user_object = match self
+            .authentication
+            .find_user_by_identifier(service_type.clone(), service_identifier)
+            .await
+        {
+            Some(user) => user.id.expect("Expect ID of existing user to be populated"),
+            None => {
+                self.authentication
+                    .create_user(service_type.clone(), service_identifier)
+                    .await
+            }
+        };
+
+        self.authentication
+            .create_session(Session {
+                user_id: user_object,
+                service_type,
+                hashed_token: hashed_token.to_string(),
+                created_at: DateTime::from_millis(created_at as i64 * 1000),
+            })
+            .await;
     }
 }

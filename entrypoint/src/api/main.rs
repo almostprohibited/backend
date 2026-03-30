@@ -21,6 +21,8 @@ use crate::{
     structs::ServerState,
 };
 
+pub(crate) mod constants;
+pub(crate) mod helpers;
 mod routes;
 mod service_layers;
 pub(crate) mod structs;
@@ -43,6 +45,8 @@ async fn main() {
 
     let addr = format!("0.0.0.0:{port}");
 
+    let is_beta = is_beta_environment();
+
     info!("MongoDB client ready");
     info!("Starting web server on: {addr}");
 
@@ -52,7 +56,7 @@ async fn main() {
         .route("/api/history", get(history_handler))
         .route("/api/image", get(image_handler));
 
-    if is_beta_environment() {
+    if is_beta {
         router = router
             .route("/api/auth/{provider}/provider", get(provider))
             .route("/api/auth/{provider}/callback", get(callback));
@@ -62,6 +66,9 @@ async fn main() {
     let service = type_erased_router.into_make_service_with_connect_info::<SocketAddr>();
 
     let server = TcpListener::bind(addr).await.unwrap();
+
+    info!("is beta={is_beta}");
+    info!("is development={}", cfg!(debug_assertions));
 
     axum::serve(server, service).await.unwrap();
 }

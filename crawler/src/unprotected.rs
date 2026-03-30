@@ -1,6 +1,6 @@
 use std::{env, str::FromStr, sync::OnceLock, time::Duration};
 
-use common::constants::PROXY_ADDRESS;
+use common::{constants::PROXY_ADDRESS, get_user_agent};
 use reqwest::{
     ClientBuilder as BaseClientBuilder, Proxy, Url,
     header::{HeaderMap, HeaderName, HeaderValue},
@@ -20,9 +20,6 @@ const PAGE_MIN_SECS_BACKOFF: u64 = 60;
 const PAGE_MAX_SECS_BACKOFF: u64 = 120;
 const MAX_RETRY: u32 = 3;
 
-const USER_AGENT: &str =
-    "almostprohibited/1.0 (+https://almostprohibited.ca/contact/; hello@almostprohibited.ca)";
-
 const PROXY_DOMAINS: [&str; 3] = [
     "www.italiansportinggoods.com",
     "ellwoodepps.com",
@@ -41,7 +38,7 @@ impl UnprotectedCrawler {
                 .gzip(true)
                 .http1_ignore_invalid_headers_in_responses(true)
                 .timeout(Duration::from_secs(PAGE_TIMEOUT_SECONDS))
-                .user_agent(USER_AGENT)
+                .user_agent(get_user_agent())
                 .https_only(true)
                 .cookie_store(true)
                 .connection_verbose(true);

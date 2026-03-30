@@ -1,30 +1,40 @@
-use std::sync::Arc;
-
-use crate::routes::auth::utils::Provider;
-use crate::{ServerState, routes::error_message_erasure::ApiError};
+use crate::constants::IP_HEADER;
+use crate::helpers::get_ip_addr;
+use crate::routes::error_message_erasure::ApiError;
 
 use axum::debug_handler;
 use axum::extract::Path;
 use axum::http::{HeaderMap, HeaderValue};
-use axum::{extract::State, http::StatusCode, response::IntoResponse};
+use axum::{http::StatusCode, response::IntoResponse};
 use axum_extra::extract::WithRejection;
-use openid_connect::providers::DiscordProvider;
-use openid_connect::traits::OidcProvider;
-use tracing::debug;
+use common::user_sessions::ServiceType;
+use openid_connect::providers::{get_discord_oidc_provider, get_google_oidc_provider};
+use tracing::{debug, error};
 
 #[debug_handler]
 pub(crate) async fn provider(
-    State(_state): State<Arc<ServerState>>,
-    WithRejection(Path(path), _): WithRejection<Path<Provider>, ApiError>,
+    headers: HeaderMap,
+    WithRejection(Path(path), _): WithRejection<Path<ServiceType>, ApiError>,
 ) -> Result<impl IntoResponse, StatusCode> {
     debug!("{path:?}");
 
-    let url = match path {
-        Provider::Discord => DiscordProvider::fetch_authorization_url().await,
+    let Some(ip_addr) = get_ip_addr(headers) else {
+        error!("Request is missing {IP_HEADER} header");
+
+        return Ok(StatusCode::INTERNAL_SERVER_ERROR.into_response());
+    };
+
+    let provider = match path {
+        ServiceType::Discord => get_discord_oidc_provider().await,
+        ServiceType::Google => get_google_oidc_provider().await,
+        _ => return Ok(StatusCode::NOT_IMPLEMENTED.into_response()),
     };
 
     let mut return_headers = HeaderMap::new();
-    return_headers.append("Location", HeaderValue::from_str(&url).unwrap());
+    return_headers.append(
+        "Location",
+        HeaderValue::from_str(&provider.fetch_authorization_url(&ip_addr).await.unwrap()).unwrap(),
+    );
 
-    Ok((return_headers, StatusCode::TEMPORARY_REDIRECT))
+    Ok((return_headers, StatusCode::TEMPORARY_REDIRECT).into_response())
 }
