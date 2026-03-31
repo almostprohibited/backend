@@ -42,3 +42,31 @@ where
 
     Ok(Some(object_id.to_string()))
 }
+
+fn get_domain() -> String {
+    let mut domain_parts = vec!["ca", "almostprohibited"];
+
+    if is_beta_environment() {
+        domain_parts.push("beta");
+    }
+
+    domain_parts.reverse();
+
+    format!("https://{}", domain_parts.join("."))
+}
+
+pub fn get_frontend_domain() -> String {
+    if cfg!(debug_assertions) {
+        return "http://localhost:3000".to_string();
+    }
+
+    get_domain()
+}
+
+pub fn get_backend_domain() -> String {
+    if cfg!(debug_assertions) {
+        return "http://localhost:3001".to_string();
+    }
+
+    get_domain()
+}

@@ -1,6 +1,6 @@
 use axum::{
     Router,
-    routing::{get, post},
+    routing::{delete, get, post},
 };
 use common::utils::is_beta_environment;
 use mongodb_connector::connector::MongoDBConnector;
@@ -12,7 +12,7 @@ use utils::logger::configure_logger;
 
 use crate::{
     routes::{
-        auth::{callback, provider},
+        auth::{callback, logout, provider},
         contact::contact_handler,
         history::history_handler,
         image::image_handler,
@@ -59,7 +59,8 @@ async fn main() {
     if is_beta {
         router = router
             .route("/api/auth/{provider}/provider", get(provider))
-            .route("/api/auth/{provider}/callback", get(callback));
+            .route("/api/auth/{provider}/callback", get(callback))
+            .route("/api/auth/logout", delete(logout));
     }
 
     let type_erased_router = router.with_state(state).layer(build_service_layers());

@@ -99,6 +99,7 @@ impl MongoDBConnector {
         service_type: ServiceType,
         hashed_token: &str,
         created_at: u64,
+        ip_addr: &str,
     ) {
         let user_object = match self
             .authentication
@@ -119,7 +120,16 @@ impl MongoDBConnector {
                 service_type,
                 hashed_token: hashed_token.to_string(),
                 created_at: DateTime::from_millis(created_at as i64 * 1000),
+                ip_addr: ip_addr.to_string(),
             })
             .await;
+    }
+
+    pub async fn find_session(&self, hashed_token: &str) -> Option<Session> {
+        self.authentication.find_session(hashed_token).await
+    }
+
+    pub async fn delete_session(&self, hashed_token: &str) -> bool {
+        self.authentication.delete_session(hashed_token).await
     }
 }

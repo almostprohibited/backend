@@ -1,8 +1,8 @@
-use base64::{Engine, prelude::BASE64_STANDARD};
+use crate::constants::TOKEN_COOKIE_NAME;
 use std::sync::Arc;
 
 use crate::constants::IP_HEADER;
-use crate::helpers::get_ip_addr;
+use crate::helpers::{get_ip_addr, hash_string};
 use crate::routes::error_message_erasure::ApiError;
 use crate::structs::ServerState;
 
@@ -13,13 +13,12 @@ use axum::{http::StatusCode, response::IntoResponse};
 use axum_extra::extract::WithRejection;
 use common::constants::TOKEN_COOKIE_TTL_SECS;
 use common::user_sessions::ServiceType;
-use common::utils::get_current_time;
+use common::utils::{get_current_time, get_frontend_domain};
 use openid_connect::providers::{get_discord_oidc_provider, get_google_oidc_provider};
 use rand::SeedableRng;
 use rand::distr::{Alphanumeric, SampleString};
 use rand::rngs::{StdRng, SysRng};
 use serde::Deserialize;
-use sha2::{Digest, Sha256};
 use tracing::{debug, error};
 
 #[derive(Deserialize, Debug)]
@@ -36,10 +35,6 @@ pub(crate) async fn callback(
     WithRejection(Path(path), _): WithRejection<Path<ServiceType>, ApiError>,
     WithRejection(Query(query), _): WithRejection<Query<Payload>, ApiError>,
 ) -> Result<impl IntoResponse, StatusCode> {
-    if !cfg!(debug_assertions) {
-        return Ok(StatusCode::BAD_REQUEST.into_response());
-    }
-
     debug!("{path:?}");
     debug!("{query:?}");
 
@@ -63,22 +58,31 @@ pub(crate) async fn callback(
     debug!("{identifier}");
 
     let token = generate_random_string();
-    let hashed_token = hash_token(&token);
+    let hashed_token = hash_string(&token);
 
     // creating cookie manually since the other cookie lib
     // assumes I am using `time`, but I use `chrono`
-    let cookie = format!("token={token}; Max-Age={}; Path=/", TOKEN_COOKIE_TTL_SECS);
+    let cookie = format!(
+        "{TOKEN_COOKIE_NAME}={token}; Max-Age={}; Path=/",
+        TOKEN_COOKIE_TTL_SECS
+    );
 
     state
         .db
-        .create_session(&identifier, path, &hashed_token, get_current_time())
+        .create_session(
+            &identifier,
+            path,
+            &hashed_token,
+            get_current_time(),
+            &ip_addr,
+        )
         .await;
 
     let mut return_headers = HeaderMap::new();
     return_headers.append("Set-Cookie", HeaderValue::from_str(&cookie).unwrap());
     return_headers.append(
         "Location",
-        HeaderValue::from_str("http://localhost:3000/dashboard").unwrap(),
+        HeaderValue::from_str(&format!("{}/dashboard", get_frontend_domain())).unwrap(),
     );
 
     Ok((return_headers, StatusCode::TEMPORARY_REDIRECT).into_response())
@@ -88,9 +92,4 @@ fn generate_random_string() -> String {
     let mut rng = StdRng::try_from_rng(&mut SysRng).unwrap();
 
     Alphanumeric.sample_string(&mut rng, 32)
-}
-
-fn hash_token(token: &str) -> String {
-    let hash = Sha256::digest(token.as_bytes());
-    BASE64_STANDARD.encode(&hash)
 }

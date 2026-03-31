@@ -108,4 +108,25 @@ impl AuthenticationCollections {
             .unwrap()
             .inserted_id;
     }
+
+    pub(crate) async fn find_session(&self, hashed_token: &str) -> Option<Session> {
+        self.sessions_collection
+            .find_one(doc! {
+                "hashed_token": hashed_token
+            })
+            .await
+            .unwrap()
+    }
+
+    pub(crate) async fn delete_session(&self, hashed_token: &str) -> bool {
+        let result = self
+            .sessions_collection
+            .delete_one(doc! {
+                "hashed_token": hashed_token
+            })
+            .await
+            .unwrap();
+
+        result.deleted_count > 0
+    }
 }

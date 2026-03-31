@@ -44,4 +44,5 @@ pub struct Session {
     pub service_type: ServiceType,
     pub hashed_token: String,
     pub created_at: DateTime,
+    pub ip_addr: String,
 }

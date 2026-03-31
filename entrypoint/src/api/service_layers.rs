@@ -18,8 +18,9 @@ pub(crate) fn build_service_layers()
 
 fn build_cors() -> CorsLayer {
     let mut cors_layer = CorsLayer::new()
-        .allow_methods([Method::GET, Method::POST])
-        .allow_headers([CONTENT_TYPE]);
+        .allow_methods([Method::GET, Method::POST, Method::DELETE])
+        .allow_headers([CONTENT_TYPE])
+        .allow_credentials(true);
 
     if cfg!(debug_assertions) {
         cors_layer =

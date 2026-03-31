@@ -1,8 +1,11 @@
 use std::env;
 
-use common::constants::{
-    OIDC_CLIENT_ID_DISCORD, OIDC_CLIENT_ID_GOOGLE, OIDC_CLIENT_SECRET_DISCORD,
-    OIDC_CLIENT_SECRET_GOOGLE,
+use common::{
+    constants::{
+        OIDC_CLIENT_ID_DISCORD, OIDC_CLIENT_ID_GOOGLE, OIDC_CLIENT_SECRET_DISCORD,
+        OIDC_CLIENT_SECRET_GOOGLE,
+    },
+    utils::get_backend_domain,
 };
 use openidconnect::core::CoreAuthPrompt;
 
@@ -14,7 +17,7 @@ pub async fn get_discord_oidc_provider() -> BaseOidcProvider {
 
     BaseOidcProviderBuilder::new(
         "https://discord.com",
-        "http://localhost:3001/api/auth/discord/callback",
+        &format!("{}/api/auth/discord/callback", get_backend_domain()),
         &client_id,
         &client_secret,
     )
@@ -28,7 +31,7 @@ pub async fn get_google_oidc_provider() -> BaseOidcProvider {
 
     BaseOidcProviderBuilder::new(
         "https://accounts.google.com",
-        "http://localhost:3001/api/auth/google/callback",
+        &format!("{}/api/auth/google/callback", get_backend_domain()),
         &client_id,
         &client_secret,
     )
