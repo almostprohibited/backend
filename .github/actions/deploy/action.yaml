@@ -93,9 +93,9 @@ runs:
         export CLOUDFLARE_TURNSTILE_SECRET_KEY=${{ inputs.cloudflare-turnstile-secret-key }}
         export PROXY_ADDRESS=${{ inputs.proxy-address }}
         export OIDC_CLIENT_ID_DISCORD=${{ inputs.oidc-client-id-discord }}
-        export OIDC_CLIENT_SECRET_DISCORD=${{ inputs.oidc-secret-id-discord }}
+        export OIDC_CLIENT_SECRET_DISCORD=${{ inputs.oidc-client-secret-discord }}
         export OIDC_CLIENT_ID_GOOGLE=${{ inputs.oidc-client-id-google }}
-        export OIDC_CLIENT_SECRET_GOOGLE=${{ inputs.oidc-secret-id-google }}
+        export OIDC_CLIENT_SECRET_GOOGLE=${{ inputs.oidc-client-secret-google }}
 
         docker compose -f docker-compose.yaml pull backend-${{ inputs.deployment-stage }}
         docker compose -f docker-compose.yaml down backend-${{ inputs.deployment-stage }}
