@@ -8,7 +8,10 @@ use crate::{
     errors::RetailerError,
     utils::{
         conversions::{price_to_cents, string_to_u64},
-        html::{element_extract_attr, element_to_text, extract_element_from_element},
+        html::{
+            element_extract_attr, element_to_text, extract_element_from_element,
+            match_element_from_list,
+        },
     },
 };
 
@@ -83,32 +86,13 @@ pub(crate) struct WooCommerce {
 }
 
 impl WooCommerce {
-    fn select_element_list<'a>(
-        element: ElementRef<'a>,
-        selector_list: &Vec<String>,
-        error: RetailerError,
-    ) -> Result<ElementRef<'a>, RetailerError> {
-        let found_element = selector_list
-            .iter()
-            .find_map(|selector| {
-                if let Ok(element) = extract_element_from_element(element, selector) {
-                    return Some(element);
-                }
-
-                None
-            })
-            .ok_or(error)?;
-
-        Ok(found_element)
-    }
-
     fn parse_price(element: ElementRef) -> Result<Price, RetailerError> {
         let mut price = Price {
             regular_price: 0,
             sale_price: None,
         };
 
-        let price_wrapper = Self::select_element_list(
+        let price_wrapper = match_element_from_list(
             element,
             &PRICE_WRAPPER
                 .iter()
@@ -164,7 +148,7 @@ impl WooCommerce {
     }
 
     fn get_image_url(&self, element: ElementRef) -> Result<String, RetailerError> {
-        let image_element = Self::select_element_list(
+        let image_element = match_element_from_list(
             element,
             &self.options.image_url_selector,
             RetailerError::HtmlMissingElement("Missing valid image element".to_string()),
@@ -191,13 +175,13 @@ impl WooCommerce {
         retailer: RetailerName,
         category: Category,
     ) -> Result<CrawlResult, RetailerError> {
-        let url_element = Self::select_element_list(
+        let url_element = match_element_from_list(
             element,
             &self.options.product_url_selector,
             RetailerError::HtmlMissingElement("Missing valid URL element".to_string()),
         )?;
 
-        let name_element = Self::select_element_list(
+        let name_element = match_element_from_list(
             element,
             &self.options.product_name_selector,
             RetailerError::HtmlMissingElement("Missing valid name element".to_string()),
