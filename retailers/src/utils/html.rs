@@ -36,3 +36,22 @@ pub(crate) fn extract_element_from_element(
 
     Ok(query_element)
 }
+
+pub(crate) fn match_element_from_list<'a>(
+    element: ElementRef<'a>,
+    selector_list: &Vec<String>,
+    error: RetailerError,
+) -> Result<ElementRef<'a>, RetailerError> {
+    let found_element = selector_list
+        .iter()
+        .find_map(|selector| {
+            if let Ok(element) = extract_element_from_element(element, selector) {
+                return Some(element);
+            }
+
+            None
+        })
+        .ok_or(error)?;
+
+    Ok(found_element)
+}

@@ -15,7 +15,7 @@ use crate::{
     structures::HtmlSearchQuery,
     utils::{
         conversions::{price_to_cents, string_to_u64},
-        html::{element_extract_attr, element_to_text, extract_element_from_element},
+        html::{element_extract_attr, element_to_text, match_element_from_list},
     },
 };
 
@@ -117,10 +117,15 @@ impl LightSpeed {
         Ok(price)
     }
 
-    // logic copied from woocommerce parser
     fn get_image(wrapper: ElementRef) -> Result<String, RetailerError> {
-        let image_element =
-            extract_element_from_element(wrapper, "div.product-block-image > a > img")?;
+        let image_element = match_element_from_list(
+            wrapper,
+            &vec![
+                "div.product-block-image > a > img".to_string(),
+                "a.product-image-wrapper > img".to_string(),
+            ],
+            RetailerError::HtmlMissingElement("LightSpeed image".to_string()),
+        )?;
 
         if let Ok(data_src) = element_extract_attr(image_element, "data-src")
             && data_src.starts_with("https")
@@ -142,6 +147,36 @@ impl LightSpeed {
         ))
     }
 
+    fn get_json_metadata_link(element: ElementRef, base_url: &str) -> Option<String> {
+        if let Ok(data_link) = element_extract_attr(element, "data-json")
+            && data_link.starts_with(base_url)
+        {
+            return Some(data_link);
+        };
+
+        warn!(
+            "Found link with no product valid URL: {element:?}, attempting to create link manually"
+        );
+
+        let link_selector = Selector::parse("a[href$=html]").unwrap();
+
+        // find first link with .html and matches retailer URL
+        element.select(&link_selector).find_map(|link_element| {
+            let Ok(href) = element_extract_attr(link_element, "href") else {
+                return None;
+            };
+
+            if href.starts_with(base_url) {
+                let json_endpoint = format!("{href}?format=json");
+                warn!("Returning manually created URL: {json_endpoint}");
+
+                return Some(json_endpoint);
+            }
+
+            None
+        })
+    }
+
     fn extract_links(
         base_url: &str,
         response: &str,
@@ -153,15 +188,10 @@ impl LightSpeed {
         let mut product_links: Vec<ProductPair> = Vec::new();
 
         for product in html.select(&product_selector) {
-            let Ok(data_link) = element_extract_attr(product, "data-json") else {
-                warn!("Found link with no product URL: {product:?}");
+            let Some(data_link) = Self::get_json_metadata_link(product, base_url) else {
+                warn!("No valid JSON URL found: {product:?}");
                 continue;
             };
-
-            if !data_link.starts_with(base_url) {
-                warn!("Link is not same as retailer: {data_link}");
-                continue;
-            }
 
             let image_link = Self::get_image(product)?;
 
