@@ -63,14 +63,20 @@ impl HtmlRetailer for Gobles {
         response: &String,
         search_term: &HtmlSearchQuery,
     ) -> Result<Vec<CrawlResult>, RetailerError> {
-        LightSpeed::parse_products(
+        let mut products = LightSpeed::parse_products(
             PRODUCT_BASE_URL,
             "div.products-list > div",
             response,
             search_term,
             self.get_retailer_name(),
         )
-        .await
+        .await?;
+
+        products.iter_mut().for_each(|product| {
+            product.update_name(&product.name.replace(" - Available for Purchase", "").trim());
+        });
+
+        Ok(products)
     }
 
     fn get_search_terms(&self) -> Vec<HtmlSearchQuery> {
