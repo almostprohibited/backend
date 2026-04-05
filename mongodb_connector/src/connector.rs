@@ -1,17 +1,16 @@
 use std::{env, str::FromStr, sync::LazyLock};
 
 use common::{
+    AuthVerification,
     messages::Message,
     price_history::{ApiPriceHistoryInput, CollectionPriceHistory},
     result::base::CrawlResult,
     search_params::{ApiSearchInput, CollectionSearchResults},
+    string_utils::sha256_hash_string,
     user_sessions::{ServiceType, Session},
     utils::normalized_relative_days,
 };
-use mongodb::{
-    Client,
-    bson::{DateTime, oid::ObjectId},
-};
+use mongodb::{Client, bson::oid::ObjectId};
 use tracing::warn;
 
 use crate::collections::{
@@ -95,21 +94,23 @@ impl MongoDBConnector {
 
     pub async fn create_session(
         &self,
-        service_identifier: &str,
+        unhashed_service_identifier: &str,
         service_type: ServiceType,
-        hashed_token: &str,
+        unhashed_token: &str,
         created_at: u64,
         ip_addr: &str,
     ) {
+        let hashed_service_identifier = sha256_hash_string(unhashed_service_identifier);
+
         let user_object = match self
             .authentication
-            .find_user_by_identifier(service_type.clone(), service_identifier)
+            .find_user_by_identifier(service_type.clone(), &hashed_service_identifier)
             .await
         {
             Some(user) => user.id.expect("Expect ID of existing user to be populated"),
             None => {
                 self.authentication
-                    .create_user(service_type.clone(), service_identifier)
+                    .create_user(service_type.clone(), &hashed_service_identifier)
                     .await
             }
         };
@@ -118,8 +119,8 @@ impl MongoDBConnector {
             .create_session(Session {
                 user_id: user_object,
                 service_type,
-                hashed_token: hashed_token.to_string(),
-                created_at: DateTime::from_millis(created_at as i64 * 1000),
+                hashed_token: sha256_hash_string(unhashed_token),
+                created_at,
                 ip_addr: ip_addr.to_string(),
             })
             .await;
@@ -129,7 +130,38 @@ impl MongoDBConnector {
         self.authentication.find_session(hashed_token).await
     }
 
-    pub async fn delete_session(&self, hashed_token: &str) -> bool {
-        self.authentication.delete_session(hashed_token).await
+    pub async fn delete_session(&self, unhashed_token: &str) -> bool {
+        self.authentication
+            .delete_session(&sha256_hash_string(unhashed_token))
+            .await
+    }
+
+    pub async fn create_verification(
+        &self,
+        unhashed_code: &str,
+        timestamp: u64,
+        ip_addr: Option<String>,
+        nonce: Option<String>,
+    ) {
+        self.authentication
+            .create_verification(AuthVerification {
+                hashed_code: sha256_hash_string(unhashed_code),
+                timestamp,
+                ip_addr,
+                nonce,
+            })
+            .await;
+    }
+
+    pub async fn get_verification(&self, unhashed_code: &str) -> Option<AuthVerification> {
+        self.authentication
+            .get_verification(&sha256_hash_string(unhashed_code))
+            .await
+    }
+
+    pub async fn delete_verification(&self, unhashed_code: &str) -> bool {
+        self.authentication
+            .delete_verification(&sha256_hash_string(unhashed_code))
+            .await
     }
 }

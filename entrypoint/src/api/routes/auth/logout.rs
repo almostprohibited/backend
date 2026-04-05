@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::helpers::{get_token, hash_string};
+use crate::helpers::get_token;
 use crate::structs::ServerState;
 
 use axum::debug_handler;
@@ -21,9 +21,7 @@ pub(crate) async fn logout(
         return Ok(StatusCode::BAD_REQUEST);
     };
 
-    let hashed_token = hash_string(&token);
-
-    match state.db.delete_session(&hashed_token).await {
+    match state.db.delete_session(&token).await {
         true => Ok(StatusCode::OK),
         false => {
             debug!("Hashed token does not exist in DB");

@@ -1,7 +1,7 @@
-use crate::deserialize_disallow_empty_string::disallow_empty_string;
 use crate::result::base::CrawlResult;
 use crate::result::enums::Category;
 use crate::result::enums::RetailerName;
+use crate::serde_utils::disallow_empty_string;
 
 use mongodb::bson::doc;
 use serde::Deserialize;

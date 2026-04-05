@@ -1,6 +1,4 @@
 use axum::http::HeaderMap;
-use base64::{Engine, prelude::BASE64_STANDARD};
-use sha2::{Digest, Sha256};
 use tracing::warn;
 
 use crate::constants::{IP_HEADER, TOKEN_COOKIE_NAME};
@@ -43,9 +41,4 @@ pub(crate) fn get_token(header_map: &HeaderMap) -> Option<String> {
     }
 
     None
-}
-
-pub(crate) fn hash_string(token: &str) -> String {
-    let hash = Sha256::digest(token.as_bytes());
-    BASE64_STANDARD.encode(&hash)
 }

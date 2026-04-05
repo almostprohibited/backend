@@ -1,4 +1,5 @@
-use mongodb::bson::{Bson, DateTime, doc, oid::ObjectId};
+use crate::serde_utils::{from_datetime_to_u64_seconds, from_u64_seconds_to_datetime};
+use mongodb::bson::{Bson, doc, oid::ObjectId};
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
@@ -18,14 +19,14 @@ impl Into<Bson> for ServiceType {
 #[derive(Deserialize, Serialize, Clone)]
 pub struct ServiceIdentifier {
     pub service_type: ServiceType,
-    pub identifier: String,
+    pub hashed_identifier: String,
 }
 
 impl Into<Bson> for ServiceIdentifier {
     fn into(self) -> Bson {
         Bson::Document(doc! {
             "service_type": self.service_type,
-            "identifier": self.identifier
+            "hashed_identifier": self.hashed_identifier
         })
     }
 }
@@ -43,6 +44,8 @@ pub struct Session {
     pub user_id: ObjectId,
     pub service_type: ServiceType,
     pub hashed_token: String,
-    pub created_at: DateTime,
+    #[serde(serialize_with = "from_u64_seconds_to_datetime")]
+    #[serde(deserialize_with = "from_datetime_to_u64_seconds")]
+    pub created_at: u64,
     pub ip_addr: String,
 }

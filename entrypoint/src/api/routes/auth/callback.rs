@@ -2,7 +2,7 @@ use crate::constants::TOKEN_COOKIE_NAME;
 use std::sync::Arc;
 
 use crate::constants::IP_HEADER;
-use crate::helpers::{get_ip_addr, hash_string};
+use crate::helpers::get_ip_addr;
 use crate::routes::error_message_erasure::ApiError;
 use crate::structs::ServerState;
 
@@ -12,12 +12,10 @@ use axum::http::{HeaderMap, HeaderValue};
 use axum::{http::StatusCode, response::IntoResponse};
 use axum_extra::extract::WithRejection;
 use common::constants::TOKEN_COOKIE_TTL_SECS;
+use common::string_utils::generate_random_string;
 use common::user_sessions::ServiceType;
 use common::utils::{get_current_time, get_frontend_domain};
 use openid_connect::providers::{get_discord_oidc_provider, get_google_oidc_provider};
-use rand::SeedableRng;
-use rand::distr::{Alphanumeric, SampleString};
-use rand::rngs::{StdRng, SysRng};
 use serde::Deserialize;
 use tracing::{debug, error};
 
@@ -51,14 +49,13 @@ pub(crate) async fn callback(
     };
 
     let identifier = provider
-        .exchange_code(&query.code, &query.state, &ip_addr)
+        .exchange_code(&query.code, &query.state, &ip_addr, &state.db)
         .await
         .unwrap();
 
     debug!("{identifier}");
 
-    let token = generate_random_string();
-    let hashed_token = hash_string(&token);
+    let token = generate_random_string(32);
 
     // creating cookie manually since the other cookie lib
     // assumes I am using `time`, but I use `chrono`
@@ -69,13 +66,7 @@ pub(crate) async fn callback(
 
     state
         .db
-        .create_session(
-            &identifier,
-            path,
-            &hashed_token,
-            get_current_time(),
-            &ip_addr,
-        )
+        .create_session(&identifier, path, &token, get_current_time(), &ip_addr)
         .await;
 
     let mut return_headers = HeaderMap::new();
@@ -86,10 +77,4 @@ pub(crate) async fn callback(
     );
 
     Ok((return_headers, StatusCode::TEMPORARY_REDIRECT).into_response())
-}
-
-fn generate_random_string() -> String {
-    let mut rng = StdRng::try_from_rng(&mut SysRng).unwrap();
-
-    Alphanumeric.sample_string(&mut rng, 32)
 }

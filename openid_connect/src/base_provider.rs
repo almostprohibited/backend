@@ -1,7 +1,9 @@
+use common::utils::get_current_time;
+use mongodb_connector::connector::MongoDBConnector;
 use openidconnect::{
-    AuthPrompt, AuthUrl, AuthenticationFlow, AuthorizationCode, Client, ClientId, ClientSecret,
-    CsrfToken, EmptyAdditionalClaims, EmptyExtraTokenFields, EndpointMaybeSet, EndpointNotSet,
-    EndpointSet, IdTokenFields, IssuerUrl, Nonce, RedirectUrl, RevocationErrorResponseType, Scope,
+    AuthUrl, AuthenticationFlow, AuthorizationCode, Client, ClientId, ClientSecret, CsrfToken,
+    EmptyAdditionalClaims, EmptyExtraTokenFields, EndpointMaybeSet, EndpointNotSet, EndpointSet,
+    IdTokenFields, IssuerUrl, Nonce, RedirectUrl, RevocationErrorResponseType, Scope,
     StandardErrorResponse, StandardTokenIntrospectionResponse, StandardTokenResponse, TokenUrl,
     core::{
         CoreAuthDisplay, CoreAuthPrompt, CoreClient, CoreErrorResponseType, CoreGenderClaim,
@@ -11,10 +13,7 @@ use openidconnect::{
 };
 use tracing::{debug, error};
 
-use crate::{
-    errors::OidcError,
-    utils::{OidcClientIdentifier, get_nonce_by_csrf, get_reqwest_client, set_csrf_value},
-};
+use crate::{errors::OidcError, utils::get_reqwest_client};
 
 // typing hell
 type OidcClient = Client<
@@ -105,7 +104,11 @@ impl BaseOidcProvider {
         )
     }
 
-    pub async fn fetch_authorization_url(&self, ip_addr: &str) -> Result<String, OidcError> {
+    pub async fn fetch_authorization_url(
+        &self,
+        ip_addr: &str,
+        db: &MongoDBConnector,
+    ) -> Result<String, OidcError> {
         let client = self.get_oidc_client().await?;
 
         let mut authorization_url_builder = client.authorize_url(
@@ -122,12 +125,11 @@ impl BaseOidcProvider {
 
         debug!("Returning auth url: {auth_url:?}");
 
-        set_csrf_value(
+        db.create_verification(
             csrf.secret(),
-            OidcClientIdentifier {
-                ip_addr: ip_addr.into(),
-                nonce,
-            },
+            get_current_time(),
+            Some(ip_addr.to_string()),
+            Some(nonce.secret().clone()),
         )
         .await;
 
@@ -139,10 +141,26 @@ impl BaseOidcProvider {
         code: &str,
         state: &str,
         ip_addr: &str,
+        db: &MongoDBConnector,
     ) -> Result<String, OidcError> {
-        let Some(nonce) = get_nonce_by_csrf(state, ip_addr).await else {
+        let Some(db_verification) = db.get_verification(state).await else {
+            error!("Saved verification code does exist");
             return Err(OidcError::MissingNonceError);
         };
+
+        if let Some(saved_ip) = db_verification.ip_addr
+            && saved_ip != ip_addr
+        {
+            error!("Saved verification does not match incoming IP address");
+            return Err(OidcError::MissingNonceError);
+        }
+
+        let Some(saved_nonce) = db_verification.nonce else {
+            error!("Saved verification does not contain nonce");
+            return Err(OidcError::MissingNonceError);
+        };
+
+        db.delete_verification(state).await;
 
         let client = self.get_oidc_client().await?;
 
@@ -158,7 +176,7 @@ impl BaseOidcProvider {
             return Err(OidcError::MissingIdTokenError);
         };
 
-        let claims = id_token.claims(&verifier, &nonce)?;
+        let claims = id_token.claims(&verifier, &Nonce::new(saved_nonce.clone()))?;
 
         debug!("{claims:?}");
 
@@ -167,7 +185,7 @@ impl BaseOidcProvider {
             None => return Err(OidcError::MissingClaimNonceError),
         };
 
-        if claimed_nonce != nonce.secret() {
+        if *claimed_nonce != saved_nonce {
             error!("Returned nonces do not match");
             return Err(OidcError::NonceMismatchError);
         }
@@ -205,17 +223,17 @@ impl BaseOidcProviderBuilder {
         self
     }
 
-    pub(crate) fn with_token_exchange_url(mut self, token_exchange_url: &str) -> Self {
-        self.token_exchange_url = Some(token_exchange_url.to_string());
+    // pub(crate) fn with_token_exchange_url(mut self, token_exchange_url: &str) -> Self {
+    //     self.token_exchange_url = Some(token_exchange_url.to_string());
 
-        self
-    }
+    //     self
+    // }
 
-    pub(crate) fn add_scope(mut self, scope: &str) -> Self {
-        self.scopes.push(scope.to_string());
+    // pub(crate) fn add_scope(mut self, scope: &str) -> Self {
+    //     self.scopes.push(scope.to_string());
 
-        self
-    }
+    //     self
+    // }
 
     pub(crate) fn with_prompt(mut self, prompt: CoreAuthPrompt) -> Self {
         self.prompt = Some(prompt);

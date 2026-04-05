@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use common::{
+    AuthVerification,
     constants::TOKEN_COOKIE_TTL_SECS,
     user_sessions::{ServiceIdentifier, ServiceType, Session, User},
 };
@@ -11,12 +12,14 @@ use mongodb::{
 };
 
 use crate::constants::{
-    COLLECTION_SESSIONS_NAME, COLLECTION_USERS_NAME, DATABASE_NAME, SESSIONS_EXPIRE_INDEX,
+    COLLECTION_SESSIONS_NAME, COLLECTION_USERS_NAME, COLLECTION_VERIFICATIONS_NAME, DATABASE_NAME,
+    SESSIONS_EXPIRE_INDEX, VERIFICATIONS_EXPIRE_INDEX, VERIFICATIONS_EXPIRY_SECONDS,
 };
 
 pub(crate) struct AuthenticationCollections {
     users_collection: Collection<User>,
     sessions_collection: Collection<Session>,
+    verifications_collection: Collection<AuthVerification>,
 }
 
 impl AuthenticationCollections {
@@ -28,20 +31,12 @@ impl AuthenticationCollections {
         Self {
             users_collection: db.collection::<User>(COLLECTION_USERS_NAME),
             sessions_collection: db.collection::<Session>(COLLECTION_SESSIONS_NAME),
+            verifications_collection: db
+                .collection::<AuthVerification>(COLLECTION_VERIFICATIONS_NAME),
         }
     }
 
-    async fn create_collection(db: &Database) {
-        db.create_collection(COLLECTION_USERS_NAME)
-            .await
-            .unwrap_or_else(|_| panic!("Creating {COLLECTION_USERS_NAME} collection to not fail"));
-
-        db.create_collection(COLLECTION_SESSIONS_NAME)
-            .await
-            .unwrap_or_else(|_| {
-                panic!("Creating {COLLECTION_SESSIONS_NAME} collection to not fail")
-            });
-
+    async fn create_sessions_indexes(db: &Database) {
         let ttl_index = IndexModel::builder()
             .keys(doc! {
                 "created_at": 1,
@@ -62,35 +57,80 @@ impl AuthenticationCollections {
             .unwrap();
     }
 
-    pub(crate) async fn find_user(&self, user_id: ObjectId) -> Option<User> {
-        self.users_collection
-            .find_one(doc! {"_id": user_id})
+    async fn create_verifications_indexes(db: &Database) {
+        let ttl_index = IndexModel::builder()
+            .keys(doc! {
+                "timestamp": 1,
+            })
+            .options(
+                IndexOptions::builder()
+                    .name(VERIFICATIONS_EXPIRE_INDEX.to_string())
+                    .expire_after(Some(Duration::from_secs(VERIFICATIONS_EXPIRY_SECONDS)))
+                    .build(),
+            )
+            .build();
+
+        db.collection::<AuthVerification>(COLLECTION_VERIFICATIONS_NAME)
+            .create_index(ttl_index)
             .await
-            .unwrap()
+            .unwrap();
     }
+
+    async fn create_collection(db: &Database) {
+        db.create_collection(COLLECTION_USERS_NAME)
+            .await
+            .unwrap_or_else(|_| panic!("Creating {COLLECTION_USERS_NAME} collection to not fail"));
+
+        db.create_collection(COLLECTION_SESSIONS_NAME)
+            .await
+            .unwrap_or_else(|_| {
+                panic!("Creating {COLLECTION_SESSIONS_NAME} collection to not fail")
+            });
+
+        Self::create_sessions_indexes(db).await;
+
+        db.create_collection(COLLECTION_VERIFICATIONS_NAME)
+            .await
+            .unwrap_or_else(|_| {
+                panic!("Creating {COLLECTION_VERIFICATIONS_NAME} collection to not fail")
+            });
+
+        Self::create_verifications_indexes(db).await;
+    }
+
+    // pub(crate) async fn find_user(&self, user_id: ObjectId) -> Option<User> {
+    //     self.users_collection
+    //         .find_one(doc! {"_id": user_id})
+    //         .await
+    //         .unwrap()
+    // }
 
     pub(crate) async fn find_user_by_identifier(
         &self,
         provider: ServiceType,
-        identifier: &str,
+        hashed_identifier: &str,
     ) -> Option<User> {
         self.users_collection
             .find_one(doc! {
                 "linked_services": ServiceIdentifier {
                     service_type: provider,
-                    identifier: identifier.to_string()
+                    hashed_identifier: hashed_identifier.to_string()
                 }
             })
             .await
             .unwrap()
     }
 
-    pub(crate) async fn create_user(&self, provider: ServiceType, identifier: &str) -> ObjectId {
+    pub(crate) async fn create_user(
+        &self,
+        provider: ServiceType,
+        hashed_identifier: &str,
+    ) -> ObjectId {
         self.users_collection
             .insert_one(User {
                 linked_services: vec![ServiceIdentifier {
                     service_type: provider,
-                    identifier: identifier.to_string(),
+                    hashed_identifier: hashed_identifier.to_string(),
                 }],
                 id: None,
             })
@@ -123,6 +163,34 @@ impl AuthenticationCollections {
             .sessions_collection
             .delete_one(doc! {
                 "hashed_token": hashed_token
+            })
+            .await
+            .unwrap();
+
+        result.deleted_count > 0
+    }
+
+    pub(crate) async fn create_verification(&self, verification: AuthVerification) {
+        self.verifications_collection
+            .insert_one(verification)
+            .await
+            .unwrap();
+    }
+
+    pub(crate) async fn get_verification(&self, hashed_code: &str) -> Option<AuthVerification> {
+        self.verifications_collection
+            .find_one(doc! {
+                "hashed_code": hashed_code
+            })
+            .await
+            .unwrap()
+    }
+
+    pub(crate) async fn delete_verification(&self, hashed_code: &str) -> bool {
+        let result = self
+            .verifications_collection
+            .delete_one(doc! {
+                "hashed_code": hashed_code
             })
             .await
             .unwrap();
