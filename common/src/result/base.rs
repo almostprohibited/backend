@@ -1,3 +1,5 @@
+use crate::serde_utils::from_datetime_to_u64_seconds;
+use crate::serde_utils::from_u64_seconds_to_datetime;
 use crate::utils::object_id_to_string;
 use std::hash::{Hash, Hasher};
 use std::sync::LazyLock;
@@ -42,6 +44,8 @@ pub struct CrawlResult {
     pub name: String,
     pub url: String,
     pub price: Price,
+    #[serde(serialize_with = "from_u64_seconds_to_datetime")]
+    #[serde(deserialize_with = "from_datetime_to_u64_seconds")]
     pub query_time: u64,
     pub retailer: RetailerName,
     pub category: Category,

@@ -1,7 +1,7 @@
 use common::result::base::CrawlResult;
-use mongodb::{Client, Collection, Database, bson::doc};
+use mongodb::{Client, Collection, Database};
 
-use crate::constants::{COLLECTION_CRAWL_RESULTS_NAME, DATABASE_NAME, VIEW_LIVE_DATA_NAME};
+use crate::constants::{COLLECTION_CRAWL_RESULTS_NAME, DATABASE_NAME};
 
 pub(crate) struct CrawlResultsCollection {
     collection: Collection<CrawlResult>,
@@ -28,16 +28,5 @@ impl CrawlResultsCollection {
 
     pub(crate) async fn insert_results(&self, results: Vec<&CrawlResult>) {
         self.collection.insert_many(results).await.unwrap();
-    }
-
-    pub(crate) async fn update_view(&self, prev_days: i64) {
-        self.collection
-            .aggregate(vec![
-                doc! {"$match": {"query_time": {"$gte": prev_days}}},
-                doc! {"$merge": {"into": VIEW_LIVE_DATA_NAME, "whenMatched": "keepExisting", "on": "_id"}},
-            ])
-            .with_type::<CrawlResult>()
-            .await
-            .unwrap();
     }
 }

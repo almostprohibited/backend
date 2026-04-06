@@ -1,7 +1,7 @@
 use common::{
     result::enums::Category, search_params::ApiSearchInput, utils::normalized_relative_days,
 };
-use mongodb::bson::{Document, doc};
+use mongodb::bson::{DateTime, Document, doc};
 use tracing::trace;
 
 use super::traits::StageDocument;
@@ -62,7 +62,7 @@ impl StageDocument for MatchStage {
                 "$search": &self.parse_search_terms()
             },
             "query_time": {
-                "$gte": normalized_relative_days(2)
+                "$gte": DateTime::from_millis(normalized_relative_days(2) * 1000)
             }
         };
 

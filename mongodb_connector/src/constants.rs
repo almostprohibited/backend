@@ -4,6 +4,7 @@ pub(crate) const COLLECTION_CRAWL_RESULTS_NAME: &str = "crawl-results";
 
 pub(crate) const VIEW_LIVE_DATA_NAME: &str = "live-results";
 pub(crate) const VIEW_LIVE_DATA_SEARCH_INDEX: &str = "name_text";
+pub(crate) const VIEW_LIVE_DATA_TTL_INDEX: &str = "live_expire_index";
 
 pub(crate) const COLLECTION_MESSAGES_NAME: &str = "messages";
 
@@ -17,3 +18,6 @@ pub(crate) const VERIFICATIONS_EXPIRE_INDEX: &str = "verifications_expire_index"
 
 /// 30 mins
 pub(crate) const VERIFICATIONS_EXPIRY_SECONDS: u64 = 60 * 30;
+
+/// 3 days
+pub(crate) const LIVE_EXPIRY_SECONDS: u64 = 60 * 60 * 24 * 3;

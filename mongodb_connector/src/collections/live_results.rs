@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use common::{
     result::base::CrawlResult,
     search_params::{ApiSearchInput, CollectionSearchResults},
@@ -11,7 +13,10 @@ use serde::Deserialize;
 use tracing::debug;
 
 use crate::{
-    constants::{DATABASE_NAME, VIEW_LIVE_DATA_NAME, VIEW_LIVE_DATA_SEARCH_INDEX},
+    constants::{
+        DATABASE_NAME, LIVE_EXPIRY_SECONDS, VIEW_LIVE_DATA_NAME, VIEW_LIVE_DATA_SEARCH_INDEX,
+        VIEW_LIVE_DATA_TTL_INDEX,
+    },
     query_pipeline::traits::SearchPipeline,
 };
 
@@ -67,8 +72,20 @@ impl LiveResultsView {
             )
             .build();
 
+        let ttl_index = IndexModel::builder()
+            .keys(doc! {
+                "query_time": 1,
+            })
+            .options(
+                IndexOptions::builder()
+                    .name(VIEW_LIVE_DATA_TTL_INDEX.to_string())
+                    .expire_after(Some(Duration::from_secs(LIVE_EXPIRY_SECONDS)))
+                    .build(),
+            )
+            .build();
+
         db.collection::<CrawlResult>(VIEW_LIVE_DATA_NAME)
-            .create_index(crawl_result_search_index)
+            .create_indexes([crawl_result_search_index, ttl_index])
             .await
             .unwrap();
     }
@@ -100,13 +117,8 @@ impl LiveResultsView {
         result
     }
 
-    pub(crate) async fn prune_results(&self, prev_days: i64) {
-        self.collection
-            .delete_many(doc! {
-                "query_time": {"$lt": prev_days}
-            })
-            .await
-            .unwrap();
+    pub(crate) async fn insert_results(&self, results: Vec<&CrawlResult>) {
+        self.collection.insert_many(results).await.unwrap();
     }
 
     pub(crate) async fn find_result(&self, object_id: ObjectId) -> Option<CrawlResult> {

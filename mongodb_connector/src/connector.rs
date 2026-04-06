@@ -8,7 +8,6 @@ use common::{
     search_params::{ApiSearchInput, CollectionSearchResults},
     string_utils::sha256_hash_string,
     user_sessions::{ServiceType, Session},
-    utils::normalized_relative_days,
 };
 use mongodb::{Client, bson::oid::ObjectId};
 use tracing::warn;
@@ -58,13 +57,11 @@ impl MongoDBConnector {
     }
 
     pub async fn insert_many_results(&self, results: Vec<&CrawlResult>) {
-        self.crawl_results.insert_results(results.clone()).await;
-
-        let prev_days = normalized_relative_days(3);
-
-        self.live_results.prune_results(prev_days).await;
-        self.crawl_results.update_view(prev_days).await;
-        self.price_history.update_collection(results).await;
+        tokio::join!(
+            self.crawl_results.insert_results(results.clone()),
+            self.live_results.insert_results(results.clone()),
+            self.price_history.update_collection(results)
+        );
     }
 
     pub async fn get_pricing_history(
