@@ -20,10 +20,11 @@ const PAGE_MIN_SECS_BACKOFF: u64 = 60;
 const PAGE_MAX_SECS_BACKOFF: u64 = 120;
 const MAX_RETRY: u32 = 3;
 
-const PROXY_DOMAINS: [&str; 3] = [
+const PROXY_DOMAINS: [&str; 4] = [
     "www.italiansportinggoods.com",
     "ellwoodepps.com",
     "x-reload.com",
+    "dantesports.com",
 ];
 
 static REQWEST_CLIENT: OnceLock<ClientWithMiddleware> = OnceLock::new();
