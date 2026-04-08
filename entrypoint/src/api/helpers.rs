@@ -1,7 +1,17 @@
-use axum::http::HeaderMap;
-use tracing::warn;
+use std::env;
 
-use crate::constants::{IP_HEADER, TOKEN_COOKIE_NAME};
+use axum::http::HeaderMap;
+use common::constants::CLOUDFLARE_TURNSTILE_SECRET_KEY;
+use reqwest::ClientBuilder;
+use serde_json::json;
+use tracing::{error, warn};
+
+use crate::{
+    constants::{IP_HEADER, TOKEN_COOKIE_NAME},
+    structs::CloudflareResponse,
+};
+
+const CLOUDFLARE_SITE_VERIFY: &str = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 
 pub(crate) fn get_ip_addr(header_map: HeaderMap) -> Option<String> {
     if cfg!(debug_assertions) {
@@ -41,4 +51,35 @@ pub(crate) fn get_token(header_map: &HeaderMap) -> Option<String> {
     }
 
     None
+}
+
+pub(crate) async fn validate_cloudflare_token(
+    token: &str,
+    ip_addr: &str,
+) -> Option<CloudflareResponse> {
+    let Ok(cloudflare_secret) = env::var(CLOUDFLARE_TURNSTILE_SECRET_KEY) else {
+        error!("{CLOUDFLARE_TURNSTILE_SECRET_KEY} env var is missing");
+
+        return None;
+    };
+
+    let client = ClientBuilder::new()
+        .gzip(true)
+        .https_only(true)
+        .build()
+        .unwrap();
+
+    let request = client
+        .post(CLOUDFLARE_SITE_VERIFY)
+        .json(&json!({
+            "secret": cloudflare_secret,
+            "response": token,
+            "remoteip": ip_addr
+        }))
+        .build()
+        .unwrap();
+
+    let response = client.execute(request).await.unwrap();
+
+    Some(response.json::<CloudflareResponse>().await.unwrap())
 }

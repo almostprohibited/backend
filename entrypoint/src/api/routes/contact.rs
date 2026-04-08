@@ -1,33 +1,20 @@
-use std::env;
 use std::sync::Arc;
 
 use crate::constants::IP_HEADER;
-use crate::helpers::get_ip_addr;
+use crate::helpers::{get_ip_addr, validate_cloudflare_token};
 use crate::{ServerState, routes::error_message_erasure::ApiError};
 
 use axum::debug_handler;
 use axum::http::HeaderMap;
 use axum::{Json, extract::State, http::StatusCode, response::IntoResponse};
 use axum_extra::extract::WithRejection;
-use common::constants::CLOUDFLARE_TURNSTILE_SECRET_KEY;
 use common::messages::Message;
 use common::serde_utils::disallow_empty_string;
 use discord::get_contact_webhook;
-use reqwest::ClientBuilder;
 use serde::Deserialize;
-use serde_json::json;
 use serde_with::NoneAsEmptyString;
 use serde_with::serde_as;
 use tracing::error;
-
-const CLOUDFLARE_SITE_VERIFY: &str = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
-
-#[derive(Deserialize, Debug)]
-struct CloudflareResponse {
-    success: bool,
-    // cloudflare returns more data in the response
-    // I don't care about the extra data
-}
 
 #[serde_as]
 #[derive(Debug, Deserialize)]
@@ -58,32 +45,13 @@ pub(crate) async fn contact_handler(
         return Ok(StatusCode::INTERNAL_SERVER_ERROR);
     };
 
-    let Ok(cloudflare_secret) = env::var(CLOUDFLARE_TURNSTILE_SECRET_KEY) else {
-        error!("{CLOUDFLARE_TURNSTILE_SECRET_KEY} env var is missing");
-
+    let Some(cloudflare_response) =
+        validate_cloudflare_token(&json.cf_turnstile_response, &ip_addr).await
+    else {
         return Ok(StatusCode::INTERNAL_SERVER_ERROR);
     };
 
-    let client = ClientBuilder::new()
-        .gzip(true)
-        .https_only(true)
-        .build()
-        .unwrap();
-
-    let request = client
-        .post(CLOUDFLARE_SITE_VERIFY)
-        .json(&json!({
-            "secret": cloudflare_secret,
-            "response": json.cf_turnstile_response,
-            "remoteip": ip_addr
-        }))
-        .build()
-        .unwrap();
-
-    let response = client.execute(request).await.unwrap();
-    let parsed_response = response.json::<CloudflareResponse>().await.unwrap();
-
-    if !parsed_response.success {
+    if !cloudflare_response.success {
         return Ok(StatusCode::UNAUTHORIZED);
     }
 

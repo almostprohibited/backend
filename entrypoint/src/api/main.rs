@@ -58,7 +58,7 @@ async fn main() {
 
     if is_beta {
         router = router
-            .route("/api/auth/{provider}/provider", get(provider))
+            .route("/api/auth/{provider}/provider", post(provider))
             .route("/api/auth/{provider}/callback", get(callback))
             .route("/api/auth/logout", delete(logout));
     }

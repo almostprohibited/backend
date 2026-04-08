@@ -1,4 +1,5 @@
 use crate::constants::TOKEN_COOKIE_NAME;
+use std::str::FromStr;
 use std::sync::Arc;
 
 use crate::constants::IP_HEADER;
@@ -8,7 +9,8 @@ use crate::structs::ServerState;
 
 use axum::debug_handler;
 use axum::extract::{Path, Query, State};
-use axum::http::{HeaderMap, HeaderValue};
+use axum::http::{HeaderMap, HeaderName, HeaderValue};
+use axum::response::Response;
 use axum::{http::StatusCode, response::IntoResponse};
 use axum_extra::extract::WithRejection;
 use common::constants::TOKEN_COOKIE_TTL_SECS;
@@ -20,12 +22,14 @@ use serde::Deserialize;
 use tracing::{debug, error};
 
 #[derive(Deserialize, Debug)]
-// #[serde(deny_unknown_fields)]
 pub(crate) struct Payload {
-    code: String,
     state: String,
+    error: Option<String>,
+    code: Option<String>,
 }
 
+// TODO: better error handle the hand back to frontend
+// eg. error messages if IP mismatch, if DB entry missing, etc
 #[debug_handler]
 pub(crate) async fn callback(
     headers: HeaderMap,
@@ -36,22 +40,58 @@ pub(crate) async fn callback(
     debug!("{path:?}");
     debug!("{query:?}");
 
+    // this should only happen if someone is messing with the API
+    if query.error.clone().xor(query.code.clone()).is_none() {
+        error!("Request is missing one of error or code params");
+        return Ok(StatusCode::BAD_REQUEST.into_response());
+    }
+
     let Some(ip_addr) = get_ip_addr(headers) else {
         error!("Request is missing {IP_HEADER} header");
 
         return Ok(StatusCode::INTERNAL_SERVER_ERROR.into_response());
     };
 
+    // again, the error only happens if someone is messing with the API
     let provider = match path {
         ServiceType::Discord => get_discord_oidc_provider().await,
         ServiceType::Google => get_google_oidc_provider().await,
         _ => return Ok(StatusCode::NOT_IMPLEMENTED.into_response()),
     };
 
-    let identifier = provider
-        .exchange_code(&query.code, &query.state, &ip_addr, &state.db)
-        .await
-        .unwrap();
+    let Some(db_verification) = state.db.get_verification(&query.state).await else {
+        error!("Saved verification code does exist");
+        return Ok(StatusCode::BAD_REQUEST.into_response());
+    };
+
+    state.db.delete_verification(&query.state).await;
+
+    if let Some(error) = query.error {
+        if error == "access_denied" {
+            return Ok(get_home_redirect());
+        } else {
+            return Ok(StatusCode::BAD_REQUEST.into_response());
+        }
+    }
+
+    if let Some(saved_ip) = db_verification.ip_addr
+        && saved_ip != ip_addr
+    {
+        error!("Saved verification does not match incoming IP address");
+
+        return Ok(StatusCode::FORBIDDEN.into_response());
+    }
+
+    let Some(saved_nonce) = db_verification.nonce else {
+        error!("Saved verification does not contain nonce");
+
+        return Ok(StatusCode::BAD_REQUEST.into_response());
+    };
+
+    // code should exist at this point
+    let code = query.code.unwrap();
+
+    let identifier = provider.exchange_code(&code, &saved_nonce).await.unwrap();
 
     debug!("{identifier}");
 
@@ -77,4 +117,13 @@ pub(crate) async fn callback(
     );
 
     Ok((return_headers, StatusCode::TEMPORARY_REDIRECT).into_response())
+}
+
+fn get_home_redirect() -> Response {
+    let return_headers = HeaderMap::from_iter([(
+        HeaderName::from_str("Location").unwrap(),
+        HeaderValue::from_str(&format!("{}/", get_frontend_domain())).unwrap(),
+    )]);
+
+    return (return_headers, StatusCode::TEMPORARY_REDIRECT).into_response();
 }

@@ -1,10 +1,8 @@
-use common::utils::get_current_time;
-use mongodb_connector::connector::MongoDBConnector;
 use openidconnect::{
     AuthUrl, AuthenticationFlow, AuthorizationCode, Client, ClientId, ClientSecret, CsrfToken,
     EmptyAdditionalClaims, EmptyExtraTokenFields, EndpointMaybeSet, EndpointNotSet, EndpointSet,
-    IdTokenFields, IssuerUrl, Nonce, RedirectUrl, RevocationErrorResponseType, Scope,
-    StandardErrorResponse, StandardTokenIntrospectionResponse, StandardTokenResponse, TokenUrl,
+    IdTokenFields, IssuerUrl, Nonce, RedirectUrl, RevocationErrorResponseType,
+    StandardErrorResponse, StandardTokenIntrospectionResponse, StandardTokenResponse,
     core::{
         CoreAuthDisplay, CoreAuthPrompt, CoreClient, CoreErrorResponseType, CoreGenderClaim,
         CoreJsonWebKey, CoreJweContentEncryptionAlgorithm, CoreJwsSigningAlgorithm,
@@ -13,7 +11,7 @@ use openidconnect::{
 };
 use tracing::{debug, error};
 
-use crate::{errors::OidcError, utils::get_reqwest_client};
+use crate::{errors::OidcError, traits::OidcAuthorizationProps, utils::get_reqwest_client};
 
 // typing hell
 type OidcClient = Client<
@@ -51,8 +49,6 @@ pub struct BaseOidcProvider {
     client_id: String,
     client_secret: String,
     authorization_url: Option<String>,
-    token_exchange_url: Option<String>,
-    scopes: Vec<String>,
     prompt: Option<CoreAuthPrompt>,
 }
 
@@ -62,8 +58,6 @@ pub(crate) struct BaseOidcProviderBuilder {
     client_id: String,
     client_secret: String,
     authorization_url: Option<String>,
-    token_exchange_url: Option<String>,
-    scopes: Vec<String>,
     prompt: Option<CoreAuthPrompt>,
 }
 
@@ -83,32 +77,13 @@ impl BaseOidcProvider {
                 .set_authorization_endpoint(AuthUrl::new(authorization_url.clone())?);
         }
 
-        if let Some(token_url) = &self.token_exchange_url {
-            provider_metadata =
-                provider_metadata.set_token_endpoint(Some(TokenUrl::new(token_url.clone())?));
-        }
-
-        if !self.scopes.is_empty() {
-            let scopes = self
-                .scopes
-                .iter()
-                .map(|scope| Scope::new(scope.clone()))
-                .collect();
-
-            provider_metadata = provider_metadata.set_scopes_supported(Some(scopes));
-        }
-
         Ok(
             CoreClient::from_provider_metadata(provider_metadata, client_id, Some(client_secret))
                 .set_redirect_uri(redirect_url),
         )
     }
 
-    pub async fn fetch_authorization_url(
-        &self,
-        ip_addr: &str,
-        db: &MongoDBConnector,
-    ) -> Result<String, OidcError> {
+    pub async fn fetch_authorization_url(&self) -> Result<OidcAuthorizationProps, OidcError> {
         let client = self.get_oidc_client().await?;
 
         let mut authorization_url_builder = client.authorize_url(
@@ -125,43 +100,16 @@ impl BaseOidcProvider {
 
         debug!("Returning auth url: {auth_url:?}");
 
-        db.create_verification(
-            csrf.secret(),
-            get_current_time(),
-            Some(ip_addr.to_string()),
-            Some(nonce.secret().clone()),
-        )
-        .await;
-
-        Ok(auth_url.to_string())
+        // unwrap and return raw values instead of passing
+        // OIDC objects to caller
+        Ok(OidcAuthorizationProps {
+            url: auth_url.to_string(),
+            csrf: csrf.secret().clone(),
+            nonce: nonce.secret().clone(),
+        })
     }
 
-    pub async fn exchange_code(
-        &self,
-        code: &str,
-        state: &str,
-        ip_addr: &str,
-        db: &MongoDBConnector,
-    ) -> Result<String, OidcError> {
-        let Some(db_verification) = db.get_verification(state).await else {
-            error!("Saved verification code does exist");
-            return Err(OidcError::MissingNonceError);
-        };
-
-        if let Some(saved_ip) = db_verification.ip_addr
-            && saved_ip != ip_addr
-        {
-            error!("Saved verification does not match incoming IP address");
-            return Err(OidcError::MissingNonceError);
-        }
-
-        let Some(saved_nonce) = db_verification.nonce else {
-            error!("Saved verification does not contain nonce");
-            return Err(OidcError::MissingNonceError);
-        };
-
-        db.delete_verification(state).await;
-
+    pub async fn exchange_code(&self, code: &str, nonce: &str) -> Result<String, OidcError> {
         let client = self.get_oidc_client().await?;
 
         let response = client
@@ -176,7 +124,7 @@ impl BaseOidcProvider {
             return Err(OidcError::MissingIdTokenError);
         };
 
-        let claims = id_token.claims(&verifier, &Nonce::new(saved_nonce.clone()))?;
+        let claims = id_token.claims(&verifier, &Nonce::new(nonce.to_string()))?;
 
         debug!("{claims:?}");
 
@@ -185,7 +133,7 @@ impl BaseOidcProvider {
             None => return Err(OidcError::MissingClaimNonceError),
         };
 
-        if *claimed_nonce != saved_nonce {
+        if *claimed_nonce != nonce {
             error!("Returned nonces do not match");
             return Err(OidcError::NonceMismatchError);
         }
@@ -211,8 +159,6 @@ impl BaseOidcProviderBuilder {
             client_id: client_id.to_string(),
             client_secret: client_secret.to_string(),
             authorization_url: None,
-            token_exchange_url: None,
-            scopes: vec![],
             prompt: None,
         }
     }
@@ -222,18 +168,6 @@ impl BaseOidcProviderBuilder {
 
         self
     }
-
-    // pub(crate) fn with_token_exchange_url(mut self, token_exchange_url: &str) -> Self {
-    //     self.token_exchange_url = Some(token_exchange_url.to_string());
-
-    //     self
-    // }
-
-    // pub(crate) fn add_scope(mut self, scope: &str) -> Self {
-    //     self.scopes.push(scope.to_string());
-
-    //     self
-    // }
 
     pub(crate) fn with_prompt(mut self, prompt: CoreAuthPrompt) -> Self {
         self.prompt = Some(prompt);
@@ -248,8 +182,6 @@ impl BaseOidcProviderBuilder {
             client_id: self.client_id,
             client_secret: self.client_secret,
             authorization_url: self.authorization_url,
-            token_exchange_url: self.token_exchange_url,
-            scopes: self.scopes,
             prompt: self.prompt,
         }
     }
