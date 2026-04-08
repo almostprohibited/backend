@@ -8,6 +8,7 @@ use common::result::{
 };
 use metrics::{Metrics, put_metric};
 use retailers::errors::RetailerError;
+use tracing::debug;
 
 use crate::clients::utils::{get_category_tier, get_key};
 
@@ -33,6 +34,8 @@ pub(crate) trait Client {
     fn get_retailer_name(&self) -> RetailerName;
 
     fn emit_metrics(&self) {
+        let mut running_total: HashMap<Metrics, u64> = HashMap::new();
+
         for result in self.get_results() {
             let metric = match result.category {
                 Category::Firearm => Some(Metrics::CrawledFirearm),
@@ -42,7 +45,7 @@ pub(crate) trait Client {
             };
 
             if let Some(metric) = metric {
-                put_metric!(metric, 1, "retailer" => self.get_retailer_name().to_string());
+                *running_total.entry(metric).or_insert(0) += 1;
             }
 
             if result.category == Category::Ammunition {
@@ -53,13 +56,17 @@ pub(crate) trait Client {
                 }
 
                 if !has_metadata {
-                    put_metric!(
-                        Metrics::CrawledAmmunitionNoRoundCount,
-                        1,
-                        "retailer" => self.get_retailer_name().to_string()
-                    );
+                    *running_total
+                        .entry(Metrics::CrawledAmmunitionNoRoundCount)
+                        .or_insert(0) += 1;
                 }
             }
+        }
+
+        debug!("inserting metrics: {:?}", running_total);
+
+        for (metric, val) in running_total {
+            put_metric!(metric, val, "retailer" => self.get_retailer_name().to_string());
         }
     }
 }
