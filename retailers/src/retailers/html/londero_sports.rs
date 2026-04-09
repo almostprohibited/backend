@@ -138,19 +138,18 @@ impl HtmlRetailer for LonderoSports {
     }
 
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {
-        Ok(0)
-        // let html = Html::parse_document(response);
+        let html = Html::parse_document(response);
 
-        // if extract_element_from_element(
-        //     html.root_element(),
-        //     "ol.products > li.product div.stock.unavailable",
-        // )
-        // .is_ok()
-        // {
-        //     debug!("Out of stock item found, stopping category");
-        //     return Ok(0);
-        // }
+        if extract_element_from_element(
+            html.root_element(),
+            "ol.products > li.product div.stock.unavailable",
+        )
+        .is_ok()
+        {
+            debug!("Out of stock item found, stopping category");
+            return Ok(0);
+        }
 
-        // Magento::get_pages(response)
+        Magento::get_pages(response)
     }
 }
