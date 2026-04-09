@@ -21,6 +21,7 @@ mod intersurplus;
 mod italian_sporting_goods; // they have arsenalforce in their robots.txt
 mod latulippe;
 mod lever_arms;
+mod londero_sports;
 mod magdump;
 mod marstar;
 mod pd_enterprises;
@@ -61,6 +62,7 @@ pub use intersurplus::InterSurplus;
 pub use italian_sporting_goods::ItalianSportingGoods;
 pub use latulippe::Latulippe;
 pub use lever_arms::LeverArms;
+pub use londero_sports::LonderoSports;
 pub use magdump::MagDump;
 pub use marstar::Marstar;
 pub use pd_enterprises::PDEnterprises;

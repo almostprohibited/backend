@@ -3,6 +3,29 @@ use scraper::{Html, Selector};
 
 use crate::{errors::RetailerError, structures::HtmlSearchQuery, utils::html::element_to_text};
 
+pub(crate) async fn get_nested_sitemap_urls(
+    sitemap_url: &str,
+) -> Result<Vec<String>, RetailerError> {
+    let request = RequestBuilder::new().set_url(sitemap_url).build();
+    let response = UnprotectedCrawler::make_web_request(request).await?;
+
+    let sitemap = Html::parse_fragment(&response.body);
+    let selector = Selector::parse("sitemapindex > sitemap > loc").unwrap();
+
+    Ok(sitemap
+        .select(&selector)
+        .filter_map(|el| {
+            let link = element_to_text(el);
+
+            if !link.starts_with("https://") || !link.ends_with(".xml") {
+                return None;
+            }
+
+            Some(link)
+        })
+        .collect())
+}
+
 pub(crate) async fn get_search_queries<T: Fn(String) -> Option<HtmlSearchQuery>>(
     sitemap_url: impl Into<String>,
     product_url_base: &str,

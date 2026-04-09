@@ -78,6 +78,7 @@ pub enum RetailerName {
     WolverineSupplies,
     XReload,
     Gobles,
+    LonderoSports,
 }
 
 impl RetailerName {
