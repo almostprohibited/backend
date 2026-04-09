@@ -24,14 +24,14 @@ runs:
   steps:
     # this is not a typo, first checkout checkouts this backend repo
     # the other checkout grabs the toolbox package
-    - uses: actions/checkout@v4
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
+    - uses: actions/checkout@v6
       with:
         repository: almostprohibited/toolbox
         ref: main
         token: ${{ inputs.toolbox-package-token }}
         path: ./.toolbox
-    - uses: actions/download-artifact@v4
+    - uses: actions/download-artifact@v8
       name: Download built files
       with:
         artifact-ids: ${{ inputs.artifact-id }}

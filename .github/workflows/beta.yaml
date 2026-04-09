@@ -12,7 +12,7 @@ jobs:
   build:
     runs-on: ubuntu-24.04-arm
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Build
         uses: ./.github/actions/build
   package:
@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.repository == 'almostprohibited/backend'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Package
         uses: ./.github/actions/package
         with:
@@ -33,7 +33,7 @@ jobs:
     runs-on: self-hosted
     if: github.repository == 'almostprohibited/backend'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Deploy
         uses: ./.github/actions/deploy
         with:
