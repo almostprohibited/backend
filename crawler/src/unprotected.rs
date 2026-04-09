@@ -24,7 +24,7 @@ const PROXY_DOMAINS: [&str; 4] = [
     "www.italiansportinggoods.com",
     "ellwoodepps.com",
     "x-reload.com",
-    "dantesports.com",
+    "www.dantesports.com",
 ];
 
 static REQWEST_CLIENT: OnceLock<ClientWithMiddleware> = OnceLock::new();

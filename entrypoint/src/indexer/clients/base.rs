@@ -8,6 +8,7 @@ use common::result::{
 };
 use metrics::{Metrics, put_metric};
 use retailers::errors::RetailerError;
+use strum::IntoEnumIterator;
 use tracing::debug;
 
 use crate::clients::utils::{get_category_tier, get_key};
@@ -34,7 +35,8 @@ pub(crate) trait Client {
     fn get_retailer_name(&self) -> RetailerName;
 
     fn emit_metrics(&self) {
-        let mut running_total: HashMap<Metrics, u64> = HashMap::new();
+        let mut running_total: HashMap<Metrics, u64> =
+            HashMap::from_iter(Metrics::iter().map(|variant| (variant, 0)));
 
         for result in self.get_results() {
             let metric = match result.category {
