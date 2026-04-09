@@ -152,6 +152,8 @@ impl BartonsBigCountry {
 
             sleep(Duration::from_secs(2)).await;
 
+            let mut image_url = parsed_product.image.replace("/50x50", "/256x256");
+
             if parsed_product.variants.len() == 0 {
                 let price = Self::get_price(parsed_product.price)?;
 
@@ -162,7 +164,7 @@ impl BartonsBigCountry {
                     self.get_retailer_name(),
                     search_term.category,
                 )
-                .with_image_url(parsed_product.image);
+                .with_image_url(image_url);
 
                 results.push(new_result);
 
@@ -190,7 +192,7 @@ impl BartonsBigCountry {
                     search_term.category,
                 );
 
-                let mut image_url = parsed_product.image.replace("/50x50", "/512x512");
+                image_url = parsed_product.image.replace("/50x50", "/256x256");
 
                 if let Some(nested_image_id) = nested_product.image {
                     image_url = image_url.replace(
