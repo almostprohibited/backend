@@ -37,7 +37,7 @@ runs:
         artifact-ids: ${{ inputs.artifact-id }}
         path: ./.download
     - run: |
-        mv ./.download/built-files/* ./.toolbox/backend/
+        mv ./.download/* ./.toolbox/backend/
       shell: bash
     - name: Build Docker image
       run: |
