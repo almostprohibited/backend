@@ -21,11 +21,11 @@ const PAGE_MAX_SECS_BACKOFF: u64 = 120;
 const MAX_RETRY: u32 = 3;
 
 const PROXY_DOMAINS: [&str; 5] = [
-    "www.italiansportinggoods.com",
+    "italiansportinggoods.com",
     "ellwoodepps.com",
     "x-reload.com",
-    "www.dantesports.com",
-    "www.londerosports.com",
+    "dantesports.com",
+    "londerosports.com",
 ];
 
 static REQWEST_CLIENT: OnceLock<ClientWithMiddleware> = OnceLock::new();
@@ -59,7 +59,7 @@ impl UnprotectedCrawler {
 
                     if PROXY_DOMAINS
                         .into_iter()
-                        .any(|proxied_domain| checked_url == proxied_domain)
+                        .any(|proxied_domain| checked_url.ends_with(proxied_domain))
                     {
                         debug!("Proxying {checked_url}");
 
