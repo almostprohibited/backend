@@ -11,6 +11,7 @@ use common::{
 use crawler::{request::RequestBuilder, unprotected::UnprotectedCrawler};
 use scraper::{Html, Selector};
 use tokio::time::sleep;
+use tracing::{debug, warn};
 
 use crate::{
     errors::RetailerError,
@@ -66,20 +67,29 @@ impl WooCommerce {
         for variation in variations {
             for attribute in variation.attributes.keys() {
                 if results.contains_key(attribute) {
+                    debug!("Results already contain {attribute}, skipping");
                     continue;
                 }
 
                 let mut mapping: HashMap<String, String> = HashMap::new();
 
-                let selector =
-                    Selector::parse(&format!("li[data-attribute_name='{attribute}'")).unwrap();
+                debug!("Checking for {attribute} mappings");
+
+                let selector = Selector::parse(&format!(
+                    "select[data-attribute_name='{attribute}'] > option"
+                ))
+                .unwrap();
 
                 for attribute in html.select(&selector) {
-                    let attr_key = element_extract_attr(attribute, "data-value")?;
-                    let attr_name = element_extract_attr(attribute, "title")?;
+                    let attr_key = element_extract_attr(attribute, "value")?;
+                    let attr_name = element_to_text(attribute);
 
-                    mapping.insert(attr_key, attr_name);
+                    if !attr_key.is_empty() {
+                        mapping.insert(attr_key, attr_name);
+                    }
                 }
+
+                debug!("Setting {attribute} to {mapping:?}");
 
                 results.insert(attribute.to_string(), mapping);
             }
@@ -117,6 +127,10 @@ impl WooCommerce {
                 // oddly enough, Rangeview Sports will include items
                 // in their API response that are "in stock", but
                 // don't show up on the website
+                warn!(
+                    "Skipping product that is not present in API response: {variation_attr_key}:{variation_attr_value}"
+                );
+
                 return Ok(None);
             };
 
@@ -148,8 +162,11 @@ impl WooCommerceNested for WooCommerce {
         let attribute_mapping =
             Self::get_nested_product_attribute_name_mapping(&result.body, &product_variations)?;
 
+        debug!("{attribute_mapping:?}");
+
         for variation in product_variations {
             if !variation.is_in_stock {
+                debug!("Variant out of stock: {variation:?}");
                 continue;
             }
 
@@ -172,6 +189,8 @@ impl WooCommerceNested for WooCommerce {
                 // shown to public
                 continue;
             };
+
+            debug!("Pushed variant {name}");
 
             let new_result = CrawlResult::new(name, url.clone(), price, retailer_name, category)
                 .with_image_url(variation.image.url);

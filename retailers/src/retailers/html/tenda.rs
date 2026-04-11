@@ -3,16 +3,20 @@ use common::result::{
     base::CrawlResult,
     enums::{Category, RetailerName},
 };
-use crawler::request::{Request, RequestBuilder};
+use crawler::{
+    request::{Request, RequestBuilder},
+    unprotected::UnprotectedCrawler,
+};
 use scraper::{Html, Selector};
-use tracing::debug;
+use tracing::{debug, warn};
 
 use crate::{
     errors::RetailerError,
     structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
     utils::{
-        ecommerce::{WooCommerce, WooCommerceBuilder},
+        ecommerce::{WooCommerce, WooCommerceBuilder, WooCommerceNested},
         generic_sitemap::get_search_queries,
+        html::{element_extract_attr, element_to_text, extract_element_from_element},
         securi_cookie::get_securi_cookie,
     },
 };
@@ -23,7 +27,6 @@ const BASE_URL: &str = "https://www.gotenda.com/";
 const URL: &str = "https://www.gotenda.com/product-category/{category}/page/{page}/?stock=instock";
 
 pub struct Tenda {
-    securi_cookie: String,
     search_terms: Vec<HtmlSearchQuery>,
 }
 
@@ -36,7 +39,6 @@ impl Default for Tenda {
 impl Tenda {
     pub fn new() -> Self {
         Self {
-            securi_cookie: String::new(),
             search_terms: Vec::new(),
         }
     }
@@ -80,9 +82,10 @@ impl Retailer for Tenda {
     async fn init(&mut self) -> Result<(), RetailerError> {
         let cookie = get_securi_cookie(BASE_URL).await?;
 
+        UnprotectedCrawler::set_cookie(BASE_URL, &cookie);
+
         debug!("Using cookie: {cookie}");
 
-        self.securi_cookie = cookie;
         self.search_terms.extend(Self::get_search_queries().await?);
 
         Ok(())
@@ -106,10 +109,7 @@ impl HtmlRetailer for Tenda {
 
         debug!("Setting page to {}", url);
 
-        let request = RequestBuilder::new()
-            .set_url(url)
-            .set_headers([("Cookie".into(), self.securi_cookie.clone())].as_ref())
-            .build();
+        let request = RequestBuilder::new().set_url(url).build();
 
         Ok(request)
     }
@@ -123,6 +123,8 @@ impl HtmlRetailer for Tenda {
 
         let fragment = Html::parse_document(response);
 
+        let mut product_variants: Vec<String> = vec![];
+
         let product_selector = Selector::parse("ul.products > li.product.instock").unwrap();
 
         let woocommerce_helper = WooCommerceBuilder::default()
@@ -132,11 +134,36 @@ impl HtmlRetailer for Tenda {
             .build();
 
         for element in fragment.select(&product_selector) {
+            let add_cart_button = extract_element_from_element(element, "a.add_to_cart_button")?;
+
+            if element_to_text(add_cart_button).to_lowercase() == "select options" {
+                if let Ok(product_link) = element_extract_attr(add_cart_button, "href") {
+                    product_variants.push(product_link);
+
+                    continue;
+                } else {
+                    warn!(
+                        "Failed to extract link for nested product, falling back to normal product"
+                    );
+                }
+            }
+
             results.push(woocommerce_helper.parse_product(
                 element,
                 self.get_retailer_name(),
                 search_term.category,
             )?);
+        }
+
+        for link in product_variants {
+            results.extend(
+                WooCommerce::parse_nested_products(
+                    link,
+                    search_term.category,
+                    self.get_retailer_name(),
+                )
+                .await?,
+            );
         }
 
         Ok(results)

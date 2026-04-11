@@ -1,4 +1,7 @@
-use reqwest::header::{InvalidHeaderName, InvalidHeaderValue};
+use reqwest::{
+    StatusCode,
+    header::{InvalidHeaderName, InvalidHeaderValue},
+};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -9,6 +12,8 @@ pub enum CrawlerError {
     UnprotectedClientGeneralError(#[from] reqwest::Error),
     #[error("Unprotected crawler failed to create header")]
     UnprotectedClientInvalidHeader,
+    #[error("Non 2xx response returned: {0}")]
+    InvalidResponseCodeError(StatusCode),
 }
 
 impl From<InvalidHeaderName> for CrawlerError {

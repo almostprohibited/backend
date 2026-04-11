@@ -1,8 +1,14 @@
-use std::{env, str::FromStr, sync::OnceLock, time::Duration};
+use std::{
+    env,
+    str::FromStr,
+    sync::{Arc, LazyLock, OnceLock},
+    time::Duration,
+};
 
 use common::{constants::PROXY_ADDRESS, get_user_agent};
 use reqwest::{
     ClientBuilder as BaseClientBuilder, Proxy, Url,
+    cookie::Jar,
     header::{HeaderMap, HeaderName, HeaderValue},
 };
 use reqwest_middleware::{ClientBuilder as RetryableClientBuilder, ClientWithMiddleware};
@@ -29,6 +35,7 @@ const PROXY_DOMAINS: [&str; 5] = [
 ];
 
 static REQWEST_CLIENT: OnceLock<ClientWithMiddleware> = OnceLock::new();
+static COOKIE_JAR: LazyLock<Arc<Jar>> = LazyLock::new(|| Arc::new(Jar::default()));
 
 #[derive(Copy, Clone)]
 pub struct UnprotectedCrawler {}
@@ -42,7 +49,7 @@ impl UnprotectedCrawler {
                 .timeout(Duration::from_secs(PAGE_TIMEOUT_SECONDS))
                 .user_agent(get_user_agent())
                 .https_only(true)
-                .cookie_store(true)
+                .cookie_provider(COOKIE_JAR.clone())
                 .connection_verbose(true);
 
             if let Ok(proxy_address) = env::var(PROXY_ADDRESS) {
@@ -88,6 +95,11 @@ impl UnprotectedCrawler {
         })
     }
 
+    pub fn set_cookie(url: &str, cookie: &str) {
+        let cookie_jar = COOKIE_JAR.clone();
+        cookie_jar.add_cookie_str(cookie, &Url::from_str(url).unwrap());
+    }
+
     pub async fn make_web_request(request: Request) -> Result<CrawlerResponse, CrawlerError> {
         let client = Self::create_client();
 
@@ -122,6 +134,10 @@ impl UnprotectedCrawler {
         let response = request_builder.send().await?;
 
         debug!("{response:?}");
+
+        if response.status().is_client_error() || response.status().is_server_error() {
+            return Err(CrawlerError::InvalidResponseCodeError(response.status()));
+        }
 
         let headers = response.headers().clone();
 

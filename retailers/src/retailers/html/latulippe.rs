@@ -3,7 +3,10 @@ use common::result::{
     base::{CrawlResult, Price},
     enums::{Category, RetailerName},
 };
-use crawler::request::{Request, RequestBuilder};
+use crawler::{
+    request::{Request, RequestBuilder},
+    unprotected::UnprotectedCrawler,
+};
 use scraper::{ElementRef, Html, Selector};
 use tracing::debug;
 
@@ -23,7 +26,6 @@ const BASE_URL: &str = "https://latulippe.com/en/";
 const URL: &str = "https://latulippe.com/en/{category}/?page={page}";
 
 pub struct Latulippe {
-    securi_cookie: String,
     search_queries: Vec<HtmlSearchQuery>,
 }
 
@@ -36,7 +38,6 @@ impl Default for Latulippe {
 impl Latulippe {
     pub fn new() -> Self {
         Self {
-            securi_cookie: String::new(),
             search_queries: vec![],
         }
     }
@@ -53,9 +54,9 @@ impl Retailer for Latulippe {
     async fn init(&mut self) -> Result<(), RetailerError> {
         let cookie = get_securi_cookie(BASE_URL).await?;
 
-        debug!("Using cookie: {cookie}");
+        UnprotectedCrawler::set_cookie(BASE_URL, &cookie);
 
-        self.securi_cookie = cookie;
+        debug!("Using cookie: {cookie}");
 
         // not using constant for domain here since
         // their antibot logic works kinda weird and
@@ -122,10 +123,7 @@ impl HtmlRetailer for Latulippe {
 
         debug!("Setting page to {}", url);
 
-        let request = RequestBuilder::new()
-            .set_url(url)
-            .set_headers([("Cookie".into(), self.securi_cookie.clone())].as_ref())
-            .build();
+        let request = RequestBuilder::new().set_url(url).build();
 
         Ok(request)
     }
