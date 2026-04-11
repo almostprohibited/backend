@@ -5,14 +5,14 @@ use common::result::{
 };
 use crawler::request::{Request, RequestBuilder};
 use scraper::{Html, Selector};
-use tracing::debug;
+use tracing::{debug, warn};
 
 use crate::{
     errors::RetailerError,
     structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
     utils::{
-        ecommerce::{WooCommerce, WooCommerceBuilder},
-        html::element_to_text,
+        ecommerce::{WooCommerce, WooCommerceBuilder, WooCommerceNested},
+        html::{element_extract_attr, element_to_text, extract_element_from_element},
     },
 };
 
@@ -75,11 +75,28 @@ impl HtmlRetailer for DanteSports {
             .with_image_url_selector("div.product-loop-thumbnail img")
             .build();
 
+        let mut product_variants: Vec<String> = vec![];
+
         for product in html.select(&product_selector) {
             // hacky way to avoid the weird product they have for
             // special pricing
             if element_to_text(product).contains("PRICE ON REQUEST") {
+                debug!("Skipping product that does not have public pricing");
                 continue;
+            }
+
+            let add_cart_button = extract_element_from_element(product, "a.add_to_cart_button")?;
+
+            if element_to_text(add_cart_button).to_lowercase() == "select options" {
+                if let Ok(product_link) = element_extract_attr(add_cart_button, "href") {
+                    product_variants.push(product_link);
+
+                    continue;
+                } else {
+                    warn!(
+                        "Failed to extract link for nested product, falling back to normal product"
+                    );
+                }
             }
 
             results.push(woocommerce_helper.parse_product(
@@ -87,6 +104,17 @@ impl HtmlRetailer for DanteSports {
                 self.get_retailer_name(),
                 search_term.category,
             )?);
+        }
+
+        for link in product_variants {
+            results.extend(
+                WooCommerce::parse_nested_products(
+                    link,
+                    search_term.category,
+                    self.get_retailer_name(),
+                )
+                .await?,
+            );
         }
 
         Ok(results)
