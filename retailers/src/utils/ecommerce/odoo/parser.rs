@@ -18,6 +18,7 @@ use crate::{
         ecommerce::odoo::api_structs::{
             QuickViewResponse, VariantResponse, get_quick_view_api_body, get_variant_api_body,
         },
+        helpers::clean_url,
         html::{element_extract_attr, extract_element_from_element},
         regex::unwrap_regex_capture,
     },
@@ -109,15 +110,14 @@ impl Odoo {
 
             let product_url_element =
                 extract_element_from_element(element, "a.tp-product-image-container")?;
+
             let raw_product_url = format!(
                 "{}{}",
                 self.base_url,
                 element_extract_attr(product_url_element, "href")?
             );
-            let product_url = match raw_product_url.split_once("?") {
-                Some((url, _)) => url.to_string(),
-                None => raw_product_url,
-            };
+
+            let product_url = clean_url(&raw_product_url);
 
             let image_element =
                 extract_element_from_element(product_url_element, "img.tp-product-image")?;

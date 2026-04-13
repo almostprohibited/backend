@@ -9,6 +9,7 @@ use crate::{
     structures::HtmlSearchQuery,
     utils::{
         conversions::{price_to_cents, string_to_u64},
+        helpers::clean_url,
         html::{element_extract_attr, element_to_text, extract_element_from_element},
     },
 };
@@ -45,10 +46,7 @@ impl Magento {
 
         let raw_image_url = element_extract_attr(image_element, "src")?;
 
-        Ok(match raw_image_url.split_once("?") {
-            Some((clean_url, _)) => clean_url.to_string(),
-            None => raw_image_url,
-        })
+        Ok(clean_url(&raw_image_url))
     }
 
     pub(crate) fn is_valid_product(element: ElementRef) -> Result<bool, RetailerError> {

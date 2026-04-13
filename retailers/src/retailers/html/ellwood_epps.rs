@@ -13,6 +13,7 @@ use crate::{
     structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
     utils::{
         conversions::{price_to_cents, string_to_u64},
+        helpers::clean_url,
         html::{element_extract_attr, element_to_text, extract_element_from_element},
     },
 };
@@ -187,11 +188,7 @@ impl HtmlRetailer for EllwoodEpps {
             let name_element = extract_element_from_element(element, "td.firearm-name > a")?;
             let name = element_to_text(name_element);
 
-            let raw_url = element_extract_attr(name_element, "href")?;
-            let url = match raw_url.split_once("?") {
-                Some((clean_url, _)) => clean_url.to_string(),
-                None => raw_url,
-            };
+            let url = clean_url(&element_extract_attr(name_element, "href")?);
 
             let price = Self::get_price(element)?;
 

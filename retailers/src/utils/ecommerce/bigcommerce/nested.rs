@@ -23,6 +23,7 @@ use crate::{
                 NestedProduct, QueryParams,
             },
         },
+        helpers::clean_url,
         html::{element_extract_attr, element_to_text, extract_element_from_element},
     },
 };
@@ -125,7 +126,7 @@ impl BigCommerce {
         let form_key_el = extract_element_from_element(element, "input.form-radio")?;
         let form_key = element_extract_attr(form_key_el, "name")?;
 
-        let selector = Selector::parse("label.form-option").unwrap();
+        let selector = Selector::parse("label.form-option[data-product-attribute-value]").unwrap();
 
         for option in element.select(&selector) {
             let attr_id = element_extract_attr(option, "data-product-attribute-value")?;
@@ -358,7 +359,7 @@ impl BigCommerceNested for BigCommerce {
                     retailer_name,
                     nested_product.category,
                 )
-                .with_image_url(image);
+                .with_image_url(clean_url(&image));
 
                 nested_results.push(new_result);
 

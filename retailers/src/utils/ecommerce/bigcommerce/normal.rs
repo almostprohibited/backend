@@ -10,6 +10,7 @@ use crate::{
     utils::{
         conversions::{price_to_cents, string_to_u64},
         ecommerce::bigcommerce::structs::NestedProduct,
+        helpers::clean_url,
         html::{element_extract_attr, element_to_text, extract_element_from_element},
     },
 };
@@ -105,7 +106,7 @@ impl BigCommerce {
 
     pub(super) fn get_title_element(element: ElementRef) -> Result<ElementRef, RetailerError> {
         let details_body_element = extract_element_from_element(element, "div.card-body")?;
-        let link_element = extract_element_from_element(details_body_element, "h4.card-title > a")?;
+        let link_element = extract_element_from_element(details_body_element, ".card-title > a")?;
 
         Ok(link_element)
     }
@@ -130,7 +131,7 @@ impl BigCommerce {
         retailer: RetailerName,
         category: Category,
     ) -> Result<CrawlResult, RetailerError> {
-        let image_url = Self::get_image_url(element)?;
+        let image_url = clean_url(&Self::get_image_url(element)?);
 
         let details_body_element = extract_element_from_element(element, "div.card-body")?;
 

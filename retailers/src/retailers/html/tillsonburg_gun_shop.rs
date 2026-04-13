@@ -13,6 +13,7 @@ use crate::{
     structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
     utils::{
         conversions::{price_to_cents, string_to_u64},
+        helpers::clean_url,
         html::{element_extract_attr, element_to_text, extract_element_from_element},
     },
 };
@@ -71,16 +72,6 @@ impl Tillsonburg {
 
         Ok(price)
     }
-
-    fn clean_url(url: impl Into<String>) -> String {
-        let converted_url: String = url.into();
-
-        let Some((clean_url, _)) = converted_url.split_once("?") else {
-            return converted_url;
-        };
-
-        clean_url.to_string()
-    }
 }
 
 impl HtmlRetailerSuper for Tillsonburg {}
@@ -138,12 +129,12 @@ impl HtmlRetailer for Tillsonburg {
 
             let new_result = CrawlResult::new(
                 name,
-                Self::clean_url(url),
+                clean_url(&url),
                 price,
                 self.get_retailer_name(),
                 search_term.category,
             )
-            .with_image_url(Self::clean_url(image_url));
+            .with_image_url(clean_url(&image_url));
 
             results.push(new_result);
         }

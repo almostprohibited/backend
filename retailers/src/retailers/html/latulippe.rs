@@ -16,6 +16,7 @@ use crate::{
     utils::{
         conversions::{price_to_cents, string_to_u64},
         generic_sitemap::get_search_queries,
+        helpers::clean_url,
         html::{element_extract_attr, element_to_text, extract_element_from_element},
         securi_cookie::get_securi_cookie,
     },
@@ -153,11 +154,7 @@ impl HtmlRetailer for Latulippe {
                 element_extract_attr(name_element, "href")?
             );
 
-            let raw_image_url = get_image(image_element)?;
-            let image_url = match raw_image_url.split_once("?") {
-                Some((clean_url, _)) => clean_url.to_string(),
-                None => raw_image_url,
-            };
+            let image_url = clean_url(&get_image(image_element)?);
 
             let price_element =
                 extract_element_from_element(title_element, "div[class^='ui-tag-discount']")?;

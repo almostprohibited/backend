@@ -82,6 +82,7 @@ pub enum RetailerName {
     ShootersChoice,
     LanzShootingSupplies,
     DoubleTapSports,
+    NechakoOutdoors,
 }
 
 impl RetailerName {
