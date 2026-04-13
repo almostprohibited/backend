@@ -18,9 +18,14 @@ use crate::{
     utils::{
         conversions::price_to_cents,
         ecommerce::{WooCommerce, woocommerce::structs::ProductVariation},
-        html::{element_extract_attr, element_to_text, extract_element_from_element},
+        html::{
+            element_extract_attr, element_to_text, extract_element_from_element,
+            match_element_from_list,
+        },
     },
 };
+
+const DEFAULT_TITLE_SELECTORS: [&str; 2] = ["h1.product_title", "h3.page-title"];
 
 #[async_trait]
 pub(crate) trait WooCommerceNested {
@@ -51,7 +56,15 @@ impl WooCommerce {
 
     fn get_nested_product_title(result: &String) -> Result<String, RetailerError> {
         let html = Html::parse_document(result);
-        let title = extract_element_from_element(html.root_element(), "h1.product_title")?;
+
+        let title = match_element_from_list(
+            html.root_element(),
+            &DEFAULT_TITLE_SELECTORS
+                .iter()
+                .map(|selector| selector.to_string())
+                .collect(),
+            RetailerError::HtmlMissingElement("Missing nested title element".to_string()),
+        )?;
 
         Ok(element_to_text(title))
     }

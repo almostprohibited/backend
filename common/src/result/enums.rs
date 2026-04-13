@@ -79,6 +79,9 @@ pub enum RetailerName {
     XReload,
     Gobles,
     LonderoSports,
+    ShootersChoice,
+    LanzShootingSupplies,
+    DoubleTapSports,
 }
 
 impl RetailerName {

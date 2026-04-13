@@ -1,16 +1,16 @@
 use std::{collections::HashMap, time::Duration};
 
 use async_trait::async_trait;
-use common::{
-    constants::CRAWL_COOLDOWN_SECS,
-    result::{base::CrawlResult, enums::RetailerName},
-};
+use common::result::{base::CrawlResult, enums::RetailerName};
 use crawler::unprotected::UnprotectedCrawler;
 use retailers::{errors::RetailerError, structures::GqlRetailerSuper};
 use tokio::time::sleep;
 use tracing::debug;
 
-use crate::clients::base::{Client, insert_result};
+use crate::clients::{
+    base::{Client, insert_result},
+    utils::get_api_call_delay,
+};
 
 pub(crate) struct GqlClient {
     retailer: Box<dyn GqlRetailerSuper>,
@@ -50,7 +50,7 @@ impl Client for GqlClient {
                 break;
             }
 
-            sleep(Duration::from_secs(CRAWL_COOLDOWN_SECS)).await;
+            sleep(Duration::from_secs(get_api_call_delay())).await;
         }
 
         Ok(())

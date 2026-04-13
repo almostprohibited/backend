@@ -8,11 +8,12 @@ use retailers::{
     html::{
         AlSimmons, BartonsBigCountry, BudgetShooterSupply, BullseyeNorth, CabinCreekSupply,
         CanFirearm, CanadasGunStore, ClintonSportingGoods, Crafm, DanteSports, DominionOutdoors,
-        EllwoodEpps, FirearmsOutletCanada, FrontierFirearms, G4CGunStore, Gobles, GoldNLoan,
-        GreatNorthGun, InterSurplus, InternationalShootingSupplies, ItalianSportingGoods,
-        Latulippe, LeverArms, LonderoSports, MagDump, Marstar, PDEnterprises, RangeviewSports,
-        Rdsc, ReliableGun, SJHardware, SoleyOutdoors, Tenda, TheAmmoSource, TheGunDealer,
-        Tillsonburg, TrueNorthArms, VictoryRidgeSports, WolverineSupplies, XReload,
+        DoubleTapSports, EllwoodEpps, FirearmsOutletCanada, FrontierFirearms, G4CGunStore, Gobles,
+        GoldNLoan, GreatNorthGun, InterSurplus, InternationalShootingSupplies,
+        ItalianSportingGoods, LanzShootingSupplies, Latulippe, LeverArms, LonderoSports, MagDump,
+        Marstar, PDEnterprises, RangeviewSports, Rdsc, ReliableGun, SJHardware, ShootersChoice,
+        SoleyOutdoors, Tenda, TheAmmoSource, TheGunDealer, Tillsonburg, TrueNorthArms,
+        VictoryRidgeSports, WolverineSupplies, XReload,
     },
     structures::{GqlRetailerSuper, HtmlRetailerSuper},
 };
@@ -68,6 +69,9 @@ fn html_retailers() -> HashMap<RetailerName, HtmlRetailerSuperFactory> {
     retailers.insert(RetailerName::XReload, || Box::new(XReload::new()));
     retailers.insert(RetailerName::Gobles, || Box::new(Gobles::new()));
     retailers.insert(RetailerName::LonderoSports, || Box::new(LonderoSports::new()));
+    retailers.insert(RetailerName::ShootersChoice, || Box::new(ShootersChoice::new()));
+    retailers.insert(RetailerName::LanzShootingSupplies, || Box::new(LanzShootingSupplies::new()));
+    retailers.insert(RetailerName::DoubleTapSports, || Box::new(DoubleTapSports::new()));
 
     retailers
 }
