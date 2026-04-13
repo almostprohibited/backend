@@ -134,6 +134,14 @@ impl HtmlRetailer for Tenda {
             .build();
 
         for element in fragment.select(&product_selector) {
+            let name_element = extract_element_from_element(element, "h3.products-title > a")?;
+            let name = element_to_text(name_element).to_lowercase();
+
+            if name.contains("sticker") && name.contains("draw") {
+                debug!("Skipping {name} as it contains sticker draw");
+                continue;
+            }
+
             let add_cart_button = extract_element_from_element(element, "a.add_to_cart_button")?;
 
             if element_to_text(add_cart_button).to_lowercase() == "select options" {
