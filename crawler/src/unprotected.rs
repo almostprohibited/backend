@@ -7,7 +7,7 @@ use std::{
 
 use common::{constants::PROXY_ADDRESS, get_user_agent};
 use reqwest::{
-    ClientBuilder as BaseClientBuilder, Proxy, Url,
+    ClientBuilder as BaseClientBuilder, Proxy, StatusCode, Url,
     cookie::Jar,
     header::{HeaderMap, HeaderName, HeaderValue},
 };
@@ -135,7 +135,7 @@ impl UnprotectedCrawler {
 
         debug!("{response:?}");
 
-        if response.status().is_client_error() || response.status().is_server_error() {
+        if response.status().is_client_error() && response.status() != StatusCode::NOT_FOUND {
             return Err(CrawlerError::InvalidResponseCodeError(response.status()));
         }
 
