@@ -83,6 +83,8 @@ pub enum RetailerName {
     LanzShootingSupplies,
     DoubleTapSports,
     NechakoOutdoors,
+    UxbridgeArms,
+    Fwgc,
 }
 
 impl RetailerName {
