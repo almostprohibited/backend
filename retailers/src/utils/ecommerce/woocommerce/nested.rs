@@ -49,6 +49,15 @@ impl WooCommerce {
         )?;
         let form_attribute = element_extract_attr(form_element, "data-product_variations")?;
 
+        if form_attribute == "false" {
+            // TODO: handle shooter choice/woocommerce? properly
+            // they appear to have a "proper" endpoint for this
+            //
+            // https://shooterschoice.com/?wc-ajax=get_variation
+
+            return Ok(vec![]);
+        }
+
         Ok(serde_json::from_str::<Vec<ProductVariation>>(
             &form_attribute,
         )?)
