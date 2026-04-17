@@ -135,8 +135,10 @@ impl UnprotectedCrawler {
 
         debug!("{response:?}");
 
-        if response.status().is_client_error() && response.status() != StatusCode::NOT_FOUND {
-            return Err(CrawlerError::InvalidResponseCodeError(response.status()));
+        let status_code = response.status();
+
+        if status_code.is_client_error() && status_code != StatusCode::NOT_FOUND {
+            return Err(CrawlerError::InvalidResponseCodeError(status_code));
         }
 
         let headers = response.headers().clone();
@@ -147,6 +149,7 @@ impl UnprotectedCrawler {
         Ok(CrawlerResponse {
             body: body_str,
             raw_bytes: body_bytes,
+            response_code: status_code,
             headers,
         })
     }

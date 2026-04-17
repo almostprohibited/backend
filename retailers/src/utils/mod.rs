@@ -4,4 +4,4 @@ pub(crate) mod generic_sitemap;
 pub(crate) mod helpers;
 pub(crate) mod html;
 pub(crate) mod regex;
-pub(crate) mod securi_cookie;
+pub(crate) mod sucuri_cookie;

@@ -17,7 +17,7 @@ use crate::{
         ecommerce::{WooCommerce, WooCommerceBuilder, WooCommerceNested},
         generic_sitemap::get_search_queries,
         html::{element_extract_attr, element_to_text, extract_element_from_element},
-        securi_cookie::get_securi_cookie,
+        sucuri_cookie::get_sucuri_cookie,
     },
 };
 
@@ -80,7 +80,7 @@ impl HtmlRetailerSuper for Tenda {}
 #[async_trait]
 impl Retailer for Tenda {
     async fn init(&mut self) -> Result<(), RetailerError> {
-        let cookie = get_securi_cookie(BASE_URL).await?;
+        let cookie = get_sucuri_cookie(BASE_URL).await?;
 
         UnprotectedCrawler::set_cookie(BASE_URL, &cookie);
 

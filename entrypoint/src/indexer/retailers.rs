@@ -19,6 +19,7 @@ use retailers::{
 };
 use std::{collections::HashMap, sync::Arc};
 use tokio::{sync::Mutex, task::JoinHandle};
+use tracing::error;
 
 type HtmlRetailerSuperFactory = fn() -> Box<dyn HtmlRetailerSuper>;
 type GqlRetailerSuperFactory = fn() -> Box<dyn GqlRetailerSuper>;
@@ -161,6 +162,11 @@ pub(crate) async fn get_retailers(
             indexer_webhook.register_retailer(boxed_retailer.get_retailer_name());
 
             if let Err(error) = boxed_retailer.init().await {
+                error!(
+                    "Retailer failed to init {:?}: {error}",
+                    boxed_retailer.get_retailer_name()
+                );
+
                 indexer_webhook
                     .record_retailer_failure(boxed_retailer.get_retailer_name(), error.to_string());
             } else {
@@ -182,6 +188,11 @@ pub(crate) async fn get_retailers(
             indexer_webhook.register_retailer(boxed_retailer.get_retailer_name());
 
             if let Err(error) = boxed_retailer.init().await {
+                error!(
+                    "Retailer failed to init {:?}: {error}",
+                    boxed_retailer.get_retailer_name()
+                );
+
                 indexer_webhook
                     .record_retailer_failure(boxed_retailer.get_retailer_name(), error.to_string());
             } else {

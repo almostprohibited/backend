@@ -1,4 +1,4 @@
-use reqwest::header::HeaderMap;
+use reqwest::{StatusCode, header::HeaderMap};
 
 #[derive(Debug)]
 pub enum HttpMethod {
@@ -9,5 +9,6 @@ pub enum HttpMethod {
 pub struct CrawlerResponse {
     pub body: String,
     pub raw_bytes: Vec<u8>,
+    pub response_code: StatusCode,
     pub headers: HeaderMap,
 }
