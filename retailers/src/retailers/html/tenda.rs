@@ -57,7 +57,9 @@ impl Tenda {
                     term: link,
                     category: Category::Other,
                 });
-            } else if link.starts_with("ammunition/") {
+            } else if (link.starts_with("ammunition") && link.contains("-ammo"))
+                || link.contains("/snap-cap")
+            {
                 return Some(HtmlSearchQuery {
                     term: link,
                     category: Category::Ammunition,
@@ -87,6 +89,8 @@ impl Retailer for Tenda {
         debug!("Using cookie: {cookie}");
 
         self.search_terms.extend(Self::get_search_queries().await?);
+
+        debug!("{:?}", self.search_terms);
 
         Ok(())
     }
