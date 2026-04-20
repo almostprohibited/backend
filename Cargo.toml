@@ -30,14 +30,14 @@ reqwest-middleware = "0.5.1"
 serde = "1.0.228"
 serde_json = "1.0.149"
 serde_with = "3.18.0"
-tokio = "1.51.1"
+tokio = "1.52.1"
 scraper = { version = "0.26.0", features = ["atomic"] }
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 async-trait = "0.1.88"
-mongodb = "3.5.1"
-axum = "0.8.8"
-axum-extra = "0.12.5"
+mongodb = "3.6.0"
+axum = "0.8.9"
+axum-extra = "0.12.6"
 tower-http = "0.6.8"
 tower = "0.5.3"
 regex = "1.12.3"
@@ -49,13 +49,13 @@ strum_macros = "0.28.0"
 base64 = "0.22.1"
 futures = "0.3.32"
 openssl = { version = "0.10", features = ["vendored"] }
-clap = { version = "4.6.0", features = ["derive"] }
-mimalloc = "0.1.47"
+clap = { version = "4.6.1", features = ["derive"] }
+mimalloc = "0.1.49"
 chrono = "0.4.44"
 opentelemetry = { version = "0.31.0", features = ["metrics"] }
 opentelemetry-otlp = "0.31.0"
 opentelemetry_sdk = "0.31.0"
-lru = "0.16.3"
+lru = "0.17.0"
 itertools = "0.14.0"
 # note: don't use this library to do anything
 # it's only here to solve site ground challenges
