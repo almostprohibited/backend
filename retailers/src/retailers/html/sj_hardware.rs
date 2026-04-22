@@ -3,7 +3,10 @@ use common::result::{
     base::CrawlResult,
     enums::{Category, RetailerName},
 };
-use crawler::request::{Request, RequestBuilder};
+use crawler::{
+    request::{Request, RequestBuilder},
+    unprotected::UnprotectedCrawler,
+};
 use scraper::{Html, Selector};
 
 use crate::{
@@ -34,7 +37,19 @@ impl SJHardware {
 
 impl HtmlRetailerSuper for SJHardware {}
 
+#[async_trait]
 impl Retailer for SJHardware {
+    async fn init(&mut self) -> Result<(), RetailerError> {
+        // for some reason, they are now listing stuff in USD
+        let request = RequestBuilder::new()
+            .set_url(format!("{SITE_URL}?setCurrencyId=2"))
+            .build();
+
+        let _ = UnprotectedCrawler::make_web_request(request).await;
+
+        Ok(())
+    }
+
     fn get_retailer_name(&self) -> RetailerName {
         RetailerName::SJHardware
     }
