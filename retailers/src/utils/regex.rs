@@ -1,5 +1,3 @@
-use std::cmp;
-
 use regex::Regex;
 
 use crate::errors::RetailerError;
@@ -8,8 +6,11 @@ const TRUNCATE_ERR_LENGTH: usize = 20;
 
 pub(crate) fn unwrap_regex_capture(regex: &Regex, haystack: &str) -> Result<String, RetailerError> {
     let Some(captures) = regex.captures(haystack) else {
-        let mut cleaned_haystack = haystack.replace("\n", "");
-        let _ = cleaned_haystack.split_off(cmp::min(cleaned_haystack.len(), TRUNCATE_ERR_LENGTH));
+        let cleaned_haystack: String = haystack
+            .replace("\n", "")
+            .chars()
+            .take(TRUNCATE_ERR_LENGTH)
+            .collect();
 
         return Err(RetailerError::GeneralError(format!(
             "Failed to search for {} inside of {}",
