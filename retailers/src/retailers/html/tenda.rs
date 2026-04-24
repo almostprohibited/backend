@@ -64,7 +64,7 @@ impl Tenda {
                     term: link,
                     category: Category::Ammunition,
                 });
-            } else if link.starts_with("firearms/") {
+            } else if link.starts_with("firearms-") {
                 return Some(HtmlSearchQuery {
                     term: link,
                     category: Category::Firearm,
