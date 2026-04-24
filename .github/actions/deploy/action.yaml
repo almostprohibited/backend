@@ -50,6 +50,14 @@ inputs:
     type: string
     required: true
     description: "Google oauth2 client secret"
+  oidc-client-id-microsoft:
+    type: string
+    required: true
+    description: "Microsoft oauth2 client ID"
+  oidc-client-secret-microsoft:
+    type: string
+    required: true
+    description: "Microsoft oauth2 client secret"
 
 runs:
   using: "composite"
@@ -96,6 +104,8 @@ runs:
         export OIDC_CLIENT_SECRET_DISCORD=${{ inputs.oidc-client-secret-discord }}
         export OIDC_CLIENT_ID_GOOGLE=${{ inputs.oidc-client-id-google }}
         export OIDC_CLIENT_SECRET_GOOGLE=${{ inputs.oidc-client-secret-google }}
+        export OIDC_CLIENT_ID_MICROSOFT=${{ inputs.oidc-client-id-microsoft }}
+        export OIDC_CLIENT_SECRET_MICROSOFT=${{ inputs.oidc-client-secret-microsoft }}
 
         docker compose -f docker-compose.yaml pull backend-${{ inputs.deployment-stage }}
         docker compose -f docker-compose.yaml down backend-${{ inputs.deployment-stage }}

@@ -13,10 +13,12 @@ use axum::{http::StatusCode, response::IntoResponse};
 use axum_extra::extract::WithRejection;
 use common::user_sessions::ServiceType;
 use common::utils::get_current_time;
-use openid_connect::providers::{get_discord_oidc_provider, get_google_oidc_provider};
+use openid_connect::providers::{
+    get_discord_oidc_provider, get_google_oidc_provider, get_microsoft_oidc_provider,
+};
 use serde::Deserialize;
 use serde_with::serde_as;
-use tracing::{debug, error};
+use tracing::error;
 
 #[serde_as]
 #[derive(Debug, Deserialize)]
@@ -34,9 +36,6 @@ pub(crate) async fn provider(
     WithRejection(Path(path), _): WithRejection<Path<ServiceType>, ApiError>,
     WithRejection(Form(cloudflare_payload), _): WithRejection<Form<CloudflarePayload>, ApiError>,
 ) -> Result<impl IntoResponse, StatusCode> {
-    debug!("{path:?}");
-    debug!("{cloudflare_payload:?}");
-
     let Some(ip_addr) = get_ip_addr(headers) else {
         error!("Request is missing {IP_HEADER} header");
 
@@ -46,6 +45,7 @@ pub(crate) async fn provider(
     let provider = match path {
         ServiceType::Discord => get_discord_oidc_provider().await,
         ServiceType::Google => get_google_oidc_provider().await,
+        ServiceType::Microsoft => get_microsoft_oidc_provider().await,
         _ => return Ok(StatusCode::NOT_IMPLEMENTED.into_response()),
     };
 
@@ -77,5 +77,5 @@ pub(crate) async fn provider(
         HeaderValue::from_str(&oidc_response.url).unwrap(),
     );
 
-    Ok((return_headers, StatusCode::TEMPORARY_REDIRECT).into_response())
+    Ok((return_headers, StatusCode::SEE_OTHER).into_response())
 }

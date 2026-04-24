@@ -15,7 +15,6 @@ pub(crate) async fn logout(
     State(state): State<Arc<ServerState>>,
 ) -> Result<impl IntoResponse, StatusCode> {
     let Some(token) = get_token(&headers) else {
-        debug!("{headers:?}");
         debug!("Missing token");
 
         return Ok(StatusCode::BAD_REQUEST);

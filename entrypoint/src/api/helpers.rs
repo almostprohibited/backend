@@ -1,7 +1,8 @@
-use std::env;
+use std::{env, sync::LazyLock};
 
 use axum::http::HeaderMap;
-use common::constants::CLOUDFLARE_TURNSTILE_SECRET_KEY;
+use common::constants::{CLOUDFLARE_TURNSTILE_SECRET_KEY, TOKEN_COOKIE_TTL_SECS};
+use regex::bytes::Regex;
 use reqwest::ClientBuilder;
 use serde_json::json;
 use tracing::{error, warn};
@@ -10,6 +11,9 @@ use crate::{
     constants::{IP_HEADER, TOKEN_COOKIE_NAME},
     structs::CloudflareResponse,
 };
+
+static EMAIL_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^[^\s@]+@[^\s@]+\.[^\s@]+$").expect("Regex to compile"));
 
 const CLOUDFLARE_SITE_VERIFY: &str = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 
@@ -82,4 +86,17 @@ pub(crate) async fn validate_cloudflare_token(
     let response = client.execute(request).await.unwrap();
 
     Some(response.json::<CloudflareResponse>().await.unwrap())
+}
+
+pub(crate) fn is_email_valid(email: &str) -> bool {
+    EMAIL_REGEX.is_match(email.as_bytes())
+}
+
+// creating cookie manually since the other cookie lib
+// assumes I am using `time`, but I use `chrono`
+pub(crate) fn create_cookie(token: &str) -> String {
+    format!(
+        "{TOKEN_COOKIE_NAME}={token}; Max-Age={}; Path=/",
+        TOKEN_COOKIE_TTL_SECS
+    )
 }

@@ -8,6 +8,7 @@ pub enum ServiceType {
     Email,
     Discord,
     Google,
+    Microsoft,
 }
 
 impl Into<Bson> for ServiceType {

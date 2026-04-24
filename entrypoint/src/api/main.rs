@@ -12,7 +12,7 @@ use utils::logger::configure_logger;
 
 use crate::{
     routes::{
-        auth::{callback, logout, provider},
+        auth::{callback, email_login, email_otp, logout, provider},
         contact::contact_handler,
         history::history_handler,
         image::image_handler,
@@ -60,6 +60,8 @@ async fn main() {
         router = router
             .route("/api/auth/{provider}/provider", post(provider))
             .route("/api/auth/{provider}/callback", get(callback))
+            .route("/api/auth/email/login", post(email_login))
+            .route("/api/auth/email/otp", post(email_otp))
             .route("/api/auth/logout", delete(logout));
     }
 

@@ -49,3 +49,5 @@ jobs:
           oidc-client-secret-discord: ${{ secrets.OIDC_CLIENT_SECRET_DISCORD }}
           oidc-client-id-google: ${{ secrets.OIDC_CLIENT_ID_GOOGLE }}
           oidc-client-secret-google: ${{ secrets.OIDC_CLIENT_SECRET_GOOGLE }}
+          oidc-client-id-microsoft: ${{ secrets.OIDC_CLIENT_ID_MICROSOFT }}
+          oidc-client-secret-microsoft: ${{ secrets.OIDC_CLIENT_SECRET_MICROSOFT }}

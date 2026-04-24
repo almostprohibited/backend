@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::constants::IP_HEADER;
-use crate::helpers::{get_ip_addr, validate_cloudflare_token};
+use crate::helpers::{get_ip_addr, is_email_valid, validate_cloudflare_token};
 use crate::{ServerState, routes::error_message_erasure::ApiError};
 
 use axum::debug_handler;
@@ -57,14 +57,10 @@ pub(crate) async fn contact_handler(
 
     let message = Message::new(json.body, ip_addr.to_string(), json.subject, json.email);
 
-    if let Some(ref email) = message.email {
-        // I just copied the regex from the Javscript version, but it doesn't work
-        // let regex = Regex::new(r"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$").unwrap();
-
-        // whatever, just check if it has an "@" and a "." somewhere
-        if !email.contains("@") || !email.contains(".") {
-            return Ok(StatusCode::BAD_REQUEST);
-        }
+    if let Some(ref email) = message.email
+        && !is_email_valid(email)
+    {
+        return Ok(StatusCode::BAD_REQUEST);
     };
 
     if message.body.is_empty() {

@@ -1,9 +1,8 @@
-use crate::constants::TOKEN_COOKIE_NAME;
 use std::str::FromStr;
 use std::sync::Arc;
 
 use crate::constants::IP_HEADER;
-use crate::helpers::get_ip_addr;
+use crate::helpers::{create_cookie, get_ip_addr};
 use crate::routes::error_message_erasure::ApiError;
 use crate::structs::ServerState;
 
@@ -13,13 +12,15 @@ use axum::http::{HeaderMap, HeaderName, HeaderValue};
 use axum::response::Response;
 use axum::{http::StatusCode, response::IntoResponse};
 use axum_extra::extract::WithRejection;
-use common::constants::TOKEN_COOKIE_TTL_SECS;
+use common::constants::SESSION_TOKEN_LENGTH;
 use common::string_utils::generate_random_string;
 use common::user_sessions::ServiceType;
 use common::utils::{get_current_time, get_frontend_domain};
-use openid_connect::providers::{get_discord_oidc_provider, get_google_oidc_provider};
+use openid_connect::providers::{
+    get_discord_oidc_provider, get_google_oidc_provider, get_microsoft_oidc_provider,
+};
 use serde::Deserialize;
-use tracing::{debug, error};
+use tracing::error;
 
 #[derive(Deserialize, Debug)]
 pub(crate) struct Payload {
@@ -37,9 +38,6 @@ pub(crate) async fn callback(
     WithRejection(Path(path), _): WithRejection<Path<ServiceType>, ApiError>,
     WithRejection(Query(query), _): WithRejection<Query<Payload>, ApiError>,
 ) -> Result<impl IntoResponse, StatusCode> {
-    debug!("{path:?}");
-    debug!("{query:?}");
-
     // this should only happen if someone is messing with the API
     if query.error.clone().xor(query.code.clone()).is_none() {
         error!("Request is missing one of error or code params");
@@ -56,6 +54,7 @@ pub(crate) async fn callback(
     let provider = match path {
         ServiceType::Discord => get_discord_oidc_provider().await,
         ServiceType::Google => get_google_oidc_provider().await,
+        ServiceType::Microsoft => get_microsoft_oidc_provider().await,
         _ => return Ok(StatusCode::NOT_IMPLEMENTED.into_response()),
     };
 
@@ -93,16 +92,7 @@ pub(crate) async fn callback(
 
     let identifier = provider.exchange_code(&code, &saved_nonce).await.unwrap();
 
-    debug!("{identifier}");
-
-    let token = generate_random_string(32);
-
-    // creating cookie manually since the other cookie lib
-    // assumes I am using `time`, but I use `chrono`
-    let cookie = format!(
-        "{TOKEN_COOKIE_NAME}={token}; Max-Age={}; Path=/",
-        TOKEN_COOKIE_TTL_SECS
-    );
+    let token = generate_random_string(SESSION_TOKEN_LENGTH);
 
     state
         .db
@@ -110,7 +100,10 @@ pub(crate) async fn callback(
         .await;
 
     let mut return_headers = HeaderMap::new();
-    return_headers.append("Set-Cookie", HeaderValue::from_str(&cookie).unwrap());
+    return_headers.append(
+        "Set-Cookie",
+        HeaderValue::from_str(&create_cookie(&token)).unwrap(),
+    );
     return_headers.append(
         "Location",
         HeaderValue::from_str(&format!("{}/dashboard", get_frontend_domain())).unwrap(),
