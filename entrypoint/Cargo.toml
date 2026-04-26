@@ -33,6 +33,7 @@ common.workspace = true
 discord.workspace = true
 image_cache.workspace = true
 openid_connect.workspace = true
+email.workspace = true
 
 tokio = { workspace = true, features = ["full"] }
 tracing.workspace = true

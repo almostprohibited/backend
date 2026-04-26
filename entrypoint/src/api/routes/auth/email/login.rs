@@ -1,6 +1,7 @@
 use common::serde_utils::disallow_empty_string;
 use common::string_utils::{generate_random_code, sha256_hash_string};
 use common::utils::get_current_time;
+use email::send_otp_email;
 use std::sync::Arc;
 
 use crate::constants::IP_HEADER;
@@ -75,8 +76,9 @@ pub(crate) async fn email_login(
         )
         .await;
 
-    // TODO: actually send an email
-    // debug!("{otp_code}");
-
-    Ok(StatusCode::OK.into_response())
+    if send_otp_email(&payload.email, &otp_code).await {
+        return Ok(StatusCode::OK.into_response());
+    } else {
+        return Ok(StatusCode::INTERNAL_SERVER_ERROR.into_response());
+    }
 }

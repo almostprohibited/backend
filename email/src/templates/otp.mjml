@@ -1,0 +1,55 @@
+<mjml>
+  <mj-head>
+    <mj-title>{{title}}</mj-title>
+    <mj-attributes>
+      <mj-all font-family="Arial" />
+      <mj-class name="ta-center" align="center" />
+      <mj-text font-size="12px" color="#c9c9c9" line-height="1.5" />
+    </mj-attributes>
+    <mj-style>
+      * a {
+        text-decoration: none !important;
+        color: inherit !important;
+      }
+
+      .header div {
+        text-align: center !important;
+        color: #c5f6fa !important;
+        background-color: #364fc7 !important;
+      }
+
+      .footer div {
+        color: #c9c9c9 !important;
+        background-color: #1f1f1f !important;
+      }
+    </mj-style>
+  </mj-head>
+  <mj-body background-color="#242424">
+    <mj-section full-width="full-width" css-class="header">
+      <mj-column>
+        <mj-text font-size="24px" font-weight="600">AlmostProhibited.ca</mj-text>
+        <mj-text>Canada's upcoming aggregator for firearms, parts, and accessories</mj-text>
+      </mj-column>
+    </mj-section>
+    <mj-section>
+      <mj-column>
+        <mj-text font-size="18px" font-weight="600">Hello, here's your one-time code.</mj-text>
+        <mj-text>This code will expire in 30 minutes.</mj-text>
+        <mj-text padding="36px 0 36px 0" font-size="18px" mj-class="ta-center" letter-spacing="6px">{{otp-code}}</mj-text>
+        <mj-text>Don't share this code with anyone, this is only for you to use.</mj-text>
+      </mj-column>
+    </mj-section>
+    <mj-section full-width="full-width" css-class="footer">
+      <mj-group>
+        <mj-column>
+          <mj-text><a href="{{domain}}/contact/" target="_blank" referrerPolicy="no-referrer">[ Contact ]</a></mj-text>
+          <mj-text><a href="{{domain}}/privacy/" target="_blank" referrerPolicy="no-referrer">[ Privacy Policy ]</a></mj-text>
+        </mj-column>
+        <mj-column>
+          <mj-text align="right"><a href="https://buymeacoffee.com/almostprohibited" target="_blank" referrerPolicy="no-referrer">[ Buy me a coffee ]</a></mj-text>
+          <mj-text align="right"><a href="https://github.com/almostprohibited" target="_blank" referrerPolicy="no-referrer">[ Source code ]</a></mj-text>
+        </mj-column>
+      </mj-group>
+    </mj-section>
+  </mj-body>
+</mjml>

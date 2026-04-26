@@ -23,6 +23,7 @@ metrics = { path = "./metrics" }
 discord = { path = "./discord" }
 image_cache = { path = "./image_cache" }
 openid_connect = { path = "./openid_connect" }
+email = { path = "./email" }
 
 reqwest = "0.13.2"
 reqwest-retry = "0.9.1"
@@ -63,4 +64,4 @@ sha1 = "0.11.0"
 openidconnect = { version = "4.0.1", features = ["reqwest"] }
 rand = "0.10.1"
 sha2 = "0.11.0"
-lettre = "0.11.21"
+lettre = { version = "0.11.21", features = ["tokio1", "tokio1-native-tls"] }

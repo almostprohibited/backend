@@ -1,0 +1,15 @@
+[package]
+name = "email"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "email"
+path = "./src/lib.rs"
+doctest = false
+test = false
+doc = false
+
+[dependencies]
+common.workspace = true
+lettre.workspace = true
