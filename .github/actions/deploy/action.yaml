@@ -94,6 +94,10 @@ runs:
 
         cd ./.toolbox/backend
 
+        if [ "${{ inputs.deployment-stage }}" = "beta" ]; then
+          export RUST_LOG=debug
+        fi
+
         export VOLUME_PATH=${{ inputs.docker-volume-path }}
         export STAGE=${{ inputs.deployment-stage }}
         export DISCORD_CONTACT_WEBHOOK_URL=${{ inputs.discord-contact-webhook-url }}

@@ -44,7 +44,7 @@ pub(crate) async fn callback(
         return Ok(StatusCode::BAD_REQUEST.into_response());
     }
 
-    let Some(ip_addr) = get_ip_addr(headers) else {
+    let Some(ip_addr) = get_ip_addr(&headers) else {
         error!("Request is missing {IP_HEADER} header");
 
         return Ok(StatusCode::INTERNAL_SERVER_ERROR.into_response());

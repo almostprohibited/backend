@@ -39,7 +39,7 @@ pub(crate) async fn contact_handler(
     State(state): State<Arc<ServerState>>,
     WithRejection(Json(json), _): WithRejection<Json<Payload>, ApiError>,
 ) -> Result<impl IntoResponse, StatusCode> {
-    let Some(ip_addr) = get_ip_addr(headers) else {
+    let Some(ip_addr) = get_ip_addr(&headers) else {
         error!("Request is missing {IP_HEADER} header");
 
         return Ok(StatusCode::INTERNAL_SERVER_ERROR);

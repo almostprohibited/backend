@@ -7,10 +7,12 @@ use mongodb_connector::connector::MongoDBConnector;
 use service_layers::build_service_layers;
 use std::{env, net::SocketAddr, sync::Arc};
 use tokio::net::TcpListener;
+use tower_governor::{GovernorLayer, governor::GovernorConfigBuilder};
 use tracing::info;
 use utils::logger::configure_logger;
 
 use crate::{
+    helpers::GovernorIpExtractor,
     routes::{
         auth::{callback, email_login, email_otp, logout, provider},
         contact::contact_handler,
@@ -32,6 +34,10 @@ pub(crate) mod structs;
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
+const DEFAULT_TPS_LIMIT: u32 = 2;
+const DEFAULT_AUTH_TPS_LIMIT: u32 = 1;
+const IMAGE_TPS_LIMIT: u32 = 64;
+
 #[tokio::main]
 async fn main() {
     configure_logger();
@@ -50,19 +56,64 @@ async fn main() {
     info!("MongoDB client ready");
     info!("Starting web server on: {addr}");
 
+    // the GovernorConfig contains types that are not
+    // re-exported, I can't write a return type for
+    // a normal function unless I also depend on the
+    // same libs as they do
+    let get_governor = |tps: u32| {
+        GovernorConfigBuilder::default()
+            .per_millisecond(1000 / tps as u64)
+            .burst_size(tps)
+            .use_headers()
+            .key_extractor(GovernorIpExtractor)
+            .finish()
+            .unwrap()
+    };
+
     let mut router = Router::new()
-        .route("/api/search", get(search_handler))
-        .route("/api/contact", post(contact_handler))
-        .route("/api/history", get(history_handler))
-        .route("/api/image", get(image_handler));
+        .route(
+            "/api/search",
+            get(search_handler).route_layer(GovernorLayer::new(get_governor(DEFAULT_TPS_LIMIT))),
+        )
+        .route(
+            "/api/contact",
+            post(contact_handler).route_layer(GovernorLayer::new(get_governor(DEFAULT_TPS_LIMIT))),
+        )
+        .route(
+            "/api/history",
+            get(history_handler).route_layer(GovernorLayer::new(get_governor(DEFAULT_TPS_LIMIT))),
+        )
+        .route(
+            "/api/image",
+            get(image_handler).route_layer(GovernorLayer::new(get_governor(IMAGE_TPS_LIMIT))),
+        );
 
     if is_beta {
         router = router
-            .route("/api/auth/{provider}/provider", post(provider))
-            .route("/api/auth/{provider}/callback", get(callback))
-            .route("/api/auth/email/login", post(email_login))
-            .route("/api/auth/email/otp", post(email_otp))
-            .route("/api/auth/logout", delete(logout));
+            .route(
+                "/api/auth/{provider}/provider",
+                post(provider)
+                    .route_layer(GovernorLayer::new(get_governor(DEFAULT_AUTH_TPS_LIMIT))),
+            )
+            .route(
+                "/api/auth/{provider}/callback",
+                get(callback).route_layer(GovernorLayer::new(get_governor(DEFAULT_AUTH_TPS_LIMIT))),
+            )
+            .route(
+                "/api/auth/email/login",
+                post(email_login)
+                    .route_layer(GovernorLayer::new(get_governor(DEFAULT_AUTH_TPS_LIMIT))),
+            )
+            .route(
+                "/api/auth/email/otp",
+                post(email_otp)
+                    .route_layer(GovernorLayer::new(get_governor(DEFAULT_AUTH_TPS_LIMIT))),
+            )
+            .route(
+                "/api/auth/logout",
+                delete(logout)
+                    .route_layer(GovernorLayer::new(get_governor(DEFAULT_AUTH_TPS_LIMIT))),
+            );
     }
 
     let type_erased_router = router.with_state(state).layer(build_service_layers());

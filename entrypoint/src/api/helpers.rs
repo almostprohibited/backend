@@ -1,10 +1,11 @@
 use std::{env, sync::LazyLock};
 
-use axum::http::HeaderMap;
+use axum::http::{HeaderMap, Request};
 use common::constants::{CLOUDFLARE_TURNSTILE_SECRET_KEY, TOKEN_COOKIE_TTL_SECS};
 use regex::bytes::Regex;
 use reqwest::ClientBuilder;
 use serde_json::json;
+use tower_governor::{GovernorError, key_extractor::KeyExtractor};
 use tracing::{error, warn};
 
 use crate::{
@@ -17,7 +18,18 @@ static EMAIL_REGEX: LazyLock<Regex> =
 
 const CLOUDFLARE_SITE_VERIFY: &str = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 
-pub(crate) fn get_ip_addr(header_map: HeaderMap) -> Option<String> {
+#[derive(Clone)]
+pub(crate) struct GovernorIpExtractor;
+
+impl KeyExtractor for GovernorIpExtractor {
+    type Key = String;
+
+    fn extract<T>(&self, req: &Request<T>) -> Result<Self::Key, GovernorError> {
+        get_ip_addr(req.headers()).ok_or(GovernorError::UnableToExtractKey)
+    }
+}
+
+pub(crate) fn get_ip_addr(header_map: &HeaderMap) -> Option<String> {
     if cfg!(debug_assertions) {
         return Some(String::new());
     }

@@ -36,7 +36,7 @@ pub(crate) async fn provider(
     WithRejection(Path(path), _): WithRejection<Path<ServiceType>, ApiError>,
     WithRejection(Form(cloudflare_payload), _): WithRejection<Form<CloudflarePayload>, ApiError>,
 ) -> Result<impl IntoResponse, StatusCode> {
-    let Some(ip_addr) = get_ip_addr(headers) else {
+    let Some(ip_addr) = get_ip_addr(&headers) else {
         error!("Request is missing {IP_HEADER} header");
 
         return Ok(StatusCode::INTERNAL_SERVER_ERROR.into_response());
