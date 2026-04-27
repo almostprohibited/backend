@@ -25,7 +25,6 @@ jobs:
         uses: ./.github/actions/package
         with:
           artifact-id: ${{ steps.build.outputs.artifact-id }}
-          toolbox-package-token: ${{ secrets.DEPLOYMENT_ACCESS }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           deployment-stage: ${{ env.STAGE }}
   deploy:
@@ -37,17 +36,7 @@ jobs:
       - name: Deploy
         uses: ./.github/actions/deploy
         with:
-          toolbox-package-token: ${{ secrets.DEPLOYMENT_ACCESS }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           deployment-stage: ${{ env.STAGE }}
           docker-volume-path: ${{ vars.VOLUME_PATH }}
-          discord-contact-webhook-url: ${{ secrets.DISCORD_CONTACT_WEBHOOK_URL }}
-          discord-indexer-webhook-url: ${{ secrets.DISCORD_INDEXER_WEBHOOK_URL }}
-          cloudflare-turnstile-secret-key: ${{ secrets.CLOUDFLARE_TURNSTILE_SECRET_KEY }}
-          proxy-address: ${{ secrets.PROXY_ADDRESS }}
-          oidc-client-id-discord: ${{ secrets.OIDC_CLIENT_ID_DISCORD }}
-          oidc-client-secret-discord: ${{ secrets.OIDC_CLIENT_SECRET_DISCORD }}
-          oidc-client-id-google: ${{ secrets.OIDC_CLIENT_ID_GOOGLE }}
-          oidc-client-secret-google: ${{ secrets.OIDC_CLIENT_SECRET_GOOGLE }}
-          oidc-client-id-microsoft: ${{ secrets.OIDC_CLIENT_ID_MICROSOFT }}
-          oidc-client-secret-microsoft: ${{ secrets.OIDC_CLIENT_SECRET_MICROSOFT }}
+          env-file: ${{ secrets.ENV_BETA }}

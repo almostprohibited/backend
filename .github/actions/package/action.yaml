@@ -1,10 +1,6 @@
 name: Package
 
 inputs:
-  toolbox-package-token:
-    type: string
-    required: true
-    description: "Github PAT for accessing the toolbox repo"
   github-token:
     type: string
     required: true
@@ -29,7 +25,6 @@ runs:
       with:
         repository: almostprohibited/toolbox
         ref: main
-        token: ${{ inputs.toolbox-package-token }}
         path: ./.toolbox
     - uses: actions/download-artifact@v8
       name: Download built files

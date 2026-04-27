@@ -1,10 +1,6 @@
 name: Deploy
 
 inputs:
-  toolbox-package-token:
-    type: string
-    required: true
-    description: "Github PAT for accessing the toolbox repo"
   github-token:
     type: string
     required: true
@@ -18,46 +14,10 @@ inputs:
     type: string
     required: true
     description: "Path on machine to Docker mounts"
-  discord-contact-webhook-url:
+  env-file:
     type: string
     required: true
-    description: "Discord webhook URL for contact function"
-  discord-indexer-webhook-url:
-    type: string
-    required: true
-    description: "Discord webhook URL for indexing function"
-  cloudflare-turnstile-secret-key:
-    type: string
-    required: true
-    description: "Cloudflare Turnstile secret key"
-  proxy-address:
-    type: string
-    required: true
-    description: "Reqwest client HTTP proxy address"
-  oidc-client-id-discord:
-    type: string
-    required: true
-    description: "Discord oauth2 client ID"
-  oidc-client-secret-discord:
-    type: string
-    required: true
-    description: "Discord oauth2 client secret"
-  oidc-client-id-google:
-    type: string
-    required: true
-    description: "Google oauth2 client ID"
-  oidc-client-secret-google:
-    type: string
-    required: true
-    description: "Google oauth2 client secret"
-  oidc-client-id-microsoft:
-    type: string
-    required: true
-    description: "Microsoft oauth2 client ID"
-  oidc-client-secret-microsoft:
-    type: string
-    required: true
-    description: "Microsoft oauth2 client secret"
+    description: "env file contents"
 
 runs:
   using: "composite"
@@ -67,7 +27,6 @@ runs:
       with:
         repository: almostprohibited/toolbox
         ref: main
-        token: ${{ inputs.toolbox-package-token }}
         path: ./.toolbox
     - name: Login to ghcr.io
       run: echo ${{ inputs.github-token }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
@@ -96,20 +55,13 @@ runs:
 
         if [ "${{ inputs.deployment-stage }}" = "beta" ]; then
           export RUST_LOG=debug
+          echo "${{ inputs.env-file }}" > ${{ inputs.docker-volume-path }}/.env.beta
+        else
+          echo "${{ inputs.env-file }}" > ${{ inputs.docker-volume-path }}/.env.release
         fi
 
         export VOLUME_PATH=${{ inputs.docker-volume-path }}
         export STAGE=${{ inputs.deployment-stage }}
-        export DISCORD_CONTACT_WEBHOOK_URL=${{ inputs.discord-contact-webhook-url }}
-        export DISCORD_INDEXER_WEBHOOK_URL=${{ inputs.discord-indexer-webhook-url }}
-        export CLOUDFLARE_TURNSTILE_SECRET_KEY=${{ inputs.cloudflare-turnstile-secret-key }}
-        export PROXY_ADDRESS=${{ inputs.proxy-address }}
-        export OIDC_CLIENT_ID_DISCORD=${{ inputs.oidc-client-id-discord }}
-        export OIDC_CLIENT_SECRET_DISCORD=${{ inputs.oidc-client-secret-discord }}
-        export OIDC_CLIENT_ID_GOOGLE=${{ inputs.oidc-client-id-google }}
-        export OIDC_CLIENT_SECRET_GOOGLE=${{ inputs.oidc-client-secret-google }}
-        export OIDC_CLIENT_ID_MICROSOFT=${{ inputs.oidc-client-id-microsoft }}
-        export OIDC_CLIENT_SECRET_MICROSOFT=${{ inputs.oidc-client-secret-microsoft }}
 
         docker compose -f docker-compose.yaml pull backend-${{ inputs.deployment-stage }}
         docker compose -f docker-compose.yaml down backend-${{ inputs.deployment-stage }}
