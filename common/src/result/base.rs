@@ -145,7 +145,7 @@ impl CrawlResult {
 
     fn get_ammo_metadata(product_name: &String) -> Option<Metadata> {
         for pattern in PATTERNS.iter() {
-            if let Some(capture) = pattern.captures(product_name) {
+            if let Some(capture) = pattern.captures_iter(product_name).last() {
                 let ammo_count = capture
                     .get(1)
                     .expect("Capture group should always match")
