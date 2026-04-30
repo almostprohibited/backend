@@ -11,6 +11,8 @@ test = false
 doc = false
 
 [dependencies]
+common.workspace = true
+
 opentelemetry.workspace = true
 opentelemetry-otlp.workspace = true
 opentelemetry_sdk.workspace = true

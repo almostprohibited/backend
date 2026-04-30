@@ -3,10 +3,18 @@ use axum::{
     routing::{delete, get, post},
 };
 use common::utils::is_beta_environment;
+use metrics::{configure_metrics, shutdown_metrics};
 use mongodb_connector::connector::MongoDBConnector;
 use service_layers::build_service_layers;
 use std::{env, net::SocketAddr, sync::Arc};
-use tokio::net::TcpListener;
+use tokio::{
+    net::TcpListener,
+    select,
+    signal::{
+        ctrl_c,
+        unix::{self, SignalKind},
+    },
+};
 use tower_governor::{GovernorLayer, governor::GovernorConfigBuilder};
 use tracing::info;
 use utils::logger::configure_logger;
@@ -41,6 +49,7 @@ const IMAGE_TPS_LIMIT: u32 = 64;
 #[tokio::main]
 async fn main() {
     configure_logger();
+    configure_metrics();
 
     let port = env::var("API_PORT").unwrap_or("3001".to_string());
 
@@ -124,5 +133,19 @@ async fn main() {
     info!("is beta={is_beta}");
     info!("is development={}", cfg!(debug_assertions));
 
-    axum::serve(server, service).await.unwrap();
+    axum::serve(server, service)
+        .with_graceful_shutdown(shutdown_signal())
+        .await
+        .unwrap();
+
+    shutdown_metrics();
+}
+
+async fn shutdown_signal() {
+    select! {
+        _ = async {ctrl_c().await.unwrap()} => {},
+
+        // sorry Windows people, not dealing with windows related sigs
+        _ = async {unix::signal(SignalKind::terminate()).unwrap().recv().await} => {},
+    };
 }

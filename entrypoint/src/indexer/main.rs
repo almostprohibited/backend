@@ -1,7 +1,7 @@
 use clap::Parser;
 use common::result::enums::RetailerName;
 use discord::get_indexer_webhook;
-use metrics::_private::PROVIDER;
+use metrics::{configure_metrics, shutdown_metrics};
 use mongodb_connector::connector::MongoDBConnector;
 use std::sync::Arc;
 use tokio::task::JoinHandle;
@@ -37,6 +37,7 @@ async fn main() {
     let args = Arguments::parse();
 
     configure_logger();
+    configure_metrics();
 
     let mut handles: Vec<JoinHandle<()>> = Vec::new();
 
@@ -80,5 +81,5 @@ async fn main() {
     webhook.finish();
     webhook.update_main_message().await;
 
-    let _ = PROVIDER.shutdown();
+    shutdown_metrics();
 }

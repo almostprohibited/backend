@@ -1,5 +1,12 @@
-use std::{env, sync::LazyLock};
+use std::{env, sync::LazyLock, time::Duration};
 
+use common::utils::is_beta_environment;
+use opentelemetry::{global, metrics::Meter};
+use opentelemetry_otlp::{MetricExporter, Protocol, WithExportConfig};
+use opentelemetry_sdk::{
+    Resource,
+    metrics::{PeriodicReader, SdkMeterProvider},
+};
 use strum_macros::EnumIter;
 
 static CONNECTION_URI: LazyLock<String> = LazyLock::new(|| {
@@ -10,6 +17,34 @@ static CONNECTION_URI: LazyLock<String> = LazyLock::new(|| {
 });
 
 const SERVICE_NAME: &str = "almostprohibited";
+
+static OTEL_METER: LazyLock<Meter> = LazyLock::new(|| {
+    configure_metrics();
+
+    global::meter(SERVICE_NAME)
+});
+
+static PROVIDER: LazyLock<SdkMeterProvider> = LazyLock::new(|| {
+    let exporter = MetricExporter::builder()
+        .with_http()
+        .with_protocol(Protocol::HttpBinary)
+        .with_endpoint(CONNECTION_URI.to_string())
+        .build()
+        .expect("Expect Prometheus exporter to build");
+
+    let reader = PeriodicReader::builder(exporter)
+        .with_interval(Duration::from_secs(60))
+        .build();
+
+    let resource = Resource::builder()
+        .with_service_name(get_service_name())
+        .build();
+
+    SdkMeterProvider::builder()
+        .with_reader(reader)
+        .with_resource(resource)
+        .build()
+});
 
 #[derive(Debug, EnumIter, Hash, Eq, PartialEq)]
 pub enum Metrics {
@@ -36,48 +71,35 @@ impl Metrics {
     }
 }
 
+fn get_service_name() -> String {
+    let mut prefix: String = String::default();
+
+    if cfg!(debug_assertions) {
+        prefix = "dev".to_string()
+    } else if is_beta_environment() {
+        prefix = "beta".to_string()
+    }
+
+    [&prefix, SERVICE_NAME].join("-")
+}
+
+pub fn configure_metrics() {
+    global::set_meter_provider(PROVIDER.clone());
+}
+
+pub fn shutdown_metrics() {
+    let _ = PROVIDER.shutdown();
+}
+
 pub mod _private {
     pub use opentelemetry::KeyValue;
 
-    use std::{collections::HashMap, sync::LazyLock, time::Duration};
+    use std::{collections::HashMap, sync::LazyLock};
 
-    use opentelemetry::{
-        global,
-        metrics::{Gauge, Meter},
-    };
-    use opentelemetry_otlp::{MetricExporter, Protocol, WithExportConfig};
-    use opentelemetry_sdk::{
-        Resource,
-        metrics::{PeriodicReader, SdkMeterProvider},
-    };
+    use opentelemetry::metrics::Gauge;
     use strum::IntoEnumIterator;
 
-    use crate::{CONNECTION_URI, Metrics, SERVICE_NAME};
-
-    static OTEL_METER: LazyLock<Meter> = LazyLock::new(|| {
-        global::set_meter_provider(PROVIDER.clone());
-        global::meter(SERVICE_NAME)
-    });
-
-    pub static PROVIDER: LazyLock<SdkMeterProvider> = LazyLock::new(|| {
-        let exporter = MetricExporter::builder()
-            .with_http()
-            .with_protocol(Protocol::HttpBinary)
-            .with_endpoint(CONNECTION_URI.to_string())
-            .build()
-            .expect("Expect Prometheus exporter to build");
-
-        let reader = PeriodicReader::builder(exporter)
-            .with_interval(Duration::from_secs(1))
-            .build();
-
-        let resource = Resource::builder().with_service_name(SERVICE_NAME).build();
-
-        SdkMeterProvider::builder()
-            .with_reader(reader)
-            .with_resource(resource)
-            .build()
-    });
+    use crate::{Metrics, OTEL_METER};
 
     pub static GAUGE: LazyLock<HashMap<Metrics, Gauge<u64>>> = LazyLock::new(|| {
         let mut mapping: HashMap<Metrics, Gauge<u64>> = HashMap::new();

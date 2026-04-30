@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use axum::http::{HeaderValue, Method, StatusCode, header::CONTENT_TYPE};
+use axum_otel_metrics::{HttpMetricsLayer, HttpMetricsLayerBuilder};
 use tower::{
     ServiceBuilder,
     layer::util::{Identity, Stack},
@@ -10,10 +11,11 @@ use tower_http::{cors::CorsLayer, timeout::TimeoutLayer};
 const DEFAULT_TIMEOUT: u64 = 5;
 
 pub(crate) fn build_service_layers()
--> ServiceBuilder<Stack<TimeoutLayer, Stack<CorsLayer, Identity>>> {
+-> ServiceBuilder<Stack<HttpMetricsLayer, Stack<TimeoutLayer, Stack<CorsLayer, Identity>>>> {
     ServiceBuilder::new()
         .layer(build_cors())
         .layer(build_timeout())
+        .layer(build_metrics())
 }
 
 fn build_cors() -> CorsLayer {
@@ -35,4 +37,8 @@ fn build_timeout() -> TimeoutLayer {
         StatusCode::GATEWAY_TIMEOUT,
         Duration::from_secs(DEFAULT_TIMEOUT),
     )
+}
+
+fn build_metrics() -> HttpMetricsLayer {
+    HttpMetricsLayerBuilder::new().build()
 }
