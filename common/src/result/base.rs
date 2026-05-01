@@ -19,6 +19,10 @@ use crate::{
 
 static PATTERNS: LazyLock<Vec<Regex>> = LazyLock::new(|| {
     vec![
+        Regex::new(
+            r"(?i)(?:box)/(\d+)\b",
+        )
+        .expect("Ammo count regex to compile"),
         Regex::new(r"(?i)(?:box|case|pack|tin|brick|can|pk|bottle|bulk) of (\d+)")
             .expect("Ammo count regex to compile"),
         Regex::new(
