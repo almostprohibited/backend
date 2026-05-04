@@ -123,6 +123,7 @@ impl LightSpeed {
             &vec![
                 "div.product-block-image > a > img".to_string(),
                 "a.product-image-wrapper > img".to_string(),
+                "div.image-wrap > a > img".to_string(),
             ],
             RetailerError::HtmlMissingElement("LightSpeed image".to_string()),
         )?;

@@ -85,6 +85,8 @@ pub enum RetailerName {
     NechakoOutdoors,
     UxbridgeArms,
     Fwgc,
+    EasthillOutdoors,
+    // TriggersAndBows,
 }
 
 impl RetailerName {
