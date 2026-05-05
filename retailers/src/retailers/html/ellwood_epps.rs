@@ -212,34 +212,24 @@ impl HtmlRetailer for EllwoodEpps {
     fn get_search_terms(&self) -> Vec<HtmlSearchQuery> {
         let mut terms: Vec<HtmlSearchQuery> = vec![];
 
-        for ammo in [
-            "hunting/ammunition/ammo-shotgun",
-            "hunting/ammunition/ammo-rifle",
-            "hunting/ammunition/ammo-rimfire",
-            "hunting/ammunition/ammo-handgun",
-            "hunting/ammunition/ammo-blanks",
-        ] {
+        // reloading stuff is also captured in this category
+        // since they removed the dedicated reloading subcategory
+        // TODO: deal with this later, quick fix
+        for ammo in ["hunting/ammunition"] {
             terms.push(HtmlSearchQuery {
                 term: ammo.to_string(),
                 category: Category::Ammunition,
             });
         }
 
-        for firearm_category in [
-            "hunting/firearms/non-restricted-firearms",
-            "hunting/firearms/antique-firearms",
-        ] {
+        for firearm_category in ["hunting/firearms"] {
             terms.push(HtmlSearchQuery {
                 term: firearm_category.to_string(),
                 category: Category::Firearm,
             });
         }
 
-        for other in [
-            "hunting/ammunition/ammo-black-powder",
-            "hunting/ammunition/ammo-components",
-            "hunting/accessories",
-        ] {
+        for other in ["hunting/accessories"] {
             terms.push(HtmlSearchQuery {
                 term: other.to_string(),
                 category: Category::Other,
