@@ -22,7 +22,7 @@ use utils::logger::configure_logger;
 use crate::{
     helpers::GovernorIpExtractor,
     routes::{
-        auth::{callback, email_login, email_otp, logout, provider},
+        auth::{callback, delete_handler, email_login, email_otp, logout, provider},
         contact::contact_handler,
         history::history_handler,
         image::image_handler,
@@ -121,6 +121,11 @@ async fn main() {
             .route(
                 "/api/auth/logout",
                 delete(logout)
+                    .route_layer(GovernorLayer::new(get_governor(DEFAULT_AUTH_TPS_LIMIT))),
+            )
+            .route(
+                "/api/auth/delete",
+                delete(delete_handler)
                     .route_layer(GovernorLayer::new(get_governor(DEFAULT_AUTH_TPS_LIMIT))),
             );
     }

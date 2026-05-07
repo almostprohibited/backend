@@ -40,7 +40,6 @@ mod tenda;
 mod the_ammo_source;
 mod the_gun_dealer;
 mod tillsonburg_gun_shop;
-// mod triggers_and_bows;
 mod true_north_arms;
 mod uxbridge_arms;
 mod victory_ridge_sports;

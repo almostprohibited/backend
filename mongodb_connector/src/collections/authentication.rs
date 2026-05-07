@@ -141,6 +141,18 @@ impl AuthenticationCollections {
             .unwrap()
     }
 
+    pub(crate) async fn delete_user(&self, user_id: ObjectId) -> bool {
+        let result = self
+            .users_collection
+            .delete_one(doc! {
+                "_id": user_id
+            })
+            .await
+            .unwrap();
+
+        result.deleted_count > 0
+    }
+
     pub(crate) async fn create_session(&self, session: Session) {
         self.sessions_collection
             .insert_one(session)
@@ -163,6 +175,18 @@ impl AuthenticationCollections {
             .sessions_collection
             .delete_one(doc! {
                 "hashed_token": hashed_token
+            })
+            .await
+            .unwrap();
+
+        result.deleted_count > 0
+    }
+
+    pub(crate) async fn delete_sessions_by_user_id(&self, user_id: ObjectId) -> bool {
+        let result = self
+            .sessions_collection
+            .delete_many(doc! {
+                "user_id": user_id
             })
             .await
             .unwrap();

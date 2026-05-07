@@ -10,7 +10,7 @@ use common::{
     user_sessions::{ServiceType, Session},
 };
 use mongodb::{Client, bson::oid::ObjectId};
-use tracing::warn;
+use tracing::{debug, warn};
 
 use crate::collections::{
     authentication::AuthenticationCollections, crawl_results::CrawlResultsCollection,
@@ -131,6 +131,32 @@ impl MongoDBConnector {
         self.authentication
             .delete_session(&sha256_hash_string(unhashed_token))
             .await
+    }
+
+    // no cascade deletes with document based stores, no regrets
+    pub async fn nuke_account(&self, unhashed_token: &str) -> bool {
+        if cfg!(debug_assertions) {
+            debug!("{unhashed_token}\n{}", sha256_hash_string(unhashed_token));
+        }
+
+        let Some(user) = self
+            .authentication
+            .find_session(&sha256_hash_string(unhashed_token))
+            .await
+        else {
+            debug!("Failed to find session");
+
+            return false;
+        };
+
+        let (session_deleted, user_deleted) = tokio::join!(
+            self.authentication.delete_sessions_by_user_id(user.user_id),
+            self.authentication.delete_user(user.user_id)
+        );
+
+        debug!("{session_deleted} && {user_deleted}");
+
+        session_deleted && user_deleted
     }
 
     pub async fn create_verification(
