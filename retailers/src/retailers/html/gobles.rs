@@ -9,15 +9,18 @@ use tracing::debug;
 use crate::{
     errors::RetailerError,
     structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
-    utils::ecommerce::LightSpeed,
+    utils::{ecommerce::LightSpeed, generic_sitemap::get_search_queries},
 };
 
 const PAGE_LIMIT: u64 = 50;
+const SITE_MAP: &str = "https://www.gobles.ca/sitemap.xml";
 const PRODUCT_BASE_URL: &str = "https://www.gobles.ca/";
 const URL: &str =
     "https://www.gobles.ca/{category}/page{page}.html?limit={page_limit}&sort=default";
 
-pub struct Gobles;
+pub struct Gobles {
+    search: Vec<HtmlSearchQuery>,
+}
 
 impl Default for Gobles {
     fn default() -> Self {
@@ -27,13 +30,58 @@ impl Default for Gobles {
 
 impl Gobles {
     pub fn new() -> Self {
-        Self {}
+        Self {
+            search: Default::default(),
+        }
     }
 }
 
 impl HtmlRetailerSuper for Gobles {}
 
+#[async_trait]
 impl Retailer for Gobles {
+    async fn init(&mut self) -> Result<(), RetailerError> {
+        let queries = get_search_queries(SITE_MAP, PRODUCT_BASE_URL, |link| {
+            if link.starts_with("firearms/") {
+                return Some(HtmlSearchQuery {
+                    term: link,
+                    category: Category::Firearm,
+                });
+            }
+
+            if link == "ammunition" {
+                return Some(HtmlSearchQuery {
+                    term: link,
+                    category: Category::Ammunition,
+                });
+            }
+
+            if [
+                "optics",
+                "accessories",
+                "field-gear",
+                "maintenance-storage",
+                "reloading",
+            ]
+            .contains(&link.as_str())
+            {
+                return Some(HtmlSearchQuery {
+                    term: link,
+                    category: Category::Other,
+                });
+            }
+
+            None
+        })
+        .await?;
+
+        self.search.extend(queries);
+
+        debug!("{:?}", self.search);
+
+        Ok(())
+    }
+
     fn get_retailer_name(&self) -> RetailerName {
         RetailerName::Gobles
     }
@@ -80,31 +128,7 @@ impl HtmlRetailer for Gobles {
     }
 
     fn get_search_terms(&self) -> Vec<HtmlSearchQuery> {
-        let mut search = vec![
-            HtmlSearchQuery {
-                term: "firearms".to_string(),
-                category: Category::Firearm,
-            },
-            HtmlSearchQuery {
-                term: "ammunition".to_string(),
-                category: Category::Ammunition,
-            },
-        ];
-
-        for term in [
-            "optics",
-            "accessories",
-            "field-gear",
-            "maintenance-storage",
-            "reloading",
-        ] {
-            search.push(HtmlSearchQuery {
-                term: term.to_string(),
-                category: Category::Other,
-            });
-        }
-
-        search
+        self.search.clone()
     }
 
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {
