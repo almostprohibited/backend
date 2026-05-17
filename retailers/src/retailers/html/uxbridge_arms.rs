@@ -65,13 +65,13 @@ impl HtmlRetailer for UxbridgeArms {
         search_term: &HtmlSearchQuery,
     ) -> Result<Vec<CrawlResult>, RetailerError> {
         let helper = Shopify::new(DEFAULT_IMAGE, self.get_retailer_name(), BASE_URL);
-        let mut products = helper.parse_response(response, search_term)?;
+        let products = helper.parse_response(response, search_term)?;
 
-        products.iter_mut().for_each(|product| {
-            if product.category == Category::Ammunition {
-                product.update_name(&format!("{}rds", product.name));
-            }
-        });
+        // products.iter_mut().for_each(|product| {
+        //     if product.category == Category::Ammunition {
+        //         product.update_name(&format!("{}rds", product.name));
+        //     }
+        // });
 
         Ok(products)
     }
