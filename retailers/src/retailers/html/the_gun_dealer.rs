@@ -22,10 +22,7 @@ const URL: &str =
 
 const PRODUCT_BASE_URL: &str = "https://thegundealer.ca/product-category/";
 
-const SITEMAPS: [&str; 2] = [
-    "https://thegundealer.ca/product_cat-sitemap1.xml",
-    "https://thegundealer.ca/product_cat-sitemap2.xml",
-];
+const SITEMAPS: [&str; 1] = ["https://thegundealer.ca/wp-sitemap-taxonomies-product_cat-1.xml"];
 
 pub struct TheGunDealer {
     search_queries: Vec<HtmlSearchQuery>,
