@@ -6,7 +6,9 @@ members = [
 	"retailers",
 	"mongodb_connector",
 	"common",
-	"metrics"
+	"metrics",
+	"email",
+	"semantic_matcher"
 ]
 
 [profile.release]
@@ -24,6 +26,7 @@ discord = { path = "./discord" }
 image_cache = { path = "./image_cache" }
 openid_connect = { path = "./openid_connect" }
 email = { path = "./email" }
+semantic_matcher = { path = "./semantic_matcher" }
 
 reqwest = "0.13.3"
 reqwest-retry = "0.9.1"
@@ -67,3 +70,4 @@ openidconnect = { version = "4.0.1", features = ["reqwest"] }
 rand = "0.10.1"
 sha2 = "0.11.0"
 lettre = { version = "0.11.21", features = ["tokio1", "tokio1-native-tls"] }
+bm25 = { version = "2.3.2", features = ["parallelism"] }

@@ -32,13 +32,13 @@ static PATTERNS: LazyLock<Vec<Regex>> = LazyLock::new(|| {
     ]
 });
 
-#[derive(Deserialize, Serialize, Debug, Eq, PartialEq)]
+#[derive(Deserialize, Serialize, Debug, Eq, PartialEq, Clone)]
 pub struct Price {
     pub regular_price: u64,
     pub sale_price: Option<u64>,
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct CrawlResult {
     #[serde(rename(deserialize = "_id"))]
     // TODO: this might break things if someone was to populate `id` accidentially

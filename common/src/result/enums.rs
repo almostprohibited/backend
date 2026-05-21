@@ -94,7 +94,7 @@ impl RetailerName {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub enum ActionType {
     SemiAuto,
     LeverAction,
@@ -109,20 +109,20 @@ pub enum ActionType {
     MuzzleLoader,
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub enum AmmunitionType {
     CenterFire,
     Rimfire,
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub enum FirearmClass {
     NonRestricted,
     Restricted,
     Prohibited,
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub enum FirearmType {
     Rifle,
     Shotgun,

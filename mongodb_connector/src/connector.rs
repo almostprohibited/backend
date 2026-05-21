@@ -187,4 +187,9 @@ impl MongoDBConnector {
             .delete_verification(&sha256_hash_string(unhashed_code))
             .await
     }
+
+    /// Gets all ammo documents within live results table
+    pub async fn get_all_live_ammo(&self) -> Vec<CrawlResult> {
+        self.live_results.get_all_live_ammo().await
+    }
 }

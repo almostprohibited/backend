@@ -2,13 +2,13 @@ use serde::{Deserialize, Serialize};
 
 use crate::result::enums::{ActionType, AmmunitionType, FirearmClass, FirearmType};
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub enum Metadata {
     Firearm(Firearm),
     Ammunition(Ammunition),
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Firearm {
     pub action_type: Option<ActionType>,
     pub firearm_type: Option<FirearmType>,
@@ -16,7 +16,7 @@ pub struct Firearm {
     pub ammo_type: Option<AmmunitionType>,
 }
 
-#[derive(Deserialize, Serialize, Debug, Default)]
+#[derive(Deserialize, Serialize, Debug, Default, Clone)]
 pub struct Ammunition {
     pub round_count: Option<u64>,
     // grains is defined as String to account for

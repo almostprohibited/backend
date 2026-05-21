@@ -1,0 +1,27 @@
+[package]
+name = "semantic_matcher"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "test_ammo"
+path = "./src/main.rs"
+doctest = false
+test = false
+doc = false
+
+[lib]
+name = "semantic_matcher"
+path = "./src/lib.rs"
+doctest = false
+test = false
+doc = false
+
+[dependencies]
+mongodb_connector.workspace = true
+common.workspace = true
+
+bm25.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+serde_json.workspace = true

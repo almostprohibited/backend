@@ -129,4 +129,23 @@ impl LiveResultsView {
             .await
             .unwrap()
     }
+
+    /// Gets all ammo documents within live results table
+    pub(crate) async fn get_all_live_ammo(&self) -> Vec<CrawlResult> {
+        let mut cursor = self
+            .collection
+            .find(doc! {
+                "category": "ammunition",
+            })
+            .await
+            .unwrap();
+
+        let mut result: Vec<CrawlResult> = vec![];
+
+        while cursor.advance().await.unwrap_or(false) {
+            result.push(cursor.deserialize_current().unwrap());
+        }
+
+        result
+    }
 }
