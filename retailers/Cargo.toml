@@ -27,3 +27,4 @@ base64.workspace = true
 futures = { workspace = true, features = ["executor"] }
 itertools.workspace = true
 sha1.workspace = true
+csv.workspace = true

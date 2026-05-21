@@ -21,10 +21,10 @@ use crate::{
     traits::{CrawlerResponse, HttpMethod},
 };
 
-const PAGE_TIMEOUT_SECONDS: u64 = 30;
-const PAGE_MIN_SECS_BACKOFF: u64 = 60;
-const PAGE_MAX_SECS_BACKOFF: u64 = 240;
-const MAX_RETRY: u32 = 10;
+const PAGE_TIMEOUT_SECONDS: u64 = 60;
+const PAGE_MIN_SECS_BACKOFF: u64 = 10;
+const PAGE_MAX_SECS_BACKOFF: u64 = 120;
+const MAX_RETRY: u32 = 5;
 
 const PROXY_DOMAINS: [&str; 7] = [
     "italiansportinggoods.com",
