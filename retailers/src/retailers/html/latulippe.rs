@@ -8,7 +8,7 @@ use crawler::{
     unprotected::UnprotectedCrawler,
 };
 use scraper::{ElementRef, Html, Selector};
-use tracing::debug;
+use tracing::{debug, info};
 
 use crate::{
     errors::RetailerError,
@@ -141,17 +141,23 @@ impl HtmlRetailer for Latulippe {
         let product_selector = Selector::parse("ul.produits > li").unwrap();
 
         for element in fragment.select(&product_selector) {
+            if element_extract_attr(element, "data-gaec-id").is_err() {
+                info!("Skipping element that is not product");
+                continue;
+            }
+
             let title_element = extract_element_from_element(element, "div.titre")?;
             let image_element = extract_element_from_element(element, "div.image img")?;
 
-            let name_element = extract_element_from_element(title_element, "div > a")?;
-            let brand = extract_element_from_element(name_element, "strong")?;
-            let model = extract_element_from_element(name_element, "span")?;
+            let name = format!(
+                "{} {}",
+                element_extract_attr(element, "data-gaec-brand")?,
+                element_extract_attr(element, "data-gaec-name")?
+            );
 
-            let name = format!("{} {}", element_to_text(brand), element_to_text(model));
             let url = format!(
                 "https://latulippe.com{}",
-                element_extract_attr(name_element, "href")?
+                element_extract_attr(element, "data-url")?
             );
 
             let image_url = clean_url(&get_image(image_element)?);
