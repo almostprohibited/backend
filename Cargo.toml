@@ -28,18 +28,18 @@ openid_connect = { path = "./openid_connect" }
 email = { path = "./email" }
 semantic_matcher = { path = "./semantic_matcher" }
 
-reqwest = "0.13.3"
+reqwest = "0.13.4"
 reqwest-retry = "0.9.1"
-reqwest-middleware = "0.5.1"
+reqwest-middleware = "0.5.2"
 serde = "1.0.228"
-serde_json = "1.0.149"
+serde_json = "1.0.150"
 serde_with = "3.20.0"
 tokio = "1.52.2"
 scraper = { version = "0.27.0", features = ["atomic"] }
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 async-trait = "0.1.88"
-mongodb = "3.6.0"
+mongodb = "3.7.0"
 axum = "0.8.9"
 axum-extra = "0.12.6"
 axum-otel-metrics = "0.13.0"
@@ -56,12 +56,12 @@ base64 = "0.22.1"
 futures = "0.3.32"
 openssl = { version = "0.10", features = ["vendored"] }
 clap = { version = "4.6.1", features = ["derive"] }
-mimalloc = "0.1.50"
+mimalloc = "0.1.52"
 chrono = "0.4.44"
 # opentelemetry versions must be kept in tandem
 opentelemetry = { version = "0.32.0", features = ["metrics"] }
 opentelemetry-otlp = "0.32.0"
-opentelemetry_sdk = "0.32.0"
+opentelemetry_sdk = "0.32.1"
 lru = "0.18.0"
 itertools = "0.14.0"
 # note: don't use this library to do anything
