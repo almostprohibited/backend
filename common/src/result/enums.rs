@@ -86,6 +86,8 @@ pub enum RetailerName {
     UxbridgeArms,
     Fwgc,
     EasthillOutdoors,
+    RangeArts,
+    GeneralGun,
 }
 
 impl RetailerName {

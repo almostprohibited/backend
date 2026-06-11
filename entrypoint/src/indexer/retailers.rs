@@ -9,9 +9,9 @@ use retailers::{
         AlSimmons, BartonsBigCountry, BudgetShooterSupply, BullseyeNorth, CabinCreekSupply,
         CanFirearm, CanadasGunStore, ClintonSportingGoods, Crafm, DanteSports, DominionOutdoors,
         DoubleTapSports, EasthillOutdoors, EllwoodEpps, FirearmsOutletCanada, FrontierFirearms,
-        Fwgc, G4CGunStore, Gobles, GoldNLoan, GreatNorthGun, InterSurplus,
+        Fwgc, G4CGunStore, GeneralGun, Gobles, GoldNLoan, GreatNorthGun, InterSurplus,
         InternationalShootingSupplies, ItalianSportingGoods, LanzShootingSupplies, Latulippe,
-        LeverArms, LonderoSports, MagDump, Marstar, NechakoOutdoors, PDEnterprises,
+        LeverArms, LonderoSports, MagDump, Marstar, NechakoOutdoors, PDEnterprises, RangeArts,
         RangeviewSports, Rdsc, ReliableGun, SJHardware, ShootersChoice, SoleyOutdoors, Tenda,
         TheAmmoSource, TheGunDealer, Tillsonburg, TrueNorthArms, UxbridgeArms, VictoryRidgeSports,
         WolverineSupplies, XReload,
@@ -78,6 +78,8 @@ fn html_retailers() -> HashMap<RetailerName, HtmlRetailerSuperFactory> {
     retailers.insert(RetailerName::UxbridgeArms, || Box::new(UxbridgeArms::new()));
     retailers.insert(RetailerName::Fwgc, || Box::new(Fwgc::new()));
     retailers.insert(RetailerName::EasthillOutdoors, || Box::new(EasthillOutdoors::new()));
+    retailers.insert(RetailerName::RangeArts, || Box::new(RangeArts::new()));
+    retailers.insert(RetailerName::GeneralGun, || Box::new(GeneralGun::new()));
 
     retailers
 }
