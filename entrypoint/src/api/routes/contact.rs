@@ -67,9 +67,12 @@ pub(crate) async fn contact_handler(
         return Ok(StatusCode::BAD_REQUEST);
     }
 
-    state.db.insert_message(message.clone()).await;
+    get_contact_webhook()
+        .await
+        .relay_message(message.clone())
+        .await;
 
-    get_contact_webhook().await.relay_message(message).await;
+    state.db.insert_message(message).await;
 
     Ok(StatusCode::OK)
 }
