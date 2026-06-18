@@ -1,24 +1,20 @@
 use std::sync::Arc;
 
 use crate::constants::IP_HEADER;
-use crate::helpers::{create_cookie, create_redirect, get_ip_addr};
+use crate::helpers::{create_redirect, get_ip_addr, get_token};
 use crate::routes::error_message_erasure::ApiError;
 use crate::structs::ServerState;
 
 use axum::debug_handler;
 use axum::extract::{Path, Query, State};
-use axum::http::{HeaderMap, HeaderValue};
+use axum::http::HeaderMap;
 use axum::{http::StatusCode, response::IntoResponse};
 use axum_extra::extract::WithRejection;
-use common::constants::SESSION_TOKEN_LENGTH;
 use common::db::ServiceType;
-use common::string_utils::generate_random_string;
-use common::utils::{get_backend_domain, get_current_time, get_frontend_domain};
-use openid_connect::providers::{
-    get_discord_oidc_provider, get_google_oidc_provider, get_microsoft_oidc_provider,
-};
+use common::utils::{get_backend_domain, get_frontend_domain};
+use openid_connect::providers::{get_google_oidc_provider, get_microsoft_oidc_provider};
 use serde::Deserialize;
-use tracing::error;
+use tracing::{debug, error};
 
 #[derive(Deserialize, Debug)]
 pub(crate) struct Payload {
@@ -30,12 +26,24 @@ pub(crate) struct Payload {
 // TODO: better error handle the hand back to frontend
 // eg. error messages if IP mismatch, if DB entry missing, etc
 #[debug_handler]
-pub(crate) async fn callback(
+pub(crate) async fn notification_callback(
     headers: HeaderMap,
     State(state): State<Arc<ServerState>>,
     WithRejection(Path(path), _): WithRejection<Path<ServiceType>, ApiError>,
     WithRejection(Query(query), _): WithRejection<Query<Payload>, ApiError>,
 ) -> Result<impl IntoResponse, StatusCode> {
+    let Some(token) = get_token(&headers) else {
+        debug!("Missing token");
+
+        return Ok(StatusCode::BAD_REQUEST.into_response());
+    };
+
+    let Some(session) = state.db.find_session(&token).await else {
+        debug!("Invalid token");
+
+        return Ok(StatusCode::BAD_REQUEST.into_response());
+    };
+
     // this should only happen if someone is messing with the API
     if query.error.clone().xor(query.code.clone()).is_none() {
         error!("Request is missing one of error or code params");
@@ -50,16 +58,15 @@ pub(crate) async fn callback(
 
     // again, the error only happens if someone is messing with the API
     let provider = match path {
-        ServiceType::Discord => get_discord_oidc_provider(
-            &format!("{}/api/auth/discord/callback", get_backend_domain()),
-            vec![],
-        ),
         ServiceType::Google => get_google_oidc_provider(
-            &format!("{}/api/auth/google/callback", get_backend_domain()),
+            &format!("{}/api/notification/google/callback", get_backend_domain()),
             vec![],
         ),
         ServiceType::Microsoft => get_microsoft_oidc_provider(
-            &format!("{}/api/auth/microsoft/callback", get_backend_domain()),
+            &format!(
+                "{}/api/notification/microsoft/callback",
+                get_backend_domain()
+            ),
             vec![],
         ),
         _ => return Ok(StatusCode::NOT_IMPLEMENTED.into_response()),
@@ -67,6 +74,7 @@ pub(crate) async fn callback(
 
     let Some(db_verification) = state.db.get_verification(&query.state).await else {
         error!("Saved verification code does exist");
+
         return Ok(StatusCode::BAD_REQUEST.into_response());
     };
 
@@ -75,7 +83,7 @@ pub(crate) async fn callback(
     if let Some(error) = query.error {
         if error == "access_denied" {
             return Ok(create_redirect(
-                &format!("{}/", get_frontend_domain()),
+                &format!("{}/notifications", get_frontend_domain()),
                 StatusCode::TEMPORARY_REDIRECT,
             ));
         } else {
@@ -102,22 +110,40 @@ pub(crate) async fn callback(
 
     let claims = provider.exchange_code(&code, &saved_nonce).await.unwrap();
 
-    let token = generate_random_string(SESSION_TOKEN_LENGTH);
+    let Some(email) = claims.email else {
+        error!("Claim does not contain email");
+
+        return Ok(StatusCode::BAD_REQUEST.into_response());
+    };
+
+    debug!(
+        "create valid channel with {:?} against {:?}",
+        email, session.user_id
+    );
+
+    for alert in state.db.get_notification_channels(session.user_id).await {
+        if alert.identifier == email && alert.user_id == session.user_id {
+            error!("Channel already exists");
+
+            return Ok(create_redirect(
+                &format!("{}/notifications", get_frontend_domain()),
+                StatusCode::TEMPORARY_REDIRECT,
+            ));
+        }
+    }
 
     state
         .db
-        .create_session(&claims.id, path, &token, get_current_time(), &ip_addr)
+        .create_notification_channel(
+            &email,
+            session.user_id,
+            path,
+            common::db::VerificationStatus::Verified,
+        )
         .await;
 
-    let mut return_headers = HeaderMap::new();
-    return_headers.append(
-        "Set-Cookie",
-        HeaderValue::from_str(&create_cookie(&token)).unwrap(),
-    );
-    return_headers.append(
-        "Location",
-        HeaderValue::from_str(&format!("{}/dashboard", get_frontend_domain())).unwrap(),
-    );
-
-    Ok((return_headers, StatusCode::TEMPORARY_REDIRECT).into_response())
+    Ok(create_redirect(
+        &format!("{}/notifications", get_frontend_domain()),
+        StatusCode::TEMPORARY_REDIRECT,
+    ))
 }

@@ -40,7 +40,7 @@ pub struct User {
     pub linked_services: Vec<ServiceIdentifier>,
 }
 
-#[derive(Deserialize, Serialize, Clone)]
+#[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct Session {
     pub user_id: ObjectId,
     pub service_type: ServiceType,

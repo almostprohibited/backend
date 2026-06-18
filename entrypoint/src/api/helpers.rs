@@ -1,9 +1,12 @@
 use std::{env, sync::LazyLock};
 
-use axum::http::{HeaderMap, Request};
+use axum::{
+    http::{HeaderMap, HeaderValue, Request},
+    response::{IntoResponse, Response},
+};
 use common::constants::{CLOUDFLARE_TURNSTILE_SECRET_KEY, TOKEN_COOKIE_TTL_SECS};
 use regex::bytes::Regex;
-use reqwest::ClientBuilder;
+use reqwest::{ClientBuilder, StatusCode};
 use serde_json::json;
 use tower_governor::{GovernorError, key_extractor::KeyExtractor};
 use tracing::{error, warn};
@@ -111,4 +114,12 @@ pub(crate) fn create_cookie(token: &str) -> String {
         "{TOKEN_COOKIE_NAME}={token}; Max-Age={}; Path=/",
         TOKEN_COOKIE_TTL_SECS
     )
+}
+
+/// Creates a Response containing a single `Location` header
+pub(crate) fn create_redirect(url: &str, status_code: StatusCode) -> Response {
+    let mut return_headers = HeaderMap::new();
+    return_headers.append("Location", HeaderValue::from_str(url).unwrap());
+
+    (return_headers, status_code).into_response()
 }

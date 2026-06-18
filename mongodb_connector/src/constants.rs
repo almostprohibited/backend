@@ -16,6 +16,8 @@ pub(crate) const SESSIONS_EXPIRE_INDEX: &str = "session_expire_index";
 pub(crate) const COLLECTION_VERIFICATIONS_NAME: &str = "verifications";
 pub(crate) const VERIFICATIONS_EXPIRE_INDEX: &str = "verifications_expire_index";
 
+pub(crate) const COLLECTION_NOTIFICATION_CHANNELS_NAME: &str = "notification-channels";
+
 /// 30 mins
 pub(crate) const VERIFICATIONS_EXPIRY_SECONDS: u64 = 60 * 30;
 
