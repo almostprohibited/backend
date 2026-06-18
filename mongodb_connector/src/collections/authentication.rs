@@ -1,9 +1,8 @@
 use std::time::Duration;
 
 use common::{
-    AuthVerification,
     constants::TOKEN_COOKIE_TTL_SECS,
-    user_sessions::{ServiceIdentifier, ServiceType, Session, User},
+    db::{AuthVerification, ServiceIdentifier, ServiceType, Session, User},
 };
 use mongodb::{
     Client, Collection, Database, IndexModel,

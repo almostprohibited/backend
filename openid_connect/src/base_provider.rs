@@ -1,7 +1,7 @@
 use openidconnect::{
     AuthUrl, AuthenticationFlow, AuthorizationCode, Client, ClientId, ClientSecret, CsrfToken,
     EmptyAdditionalClaims, EmptyExtraTokenFields, EndpointMaybeSet, EndpointNotSet, EndpointSet,
-    IdTokenFields, IssuerUrl, Nonce, RedirectUrl, RevocationErrorResponseType,
+    IdTokenFields, IssuerUrl, Nonce, RedirectUrl, RevocationErrorResponseType, Scope,
     StandardErrorResponse, StandardTokenIntrospectionResponse, StandardTokenResponse,
     core::{
         CoreAuthDisplay, CoreAuthPrompt, CoreClient, CoreErrorResponseType, CoreGenderClaim,
@@ -50,6 +50,13 @@ pub struct BaseOidcProvider {
     client_secret: String,
     authorization_url: Option<String>,
     prompt: Option<CoreAuthPrompt>,
+    scopes: Option<Vec<String>>,
+}
+
+#[derive(Debug)]
+pub struct OidcClaims {
+    pub id: String,
+    pub email: Option<String>,
 }
 
 pub(crate) struct BaseOidcProviderBuilder {
@@ -59,6 +66,7 @@ pub(crate) struct BaseOidcProviderBuilder {
     client_secret: String,
     authorization_url: Option<String>,
     prompt: Option<CoreAuthPrompt>,
+    scopes: Option<Vec<String>>,
 }
 
 impl BaseOidcProvider {
@@ -96,6 +104,17 @@ impl BaseOidcProvider {
             authorization_url_builder = authorization_url_builder.add_prompt(prompt.clone());
         }
 
+        if let Some(string_scopes) = &self.scopes
+            && string_scopes.len() > 0
+        {
+            let scopes: Vec<Scope> = string_scopes
+                .iter()
+                .map(|scope| Scope::new(scope.clone()))
+                .collect();
+
+            authorization_url_builder = authorization_url_builder.add_scopes(scopes);
+        }
+
         let (auth_url, csrf, nonce) = authorization_url_builder.url();
 
         debug!("Returning auth url: {auth_url:?}");
@@ -109,7 +128,7 @@ impl BaseOidcProvider {
         })
     }
 
-    pub async fn exchange_code(&self, code: &str, nonce: &str) -> Result<String, OidcError> {
+    pub async fn exchange_code(&self, code: &str, nonce: &str) -> Result<OidcClaims, OidcError> {
         let client = self.get_oidc_client().await?;
 
         let response = client
@@ -139,10 +158,9 @@ impl BaseOidcProvider {
         }
 
         let id = claims.subject().to_string();
+        let email = claims.email().map(|user_email| user_email.to_string());
 
-        debug!("sub={id}");
-
-        Ok(id)
+        Ok(OidcClaims { id, email })
     }
 }
 
@@ -160,6 +178,7 @@ impl BaseOidcProviderBuilder {
             client_secret: client_secret.to_string(),
             authorization_url: None,
             prompt: None,
+            scopes: None,
         }
     }
 
@@ -175,6 +194,12 @@ impl BaseOidcProviderBuilder {
         self
     }
 
+    pub(crate) fn with_scopes(mut self, scopes: Vec<String>) -> Self {
+        self.scopes = Some(scopes);
+
+        self
+    }
+
     pub(crate) fn build(self) -> BaseOidcProvider {
         BaseOidcProvider {
             provider_url: self.provider_url,
@@ -183,6 +208,7 @@ impl BaseOidcProviderBuilder {
             client_secret: self.client_secret,
             authorization_url: self.authorization_url,
             prompt: self.prompt,
+            scopes: self.scopes,
         }
     }
 }

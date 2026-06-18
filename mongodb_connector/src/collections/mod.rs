@@ -1,3 +1,4 @@
+pub(crate) mod alerts;
 pub(crate) mod authentication;
 pub(crate) mod crawl_results;
 pub(crate) mod live_results;

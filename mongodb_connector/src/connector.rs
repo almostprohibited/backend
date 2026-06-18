@@ -1,21 +1,20 @@
 use std::{env, str::FromStr, sync::LazyLock};
 
 use common::{
-    AuthVerification,
+    db::{AuthVerification, NotificationChannel, ServiceType, Session, VerificationStatus},
     messages::Message,
     price_history::{ApiPriceHistoryInput, CollectionPriceHistory},
     result::base::CrawlResult,
     search_params::{ApiSearchInput, CollectionSearchResults},
     string_utils::sha256_hash_string,
-    user_sessions::{ServiceType, Session},
 };
 use mongodb::{Client, bson::oid::ObjectId};
 use tracing::{debug, warn};
 
 use crate::collections::{
-    authentication::AuthenticationCollections, crawl_results::CrawlResultsCollection,
-    live_results::LiveResultsView, messages::MessagesCollection,
-    price_history::PriceHistoryCollection,
+    alerts::AlertCollection, authentication::AuthenticationCollections,
+    crawl_results::CrawlResultsCollection, live_results::LiveResultsView,
+    messages::MessagesCollection, price_history::PriceHistoryCollection,
 };
 
 static CONNECTION_URI: LazyLock<String> = LazyLock::new(|| {
@@ -31,6 +30,7 @@ pub struct MongoDBConnector {
     messages: MessagesCollection,
     price_history: PriceHistoryCollection,
     authentication: AuthenticationCollections,
+    alerts: AlertCollection,
 }
 
 impl MongoDBConnector {
@@ -44,7 +44,8 @@ impl MongoDBConnector {
             live_results: LiveResultsView::new(client.clone()).await,
             messages: MessagesCollection::new(client.clone()).await,
             price_history: PriceHistoryCollection::new(client.clone()).await,
-            authentication: AuthenticationCollections::new(client).await,
+            authentication: AuthenticationCollections::new(client.clone()).await,
+            alerts: AlertCollection::new(client).await,
         }
     }
 
@@ -123,8 +124,10 @@ impl MongoDBConnector {
             .await;
     }
 
-    pub async fn find_session(&self, hashed_token: &str) -> Option<Session> {
-        self.authentication.find_session(hashed_token).await
+    pub async fn find_session(&self, unhashed_token: &str) -> Option<Session> {
+        self.authentication
+            .find_session(&sha256_hash_string(unhashed_token))
+            .await
     }
 
     pub async fn delete_session(&self, unhashed_token: &str) -> bool {
@@ -149,14 +152,15 @@ impl MongoDBConnector {
             return false;
         };
 
-        let (session_deleted, user_deleted) = tokio::join!(
+        let (session_deleted, user_deleted, alerts_deleted) = tokio::join!(
             self.authentication.delete_sessions_by_user_id(user.user_id),
-            self.authentication.delete_user(user.user_id)
+            self.authentication.delete_user(user.user_id),
+            self.alerts.delete_all_by_user_id(user.user_id),
         );
 
-        debug!("{session_deleted} && {user_deleted}");
+        debug!("{session_deleted} && {user_deleted} && {alerts_deleted}");
 
-        session_deleted && user_deleted
+        session_deleted && user_deleted && alerts_deleted
     }
 
     pub async fn create_verification(
@@ -191,5 +195,24 @@ impl MongoDBConnector {
     /// Gets all ammo documents within live results table
     pub async fn get_all_live_ammo(&self) -> Vec<CrawlResult> {
         self.live_results.get_all_live_ammo().await
+    }
+
+    // TODO: I should probably check for existing entries
+    /// Method does not check or dedupe entries
+    pub async fn create_notification_channel(
+        &self,
+        identifier: &str,
+        user_id: ObjectId,
+        service: ServiceType,
+        status: VerificationStatus,
+    ) {
+        let _ = self
+            .alerts
+            .create_notification_channel(identifier, user_id, service, status)
+            .await;
+    }
+
+    pub async fn get_notification_channels(&self, user_id: ObjectId) -> Vec<NotificationChannel> {
+        self.alerts.get_notification_channels(user_id).await
     }
 }

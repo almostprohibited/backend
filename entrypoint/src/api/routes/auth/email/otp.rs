@@ -1,7 +1,7 @@
 use common::constants::SESSION_TOKEN_LENGTH;
+use common::db::ServiceType;
 use common::serde_utils::disallow_empty_string;
 use common::string_utils::{generate_random_string, sha256_hash_string};
-use common::user_sessions::ServiceType;
 use std::sync::Arc;
 
 use crate::constants::IP_HEADER;
