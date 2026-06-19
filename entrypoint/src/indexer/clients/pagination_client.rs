@@ -1,7 +1,10 @@
 use std::{collections::HashMap, time::Duration};
 
 use async_trait::async_trait;
-use common::result::{base::CrawlResult, enums::RetailerName};
+use common::{
+    result::{base::CrawlResult, enums::RetailerName},
+    utils::get_api_call_delay,
+};
 use crawler::{request::Request, unprotected::UnprotectedCrawler};
 use retailers::{
     errors::RetailerError,
@@ -10,10 +13,7 @@ use retailers::{
 use tokio::time::sleep;
 use tracing::{debug, trace};
 
-use crate::clients::{
-    base::{Client, insert_result},
-    utils::get_api_call_delay,
-};
+use crate::clients::base::{Client, insert_result};
 
 pub(crate) struct PaginationClient {
     retailer: Box<dyn HtmlRetailerSuper>,

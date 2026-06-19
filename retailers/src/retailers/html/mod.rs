@@ -39,6 +39,7 @@ mod shooters_choice; // reminder, do full refreshes in browser once in a while, 
 mod sj_hardware;
 mod soley_outdoors;
 mod tenda;
+mod tesro;
 mod the_ammo_source;
 mod the_gun_dealer;
 mod tillsonburg_gun_shop;
@@ -89,6 +90,7 @@ pub use shooters_choice::ShootersChoice;
 pub use sj_hardware::SJHardware;
 pub use soley_outdoors::SoleyOutdoors;
 pub use tenda::Tenda;
+pub use tesro::Tesro;
 pub use the_ammo_source::TheAmmoSource;
 pub use the_gun_dealer::TheGunDealer;
 pub use tillsonburg_gun_shop::Tillsonburg;

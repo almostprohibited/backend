@@ -88,6 +88,7 @@ pub enum RetailerName {
     EasthillOutdoors,
     RangeArts,
     GeneralGun,
+    Tesro,
 }
 
 impl RetailerName {

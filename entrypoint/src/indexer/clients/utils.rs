@@ -1,7 +1,4 @@
-use common::{
-    constants::CRAWL_COOLDOWN_SECS,
-    result::{base::CrawlResult, enums::Category},
-};
+use common::result::{base::CrawlResult, enums::Category};
 
 /// Responsible for determining ordering of duplicated entries.
 /// For example, if we found the same product in the firearm and ammo category,
@@ -18,12 +15,4 @@ pub(crate) fn get_category_tier(category: Category) -> i64 {
 /// Creates a "unique" key for the results hashing to dedupe products
 pub(crate) fn get_key(crawl_result: &CrawlResult) -> String {
     format!("{}{}", crawl_result.name, crawl_result.url)
-}
-
-pub(crate) fn get_api_call_delay() -> u64 {
-    if cfg!(debug_assertions) {
-        return 2;
-    }
-
-    CRAWL_COOLDOWN_SECS
 }

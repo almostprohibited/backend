@@ -6,6 +6,8 @@ use std::{
 use mongodb::bson::oid::ObjectId;
 use serde::{Deserialize, Deserializer, de::Error};
 
+use crate::constants::CRAWL_COOLDOWN_SECS;
+
 const ONE_DAY_MINUTES: i64 = 1440;
 
 pub fn get_current_time() -> u64 {
@@ -69,4 +71,12 @@ pub fn get_backend_domain() -> String {
     }
 
     get_domain()
+}
+
+pub fn get_api_call_delay() -> u64 {
+    if cfg!(debug_assertions) {
+        return 2;
+    }
+
+    CRAWL_COOLDOWN_SECS
 }
