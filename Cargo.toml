@@ -43,7 +43,7 @@ mongodb = "3.7.0"
 axum = "0.8.9"
 axum-extra = "0.12.6"
 axum-otel-metrics = "0.13.0"
-tower-http = "0.6.11"
+tower-http = "0.7.0"
 tower = "0.5.3"
 tower_governor = { version = "0.8.0", features = ["axum"] }
 regex = "1.12.3"
