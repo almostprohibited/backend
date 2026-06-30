@@ -63,7 +63,7 @@ opentelemetry = { version = "0.32.0", features = ["metrics"] }
 opentelemetry-otlp = "0.32.0"
 opentelemetry_sdk = "0.32.1"
 lru = "0.18.0"
-itertools = "0.14.0"
+itertools = "0.15.0"
 # note: don't use this library to do anything
 # it's only here to solve site ground challenges
 sha1 = "0.11.0"
