@@ -33,17 +33,6 @@ impl AlertCollection {
             });
     }
 
-    pub(crate) async fn delete_all_by_user_id(&self, user_id: ObjectId) -> bool {
-        let result = self
-            .notification_channel_collection
-            .delete_many(doc! {
-                "user_id": user_id
-            })
-            .await;
-
-        result.is_ok()
-    }
-
     pub(crate) async fn create_notification_channel(
         &self,
         identifier: &str,
@@ -85,5 +74,29 @@ impl AlertCollection {
         }
 
         result
+    }
+
+    /// Deletes multiple notification channels.
+    /// If `identifier` is not passed, delete all channels
+    pub(crate) async fn delete_notification_channels(
+        &self,
+        user_id: ObjectId,
+        identifier: Option<&str>,
+    ) -> bool {
+        let mut query = doc! {
+            "user_id": user_id,
+        };
+
+        if let Some(identifier) = identifier {
+            query.insert("identifier", identifier);
+        }
+
+        let result = self
+            .notification_channel_collection
+            .delete_many(query)
+            .await
+            .unwrap();
+
+        result.deleted_count > 0
     }
 }

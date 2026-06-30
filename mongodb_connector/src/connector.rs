@@ -155,7 +155,7 @@ impl MongoDBConnector {
         let (session_deleted, user_deleted, alerts_deleted) = tokio::join!(
             self.authentication.delete_sessions_by_user_id(user.user_id),
             self.authentication.delete_user(user.user_id),
-            self.alerts.delete_all_by_user_id(user.user_id),
+            self.alerts.delete_notification_channels(user.user_id, None),
         );
 
         debug!("{session_deleted} && {user_deleted} && {alerts_deleted}");
@@ -214,5 +214,11 @@ impl MongoDBConnector {
 
     pub async fn get_notification_channels(&self, user_id: ObjectId) -> Vec<NotificationChannel> {
         self.alerts.get_notification_channels(user_id).await
+    }
+
+    pub async fn delete_notification_channel(&self, user_id: ObjectId, identifier: &str) -> bool {
+        self.alerts
+            .delete_notification_channels(user_id, Some(identifier))
+            .await
     }
 }

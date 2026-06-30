@@ -10,7 +10,7 @@ use axum::extract::{Path, Query, State};
 use axum::http::HeaderMap;
 use axum::{http::StatusCode, response::IntoResponse};
 use axum_extra::extract::WithRejection;
-use common::db::ServiceType;
+use common::db::{ServiceType, VerificationStatus};
 use common::utils::{get_backend_domain, get_frontend_domain};
 use openid_connect::providers::{get_google_oidc_provider, get_microsoft_oidc_provider};
 use serde::Deserialize;
@@ -134,12 +134,7 @@ pub(crate) async fn notification_callback(
 
     state
         .db
-        .create_notification_channel(
-            &email,
-            session.user_id,
-            path,
-            common::db::VerificationStatus::Verified,
-        )
+        .create_notification_channel(&email, session.user_id, path, VerificationStatus::Verified)
         .await;
 
     Ok(create_redirect(

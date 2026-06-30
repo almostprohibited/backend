@@ -26,7 +26,10 @@ use crate::{
         contact::contact_handler,
         history::history_handler,
         image::image_handler,
-        notifications::{get_notification_channels, notification_callback, notification_provider},
+        notifications::{
+            delete_channels, get_notification_channels, notification_add_email,
+            notification_callback, notification_provider,
+        },
         search_query::search_handler,
     },
     structs::ServerState,
@@ -143,6 +146,16 @@ async fn main() {
                 "/api/notification/channels",
                 get(get_notification_channels)
                     .route_layer(GovernorLayer::new(get_governor(DEFAULT_TPS_LIMIT))),
+            )
+            .route(
+                "/api/notification/email",
+                post(notification_add_email)
+                    .route_layer(GovernorLayer::new(get_governor(DEFAULT_AUTH_TPS_LIMIT))),
+            )
+            .route(
+                "/api/notification/delete",
+                delete(delete_channels)
+                    .route_layer(GovernorLayer::new(get_governor(DEFAULT_AUTH_TPS_LIMIT))),
             );
     }
 
