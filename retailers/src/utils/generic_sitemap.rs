@@ -1,4 +1,4 @@
-use crawler::{request::RequestBuilder, unprotected::UnprotectedCrawler};
+use crawler::{WebClient, request::RequestBuilder};
 use scraper::{Html, Selector};
 
 use crate::{errors::RetailerError, structures::HtmlSearchQuery, utils::html::element_to_text};
@@ -7,7 +7,7 @@ pub(crate) async fn get_nested_sitemap_urls(
     sitemap_url: &str,
 ) -> Result<Vec<String>, RetailerError> {
     let request = RequestBuilder::new().set_url(sitemap_url).build();
-    let response = UnprotectedCrawler::make_web_request(request).await?;
+    let response = WebClient::make_web_request(request).await?;
 
     let sitemap = Html::parse_fragment(&response.body);
     let selector = Selector::parse("sitemapindex > sitemap > loc").unwrap();
@@ -32,7 +32,7 @@ pub(crate) async fn get_search_queries<T: Fn(String) -> Option<HtmlSearchQuery>>
     filter_map_method: T,
 ) -> Result<Vec<HtmlSearchQuery>, RetailerError> {
     let request = RequestBuilder::new().set_url(sitemap_url).build();
-    let response = UnprotectedCrawler::make_web_request(request).await?;
+    let response = WebClient::make_web_request(request).await?;
 
     let mut base_url = product_url_base.to_string();
     if !base_url.ends_with("/") {

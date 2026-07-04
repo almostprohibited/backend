@@ -4,8 +4,8 @@ use common::result::{
     enums::{Category, RetailerName},
 };
 use crawler::{
+    WebClient,
     request::{Request, RequestBuilder},
-    unprotected::UnprotectedCrawler,
 };
 use scraper::{ElementRef, Html, Selector};
 use serde::Deserialize;
@@ -118,7 +118,7 @@ impl Retailer for MagDump {
     // make an attempt to normalize the URIs
     async fn init(&mut self) -> Result<(), RetailerError> {
         let request = RequestBuilder::new().set_url(SITEMAP).build();
-        let response = UnprotectedCrawler::make_web_request(request).await?;
+        let response = WebClient::make_web_request(request).await?;
 
         let fragment = Html::parse_document(&response.body);
         let link_selector =

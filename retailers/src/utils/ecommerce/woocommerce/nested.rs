@@ -8,7 +8,7 @@ use common::{
         enums::{Category, RetailerName},
     },
 };
-use crawler::{request::RequestBuilder, unprotected::UnprotectedCrawler};
+use crawler::{WebClient, request::RequestBuilder};
 use scraper::{Html, Selector};
 use tokio::time::sleep;
 use tracing::{debug, warn};
@@ -175,7 +175,7 @@ impl WooCommerceNested for WooCommerce {
         let mut results: Vec<CrawlResult> = Vec::new();
 
         let request = RequestBuilder::new().set_url(&url).build();
-        let result = UnprotectedCrawler::make_web_request(request).await?;
+        let result = WebClient::make_web_request(request).await?;
 
         let product_title = Self::get_nested_product_title(&result.body)?;
 

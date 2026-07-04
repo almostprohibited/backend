@@ -7,8 +7,8 @@ use common::result::{
     enums::{Category, RetailerName},
 };
 use crawler::{
+    WebClient,
     request::{Request, RequestBuilder},
-    unprotected::UnprotectedCrawler,
 };
 use regex::Regex;
 use scraper::{ElementRef, Html, Selector};
@@ -95,7 +95,7 @@ impl G4CGunStore {
             Regex::new(r#"const\s+sgchallenge\s*=\s*"([^"]+)""#).expect("Static regex to compile");
 
         let request = RequestBuilder::new().set_url(url).build();
-        let result = UnprotectedCrawler::make_web_request(request).await?;
+        let result = WebClient::make_web_request(request).await?;
 
         let challenge = unwrap_regex_capture(&regex, &result.body)?;
 
@@ -199,7 +199,7 @@ impl HtmlRetailerSuper for G4CGunStore {}
 impl Retailer for G4CGunStore {
     async fn init(&mut self) -> Result<(), RetailerError> {
         let request = RequestBuilder::new().set_url(BASE_URL).build();
-        let result = UnprotectedCrawler::make_web_request(request).await?;
+        let result = WebClient::make_web_request(request).await?;
 
         if result.body.contains("/.well-known/sgcaptcha/") {
             // siteground really expects a client sided check to fix bots
@@ -216,7 +216,7 @@ impl Retailer for G4CGunStore {
             let request = RequestBuilder::new()
                 .set_url(solution.get_submit_url())
                 .build();
-            let _ = UnprotectedCrawler::make_web_request(request).await?;
+            let _ = WebClient::make_web_request(request).await?;
         }
 
         Ok(())

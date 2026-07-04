@@ -4,7 +4,7 @@ use common::result::{
     base::{CrawlResult, Price},
     enums::RetailerName,
 };
-use crawler::{request::RequestBuilder, traits::HttpMethod, unprotected::UnprotectedCrawler};
+use crawler::{WebClient, request::RequestBuilder, traits::HttpMethod};
 use itertools::Itertools;
 use regex::Regex;
 use scraper::{Html, Selector};
@@ -231,7 +231,7 @@ impl Odoo {
             .set_json_body(get_quick_view_api_body(template_id))
             .build();
 
-        let crawler = UnprotectedCrawler::make_web_request(request).await?;
+        let crawler = WebClient::make_web_request(request).await?;
 
         Ok(crawler.body)
     }
@@ -248,7 +248,7 @@ impl Odoo {
             .set_json_body(get_variant_api_body(variant_array, product_id, template_id))
             .build();
 
-        let crawler = UnprotectedCrawler::make_web_request(request).await?;
+        let crawler = WebClient::make_web_request(request).await?;
 
         Ok(crawler.body)
     }

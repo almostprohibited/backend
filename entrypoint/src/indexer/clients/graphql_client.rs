@@ -5,7 +5,7 @@ use common::{
     result::{base::CrawlResult, enums::RetailerName},
     utils::get_api_call_delay,
 };
-use crawler::unprotected::UnprotectedCrawler;
+use crawler::WebClient;
 use retailers::{errors::RetailerError, structures::GqlRetailerSuper};
 use tokio::time::sleep;
 use tracing::debug;
@@ -35,7 +35,7 @@ impl Client for GqlClient {
             debug!("Using token: {pagination_token:?}");
             let request = self.retailer.build_page_request(pagination_token).await?;
 
-            let response = UnprotectedCrawler::make_web_request(request).await?;
+            let response = WebClient::make_web_request(request).await?;
             let response_body = response.body;
 
             pagination_token = self.retailer.get_pagination_token(&response_body)?;

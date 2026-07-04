@@ -4,8 +4,8 @@ use common::result::{
     enums::{Category, RetailerName},
 };
 use crawler::{
+    WebClient,
     request::{Request, RequestBuilder},
-    unprotected::UnprotectedCrawler,
 };
 use scraper::{Html, Selector};
 
@@ -45,7 +45,7 @@ impl Retailer for SJHardware {
             .set_url(format!("{SITE_URL}?setCurrencyId=2"))
             .build();
 
-        let _ = UnprotectedCrawler::make_web_request(request).await;
+        let _ = WebClient::make_web_request(request).await;
 
         Ok(())
     }

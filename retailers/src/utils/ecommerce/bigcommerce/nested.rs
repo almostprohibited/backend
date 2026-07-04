@@ -7,7 +7,7 @@ use common::{
         enums::{Category, RetailerName},
     },
 };
-use crawler::{request::RequestBuilder, traits::HttpMethod, unprotected::UnprotectedCrawler};
+use crawler::{WebClient, request::RequestBuilder, traits::HttpMethod};
 use scraper::{ElementRef, Html, Selector};
 use tokio::time::sleep;
 use tracing::{debug, error, info};
@@ -302,7 +302,7 @@ impl BigCommerceNested for BigCommerce {
             let request = RequestBuilder::new()
                 .set_url(nested_product.product_url.clone())
                 .build();
-            let result = UnprotectedCrawler::make_web_request(request).await?;
+            let result = WebClient::make_web_request(request).await?;
 
             let product_id = Self::get_product_id(&result.body)?;
             let api_url = format!("{site_url}/remote/v1/product-attributes/{product_id}");
@@ -334,7 +334,7 @@ impl BigCommerceNested for BigCommerce {
                     .set_body(body)
                     .build();
 
-                let result = UnprotectedCrawler::make_web_request(request).await?;
+                let result = WebClient::make_web_request(request).await?;
                 let response = serde_json::from_str::<NestedApiResponse>(&result.body)?;
 
                 if !response.data.instock {

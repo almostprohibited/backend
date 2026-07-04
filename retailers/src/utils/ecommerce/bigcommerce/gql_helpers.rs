@@ -1,9 +1,9 @@
 use std::sync::LazyLock;
 
 use crawler::{
+    WebClient,
     request::{Request, RequestBuilder},
     traits::HttpMethod,
-    unprotected::UnprotectedCrawler,
 };
 use regex::Regex;
 use serde_json::json;
@@ -142,7 +142,7 @@ pub(crate) fn build_request(
 
 pub(crate) async fn get_gql_token(url: &str) -> Result<String, RetailerError> {
     let request = RequestBuilder::new().set_url(url).build();
-    let response = UnprotectedCrawler::make_web_request(request).await?.body;
+    let response = WebClient::make_web_request(request).await?.body;
 
     for regex_pattern in PATTERNS.iter() {
         if let Ok(token) = unwrap_regex_capture(&regex_pattern, &response) {

@@ -12,8 +12,8 @@ use common::{
     utils::get_api_call_delay,
 };
 use crawler::{
+    WebClient,
     request::{Request, RequestBuilder},
-    unprotected::UnprotectedCrawler,
 };
 use scraper::{ElementRef, Html, Selector};
 use tokio::time::sleep;
@@ -51,7 +51,7 @@ impl Tesro {
         let mut results: Vec<CrawlResult> = vec![];
 
         let request = RequestBuilder::new().set_url(url).build();
-        let response = UnprotectedCrawler::make_web_request(request).await?;
+        let response = WebClient::make_web_request(request).await?;
 
         let html = Html::parse_document(&response.body);
 

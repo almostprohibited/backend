@@ -4,7 +4,7 @@ use common::result::{
     base::{CrawlResult, Price},
     enums::RetailerName,
 };
-use crawler::{request::RequestBuilder, unprotected::UnprotectedCrawler};
+use crawler::{WebClient, request::RequestBuilder};
 use scraper::{ElementRef, Html, Selector};
 use serde::{Deserialize, Deserializer};
 use tokio::time::sleep;
@@ -214,7 +214,7 @@ impl LightSpeed {
 
         for product in links {
             let request = RequestBuilder::new().set_url(product.url.clone()).build();
-            let crawler = UnprotectedCrawler::make_web_request(request).await?;
+            let crawler = WebClient::make_web_request(request).await?;
 
             sleep(Duration::from_secs(2)).await;
 

@@ -1,6 +1,6 @@
 use std::sync::LazyLock;
 
-use crawler::{request::RequestBuilder, unprotected::UnprotectedCrawler};
+use crawler::{WebClient, request::RequestBuilder};
 use regex::Regex;
 use tracing::{trace, warn};
 
@@ -31,7 +31,7 @@ static STRING_CHAR_REGEX: LazyLock<Regex> = LazyLock::new(|| {
 // (I don't want to explore Deno)
 pub(crate) async fn get_sucuri_cookie(home_page: &str) -> Result<String, RetailerError> {
     let request = RequestBuilder::new().set_url(home_page).build();
-    let result = UnprotectedCrawler::make_web_request(request).await?;
+    let result = WebClient::make_web_request(request).await?;
 
     if result.response_code.is_success() {
         warn!("Page did not redirect to check page");

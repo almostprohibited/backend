@@ -6,8 +6,8 @@ use common::result::{
     enums::{Category, RetailerName},
 };
 use crawler::{
+    WebClient,
     request::{Request, RequestBuilder},
-    unprotected::UnprotectedCrawler,
 };
 use scraper::{Html, Selector};
 use serde::{Deserialize, Deserializer};
@@ -142,7 +142,7 @@ impl BartonsBigCountry {
             let request = RequestBuilder::new()
                 .set_url(product_url.replace(".html", ".ajax"))
                 .build();
-            let crawler = UnprotectedCrawler::make_web_request(request).await?;
+            let crawler = WebClient::make_web_request(request).await?;
 
             let parsed_product = serde_json::from_str::<ApiResponse>(&crawler.body)?;
 

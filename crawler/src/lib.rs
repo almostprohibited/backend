@@ -1,4 +1,6 @@
 pub mod errors;
 pub mod request;
 pub mod traits;
-pub mod unprotected;
+mod web_client;
+
+pub use web_client::WebClient;

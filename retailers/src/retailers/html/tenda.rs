@@ -4,8 +4,8 @@ use common::result::{
     enums::{Category, RetailerName},
 };
 use crawler::{
+    WebClient,
     request::{Request, RequestBuilder},
-    unprotected::UnprotectedCrawler,
 };
 use scraper::{Html, Selector};
 use tracing::{debug, warn};
@@ -84,7 +84,7 @@ impl Retailer for Tenda {
     async fn init(&mut self) -> Result<(), RetailerError> {
         let cookie = get_sucuri_cookie(BASE_URL).await?;
 
-        UnprotectedCrawler::set_cookie(BASE_URL, &cookie);
+        WebClient::set_cookie(BASE_URL, &cookie);
 
         debug!("Using cookie: {cookie}");
 

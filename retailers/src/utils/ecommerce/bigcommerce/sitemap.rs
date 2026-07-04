@@ -1,4 +1,4 @@
-use crawler::{request::RequestBuilder, unprotected::UnprotectedCrawler};
+use crawler::{WebClient, request::RequestBuilder};
 use scraper::{Html, Selector};
 
 use crate::{
@@ -30,7 +30,7 @@ impl BigCommerceSitemap for BigCommerce {
         let sitemap_url = format!("{parsed_base_url}/sitemap/categories");
 
         let request = RequestBuilder::new().set_url(sitemap_url).build();
-        let response = UnprotectedCrawler::make_web_request(request).await?;
+        let response = WebClient::make_web_request(request).await?;
 
         let sitemap = Html::parse_fragment(&response.body);
         let selector = Selector::parse("div.container > ul > li li > a").unwrap();

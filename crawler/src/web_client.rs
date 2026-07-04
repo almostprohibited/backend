@@ -40,9 +40,9 @@ static REQWEST_CLIENT: OnceLock<ClientWithMiddleware> = OnceLock::new();
 static COOKIE_JAR: LazyLock<Arc<Jar>> = LazyLock::new(|| Arc::new(Jar::default()));
 
 #[derive(Copy, Clone)]
-pub struct UnprotectedCrawler {}
+pub struct WebClient {}
 
-impl UnprotectedCrawler {
+impl WebClient {
     fn create_client() -> &'static ClientWithMiddleware {
         REQWEST_CLIENT.get_or_init(|| {
             let mut base_client_builder = BaseClientBuilder::new()

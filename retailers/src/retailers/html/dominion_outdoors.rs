@@ -6,8 +6,8 @@ use common::result::{
     enums::{Category, RetailerName},
 };
 use crawler::{
+    WebClient,
     request::{Request, RequestBuilder},
-    unprotected::UnprotectedCrawler,
 };
 use scraper::{ElementRef, Html, Selector};
 use tokio::time::sleep;
@@ -42,7 +42,7 @@ impl DominionOutdoors {
 
     async fn send_request(&self, url: String) -> Result<String, RetailerError> {
         let request = RequestBuilder::new().set_url(url).build();
-        let response = UnprotectedCrawler::make_web_request(request).await?;
+        let response = WebClient::make_web_request(request).await?;
 
         let response_body = response.body;
 

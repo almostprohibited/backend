@@ -5,7 +5,7 @@ use common::{
     result::{base::CrawlResult, enums::RetailerName},
     utils::get_api_call_delay,
 };
-use crawler::{request::Request, unprotected::UnprotectedCrawler};
+use crawler::{WebClient, request::Request};
 use retailers::{
     errors::RetailerError,
     structures::{HtmlRetailerSuper, HtmlSearchQuery},
@@ -85,6 +85,6 @@ impl PaginationClient {
     }
 
     async fn send_request(&mut self, request: Request) -> Result<String, RetailerError> {
-        Ok(UnprotectedCrawler::make_web_request(request).await?.body)
+        Ok(WebClient::make_web_request(request).await?.body)
     }
 }

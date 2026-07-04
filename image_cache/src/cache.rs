@@ -1,5 +1,5 @@
 use common::{image_cache::CachedImageObject, result::base::CrawlResult};
-use crawler::{errors::CrawlerError, request::RequestBuilder, unprotected::UnprotectedCrawler};
+use crawler::{WebClient, errors::CrawlerError, request::RequestBuilder};
 use tracing::debug;
 
 use crate::{memory_cache::MemoryCache, traits::CacheMethod};
@@ -9,7 +9,7 @@ pub struct ImageCache {}
 impl ImageCache {
     async fn download_image(url: &str) -> Result<CachedImageObject, CrawlerError> {
         let request = RequestBuilder::new().set_url(url).build();
-        let crawler = UnprotectedCrawler::make_web_request(request).await?;
+        let crawler = WebClient::make_web_request(request).await?;
 
         let mime_type = crawler
             .headers
