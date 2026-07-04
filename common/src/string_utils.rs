@@ -7,6 +7,7 @@ use sha2::{Digest, Sha256};
 const OTP_LENGTH: usize = 6;
 
 pub fn generate_random_string(len: u64) -> String {
+    // TODO: lazy static the stdrng call for performance reasons
     let mut rng = StdRng::try_from_rng(&mut SysRng).unwrap();
 
     Alphanumeric.sample_string(&mut rng, len as usize)

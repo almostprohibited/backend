@@ -1,98 +1,32 @@
-use std::{
-    env,
-    str::FromStr,
-    sync::{Arc, LazyLock, OnceLock},
-    time::Duration,
-};
+use std::{str::FromStr, sync::OnceLock};
 
-use common::{constants::PROXY_ADDRESS, get_user_agent};
 use reqwest::{
-    ClientBuilder as BaseClientBuilder, Proxy, StatusCode, Url,
-    cookie::Jar,
+    StatusCode,
     header::{HeaderMap, HeaderName, HeaderValue},
 };
-use reqwest_middleware::{ClientBuilder as RetryableClientBuilder, ClientWithMiddleware};
+use reqwest_middleware::ClientWithMiddleware;
 use tracing::{debug, info};
 
 use crate::{
+    base_client::{create_base_client, set_cookie},
     errors::CrawlerError,
     request::Request,
-    retry_middleware::get_retry_middleware,
     traits::{CrawlerResponse, HttpMethod},
+    user_agent::shuffle_user_agent,
 };
 
-const PAGE_TIMEOUT_SECONDS: u64 = 60;
-
-const PROXY_DOMAINS: [&str; 7] = [
-    "italiansportinggoods.com",
-    "ellwoodepps.com",
-    "x-reload.com",
-    "dantesports.com",
-    "londerosports.com",
-    "internationalshootingsupplies.com",
-    "thegundealer.ca",
-];
-
 static REQWEST_CLIENT: OnceLock<ClientWithMiddleware> = OnceLock::new();
-static COOKIE_JAR: LazyLock<Arc<Jar>> = LazyLock::new(|| Arc::new(Jar::default()));
 
 #[derive(Copy, Clone)]
 pub struct WebClient {}
 
 impl WebClient {
-    fn create_client() -> &'static ClientWithMiddleware {
-        REQWEST_CLIENT.get_or_init(|| {
-            let mut base_client_builder = BaseClientBuilder::new()
-                .gzip(true)
-                .http1_ignore_invalid_headers_in_responses(true)
-                .timeout(Duration::from_secs(PAGE_TIMEOUT_SECONDS))
-                .user_agent(get_user_agent())
-                .https_only(true)
-                .cookie_provider(COOKIE_JAR.clone())
-                .connection_verbose(true);
-
-            if let Ok(proxy_address) = env::var(PROXY_ADDRESS) {
-                debug!("Configuring proxy");
-
-                let proxy_url = Url::parse(&proxy_address).expect("Valid proxy domain");
-
-                base_client_builder = base_client_builder.proxy(Proxy::custom(move |url| {
-                    let Some(checked_url) = url.host_str() else {
-                        debug!("Failed to parse host as string: {url}");
-
-                        return None;
-                    };
-
-                    if PROXY_DOMAINS
-                        .into_iter()
-                        .any(|proxied_domain| checked_url.ends_with(proxied_domain))
-                    {
-                        debug!("Proxying {checked_url}");
-
-                        return Some(proxy_url.clone());
-                    }
-
-                    None
-                }));
-            }
-
-            let base_client = base_client_builder
-                .build()
-                .expect("Valid base reqwest to be built");
-
-            RetryableClientBuilder::new(base_client)
-                .with(get_retry_middleware())
-                .build()
-        })
-    }
-
     pub fn set_cookie(url: &str, cookie: &str) {
-        let cookie_jar = COOKIE_JAR.clone();
-        cookie_jar.add_cookie_str(cookie, &Url::from_str(url).unwrap());
+        set_cookie(url, cookie);
     }
 
     pub async fn make_web_request(request: Request) -> Result<CrawlerResponse, CrawlerError> {
-        let client = Self::create_client();
+        let client = REQWEST_CLIENT.get_or_init(|| create_base_client());
 
         let mut request_builder = match request.method {
             HttpMethod::GET => client.get(request.url.clone()),
@@ -103,6 +37,10 @@ impl WebClient {
             "Sending request to {} (body: {:?}) (json: {:?})",
             request.url, request.body, request.json
         );
+
+        if let Some(user_agent) = shuffle_user_agent(&request.url) {
+            request_builder = request_builder.header("User-Agent", user_agent);
+        }
 
         if let Some(json) = request.json {
             request_builder = request_builder.json(&json);
