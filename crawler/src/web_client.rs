@@ -12,19 +12,16 @@ use reqwest::{
     header::{HeaderMap, HeaderName, HeaderValue},
 };
 use reqwest_middleware::{ClientBuilder as RetryableClientBuilder, ClientWithMiddleware};
-use reqwest_retry::{RetryTransientMiddleware, policies::ExponentialBackoff};
 use tracing::{debug, info};
 
 use crate::{
     errors::CrawlerError,
     request::Request,
+    retry_middleware::get_retry_middleware,
     traits::{CrawlerResponse, HttpMethod},
 };
 
 const PAGE_TIMEOUT_SECONDS: u64 = 60;
-const PAGE_MIN_SECS_BACKOFF: u64 = 10;
-const PAGE_MAX_SECS_BACKOFF: u64 = 120;
-const MAX_RETRY: u32 = 10;
 
 const PROXY_DOMAINS: [&str; 7] = [
     "italiansportinggoods.com",
@@ -83,16 +80,8 @@ impl WebClient {
                 .build()
                 .expect("Valid base reqwest to be built");
 
-            let retry_strat = ExponentialBackoff::builder()
-                .retry_bounds(
-                    Duration::from_secs(PAGE_MIN_SECS_BACKOFF),
-                    Duration::from_secs(PAGE_MAX_SECS_BACKOFF),
-                )
-                .build_with_max_retries(MAX_RETRY);
-            let retry_middleware = RetryTransientMiddleware::new_with_policy(retry_strat);
-
             RetryableClientBuilder::new(base_client)
-                .with(retry_middleware)
+                .with(get_retry_middleware())
                 .build()
         })
     }
