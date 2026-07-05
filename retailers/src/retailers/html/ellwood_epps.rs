@@ -148,7 +148,13 @@ impl HtmlRetailer for EllwoodEpps {
                 continue;
             }
 
-            let result: CrawlResult = record.try_into()?;
+            let mut result: CrawlResult = record.try_into()?;
+
+            if result.category == Category::Ammunition
+                && result.name.to_lowercase().starts_with("hodgdon")
+            {
+                result.update_category(Category::Other);
+            }
 
             results.push(result);
         }

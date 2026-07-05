@@ -147,6 +147,10 @@ impl CrawlResult {
         self.metadata = metadata;
     }
 
+    pub fn update_category(&mut self, category: Category) {
+        self.category = category;
+    }
+
     fn get_ammo_metadata(product_name: &str) -> Option<Metadata> {
         let clean_name = product_name.replace(",", "");
 
