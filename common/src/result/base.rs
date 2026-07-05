@@ -147,7 +147,7 @@ impl CrawlResult {
         self.metadata = metadata;
     }
 
-    fn get_ammo_metadata(product_name: &String) -> Option<Metadata> {
+    fn get_ammo_metadata(product_name: &str) -> Option<Metadata> {
         let clean_name = product_name.replace(",", "");
 
         for pattern in PATTERNS.iter() {
@@ -173,5 +173,23 @@ impl CrawlResult {
         }
 
         None
+    }
+}
+
+mod test {
+    use crate::result::{base::CrawlResult, metadata::Metadata};
+
+    #[test]
+    fn test_capture() {
+        let result = CrawlResult::get_ammo_metadata(
+            "PRVI PPU .223 Rem 55Gr FMJ (Bulk 1000 Rounds, With ammo Box) - 20rds",
+        );
+
+        assert!(result.is_some());
+
+        match result.unwrap() {
+            Metadata::Ammunition(ammo) => assert_eq!(ammo.round_count.unwrap(), 20),
+            _ => panic!("not ammo"),
+        };
     }
 }
