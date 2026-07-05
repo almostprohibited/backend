@@ -26,7 +26,7 @@ static PATTERNS: LazyLock<Vec<Regex>> = LazyLock::new(|| {
         Regex::new(r"(?i)(?:box|case|pack|tin|brick|can|pk|bottle|bulk) of (\d+)")
             .expect("Ammo count regex to compile"),
         Regex::new(
-            r"(?i)(\d+)\s*/?(?:ct|count|rd|rnd|rs/box|round|pack|pc|shell|box|qty|pk|brick|per box)s?\b",
+            r"(?i)(\d+)\s*/?(?:ct|count|rd|rnd|rs/box|round|pack|pc|shell|box|qty|pk|brick|per box|case)s?\b",
         )
         .expect("Ammo count regex to compile"),
     ]
