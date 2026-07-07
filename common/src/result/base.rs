@@ -180,6 +180,7 @@ impl CrawlResult {
     }
 }
 
+#[cfg(test)]
 mod test {
     use crate::result::{base::CrawlResult, metadata::Metadata};
 
