@@ -8,7 +8,10 @@ use axum::{
 };
 use axum_extra::extract::WithRejection;
 use chrono::{DateTime, NaiveTime};
-use common::price_history::{ApiPriceHistoryInput, ApiPriceHistoryOutput, PriceHistoryEntry};
+use common::{
+    price_history::{ApiPriceHistoryInput, ApiPriceHistoryOutput, PriceHistoryEntry},
+    utils::get_current_time,
+};
 use tokio::time::Instant;
 use tracing::debug;
 
@@ -17,7 +20,7 @@ use crate::{ServerState, routes::error_message_erasure::ApiError};
 fn get_normalized_timestamp(timestamp: u64) -> u64 {
     // probably not an issue of stuffing unsigned into signed int
     // only cuts my max time in half to 292 billion years
-    let normalized_timestamp = DateTime::from_timestamp(timestamp as i64, 0)
+    let normalized_timestamp = DateTime::from_timestamp_secs(timestamp as i64)
         .unwrap()
         .with_time(NaiveTime::from_hms_opt(0, 0, 0).unwrap())
         .unwrap();
@@ -29,10 +32,6 @@ fn get_lowest_price(price: &PriceHistoryEntry) -> u64 {
     price.sale_price.unwrap_or(price.regular_price)
 }
 
-// TODO: the results from this will parse and return the
-// entire database of crawled results, meaning we'll
-// potentially waste a bunch of processing parsing stuff
-// outside the current max window which is currently 1 year back
 pub(crate) async fn history_handler(
     State(state): State<Arc<ServerState>>,
     WithRejection(Query(query), _): WithRejection<Query<ApiPriceHistoryInput>, ApiError>,
@@ -92,16 +91,29 @@ pub(crate) async fn history_handler(
         }
     }
 
-    debug!("Request time: {}ms", start_time.elapsed().as_millis());
+    for (normalized_timestamp, entry) in history.iter_mut() {
+        entry.query_time = *normalized_timestamp;
+    }
+
+    let current_time = DateTime::from_timestamp_secs(get_current_time() as i64).unwrap();
 
     let response = Json::from(ApiPriceHistoryOutput {
         history: history
             .values()
             .cloned()
+            .filter(|entry| {
+                let time = current_time.signed_duration_since(
+                    DateTime::from_timestamp_secs(entry.query_time as i64).unwrap(),
+                );
+
+                time.num_days() < 365
+            })
             .collect::<Vec<PriceHistoryEntry>>(),
         max_price: highest_price.expect("Max price to be populated"),
         min_price: lowest_price.expect("Min price to be populated"),
     });
+
+    debug!("Request time: {}ms", start_time.elapsed().as_millis());
 
     Ok(response.into_response())
 }
