@@ -6,13 +6,13 @@ use discord::get_indexer_webhook;
 use retailers::{
     gql::{AlFlahertys, CalgaryShootingCentre, ProphetRiver, SelectShootingSupplies},
     html::{
-        AlSimmons, BartonsBigCountry, BudgetShooterSupply, BullseyeNorth, CabinCreekSupply,
-        CanFirearm, CanadasGunStore, ClintonSportingGoods, Crafm, DanteSports, DominionOutdoors,
-        DoubleTapSports, EasthillOutdoors, EllwoodEpps, FirearmsOutletCanada, FrontierFirearms,
-        Fwgc, G4CGunStore, GeneralGun, Gobles, GoldNLoan, GreatNorthGun, InterSurplus,
-        InternationalShootingSupplies, ItalianSportingGoods, LanzShootingSupplies, Latulippe,
-        LeverArms, LonderoSports, MagDump, Marstar, NechakoOutdoors, PDEnterprises, RangeArts,
-        RangeviewSports, Rdsc, ReliableGun, SJHardware, ShootersChoice, SightsAndArms,
+        AagCanada, AlSimmons, BartonsBigCountry, BudgetShooterSupply, BullseyeNorth,
+        CabinCreekSupply, CanFirearm, CanadasGunStore, ClintonSportingGoods, Crafm, DanteSports,
+        DominionOutdoors, DoubleTapSports, EasthillOutdoors, EllwoodEpps, FirearmsOutletCanada,
+        FrontierFirearms, Fwgc, G4CGunStore, GeneralGun, Gobles, GoldNLoan, GreatNorthGun,
+        InterSurplus, InternationalShootingSupplies, ItalianSportingGoods, LanzShootingSupplies,
+        Latulippe, LeverArms, LonderoSports, MagDump, Marstar, NechakoOutdoors, PDEnterprises,
+        RangeArts, RangeviewSports, Rdsc, ReliableGun, SJHardware, ShootersChoice, SightsAndArms,
         SoleyOutdoors, Tenda, Tesro, TheAmmoSource, TheGunDealer, Tillsonburg, TrueNorthArms,
         UxbridgeArms, VictoryRidgeSports, WolverineSupplies, XReload,
     },
@@ -82,6 +82,7 @@ fn html_retailers() -> HashMap<RetailerName, HtmlRetailerSuperFactory> {
     retailers.insert(RetailerName::GeneralGun, || Box::new(GeneralGun::new()));
     retailers.insert(RetailerName::Tesro, || Box::new(Tesro::new()));
     retailers.insert(RetailerName::SightsAndArms, || Box::new(SightsAndArms::new()));
+    retailers.insert(RetailerName::AagCanada, || Box::new(AagCanada::new()));
 
     retailers
 }

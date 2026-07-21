@@ -90,6 +90,7 @@ pub enum RetailerName {
     GeneralGun,
     Tesro,
     SightsAndArms,
+    AagCanada,
 }
 
 impl RetailerName {

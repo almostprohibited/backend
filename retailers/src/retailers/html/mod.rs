@@ -1,3 +1,4 @@
+mod aag_canada;
 mod al_simmons;
 mod bartons_big_country;
 mod budget_shooter_supply;
@@ -50,6 +51,7 @@ mod victory_ridge_sports;
 mod wolverine_supplies;
 mod x_reload;
 
+pub use aag_canada::AagCanada;
 pub use al_simmons::AlSimmons;
 pub use bartons_big_country::BartonsBigCountry;
 pub use budget_shooter_supply::BudgetShooterSupply;
