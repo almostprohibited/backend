@@ -89,6 +89,7 @@ pub enum RetailerName {
     RangeArts,
     GeneralGun,
     Tesro,
+    SightsAndArms,
 }
 
 impl RetailerName {

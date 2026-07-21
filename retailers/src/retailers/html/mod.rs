@@ -36,6 +36,7 @@ mod rangeview_sports;
 mod rdsc;
 mod reliable_gun;
 mod shooters_choice; // reminder, do full refreshes in browser once in a while, their site is quite bloated
+mod sights_and_arms;
 mod sj_hardware;
 mod soley_outdoors;
 mod tenda;
@@ -87,6 +88,7 @@ pub use rangeview_sports::RangeviewSports;
 pub use rdsc::Rdsc;
 pub use reliable_gun::ReliableGun;
 pub use shooters_choice::ShootersChoice;
+pub use sights_and_arms::SightsAndArms;
 pub use sj_hardware::SJHardware;
 pub use soley_outdoors::SoleyOutdoors;
 pub use tenda::Tenda;
