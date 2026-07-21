@@ -91,6 +91,7 @@ pub enum RetailerName {
     Tesro,
     SightsAndArms,
     AagCanada,
+    SwampDonkeyOutdoors,
 }
 
 impl RetailerName {

@@ -40,6 +40,7 @@ mod shooters_choice; // reminder, do full refreshes in browser once in a while, 
 mod sights_and_arms;
 mod sj_hardware;
 mod soley_outdoors;
+mod swamp_donkey_outdoors;
 mod tenda;
 mod tesro;
 mod the_ammo_source;
@@ -93,6 +94,7 @@ pub use shooters_choice::ShootersChoice;
 pub use sights_and_arms::SightsAndArms;
 pub use sj_hardware::SJHardware;
 pub use soley_outdoors::SoleyOutdoors;
+pub use swamp_donkey_outdoors::SwampDonkeyOutdoors;
 pub use tenda::Tenda;
 pub use tesro::Tesro;
 pub use the_ammo_source::TheAmmoSource;
