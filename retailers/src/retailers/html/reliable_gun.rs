@@ -6,6 +6,7 @@ use common::result::{
 use crawler::{request::Request, traits::HttpMethod};
 use scraper::{ElementRef, Html, Selector};
 use serde::Serialize;
+use tracing::debug;
 
 use crate::{
     errors::RetailerError,
@@ -144,8 +145,13 @@ impl HtmlRetailer for ReliableGun {
             let image_element = extract_element_from_element(element, "img.product-overview-img")?;
 
             let description = element_to_text(description_element);
-            let url_href = element_extract_attr(url_element, "href")?;
             let name = element_to_text(url_element);
+
+            let Ok(url_href) = element_extract_attr(url_element, "href") else {
+                debug!("Skipping {name} as it contains no link (likely out of stock product)");
+                continue;
+            };
+
             let image_url = element_extract_attr(image_element, "src")?;
 
             let price = Self::find_prices(element)?;
