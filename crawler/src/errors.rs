@@ -6,9 +6,9 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum CrawlerError {
-    #[error("Unprotected crawler general error")]
+    #[error("Unprotected middleware general error: {0}")]
     UnprotectedClientMiddlewareGeneralError(#[from] reqwest_middleware::Error),
-    #[error("Unprotected crawler general error")]
+    #[error("Unprotected crawler general error: {0}")]
     UnprotectedClientGeneralError(#[from] reqwest::Error),
     #[error("Unprotected crawler failed to create header")]
     UnprotectedClientInvalidHeader,

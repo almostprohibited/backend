@@ -5,7 +5,7 @@ use thiserror::Error;
 pub enum RetailerError {
     #[error("Failed to deserialize JSON string into Value: {0}")]
     InvalidRequestBody(String),
-    #[error("Failed to make API call")]
+    #[error("Failed to make API call: {0")]
     CrawlerInitFailed(#[from] CrawlerError),
     #[error("Failed to parse price into u64: {0}")]
     InvalidNumber(String),
