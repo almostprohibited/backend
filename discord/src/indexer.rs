@@ -13,6 +13,8 @@ use tokio::sync::{Mutex, MutexGuard, OnceCell};
 
 use crate::client::DiscordClient;
 
+const MAX_RETAILERS: u64 = 20;
+
 static DISCORD_INDEXER_WEBHOOK: OnceCell<Mutex<IndexerWebhook>> = OnceCell::const_new();
 
 enum IndexingState {
@@ -155,7 +157,7 @@ impl IndexerWebhook {
 
             count += 1;
 
-            if count % 25 == 0 {
+            if count % MAX_RETAILERS == 0 {
                 embeds.push(
                     CreateEmbed::new()
                         .fields(fields.clone())
