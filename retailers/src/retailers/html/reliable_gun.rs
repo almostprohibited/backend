@@ -192,6 +192,7 @@ impl HtmlRetailer for ReliableGun {
         let other_terms = [
             "407",  // https://www.reliablegun.com/used-guns-non-restricted
             "680",  // https://www.reliablegun.com/used-optics
+            "435",  // https://www.reliablegun.com/used-guns-restricted
             "1012", // https://www.reliablegun.com/optics
             "1013", // https://www.reliablegun.com/reloading
             "1014", // https://www.reliablegun.com/safes-and-cases
