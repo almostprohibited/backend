@@ -14,7 +14,7 @@ use crate::retry_middleware::get_retry_middleware;
 
 const PAGE_TIMEOUT_SECONDS: u64 = 60;
 
-const PROXY_DOMAINS: [&str; 9] = [
+const PROXY_DOMAINS: [&str; 10] = [
     "italiansportinggoods.com",
     "ellwoodepps.com",
     "x-reload.com",
@@ -24,6 +24,7 @@ const PROXY_DOMAINS: [&str; 9] = [
     "thegundealer.ca",
     "swampdonkeyoutdoors.ca",
     "uxbridgearms.com",
+    "reliablegun.com",
 ];
 
 static COOKIE_JAR: LazyLock<Arc<Jar>> = LazyLock::new(|| Arc::new(Jar::default()));
