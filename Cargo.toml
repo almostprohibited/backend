@@ -73,3 +73,8 @@ sha2 = "0.11.0"
 lettre = { version = "0.11.22", features = ["tokio1", "tokio1-native-tls"] }
 bm25 = { version = "2.3.2", features = ["parallelism"] }
 csv = "1.4.0"
+web-bot-auth = "0.7.0"
+# indexmap is only used for web-bot-auth, their impl requires IndexMap return type
+indexmap = "2.14.0"
+# ed25519-dalek is used to generate padded signing key from PKCS PEM file
+ed25519-dalek = { version = "2.1.1", features = ["pkcs8", "pem"] }
