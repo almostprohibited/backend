@@ -25,6 +25,7 @@ use crate::{
         auth::{callback, delete_handler, email_login, email_otp, logout, provider},
         contact::contact_handler,
         history::history_handler,
+        http_msg_sig_dir::http_sigs,
         image::image_handler,
         notifications::{
             delete_channels, get_notification_channels, notification_add_email,
@@ -99,6 +100,10 @@ async fn main() {
         .route(
             "/api/image",
             get(image_handler).route_layer(GovernorLayer::new(get_governor(IMAGE_TPS_LIMIT))),
+        )
+        .route(
+            "/.well-known/http-message-signatures-directory",
+            get(http_sigs),
         );
 
     if is_beta {

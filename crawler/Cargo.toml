@@ -3,13 +3,6 @@ name = "crawler"
 version = "0.1.0"
 edition = "2024"
 
-[[bin]]
-name = "sig"
-path = "./src/header_signature.rs"
-doctest = false
-test = false
-doc = false
-
 [lib]
 name = "crawler"
 path = "./src/lib.rs"
@@ -30,6 +23,3 @@ tracing.workspace = true
 thiserror.workspace = true
 openssl.workspace = true
 chrono.workspace = true
-web-bot-auth.workspace = true
-indexmap.workspace = true
-ed25519-dalek.workspace = true

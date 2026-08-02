@@ -1,6 +1,5 @@
 pub(crate) mod base_client;
 pub mod errors;
-pub(crate) mod header_signature;
 pub mod request;
 pub(crate) mod retry_middleware;
 pub mod traits;

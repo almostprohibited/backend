@@ -598,6 +598,8 @@ version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
  "clap",
+ "ed25519-dalek",
+ "indexmap 2.14.0",
  "mongodb",
  "rand 0.10.2",
  "regex",
@@ -610,6 +612,7 @@ dependencies = [
  "strum_macros",
  "tokio",
  "tracing",
+ "web-bot-auth",
 ]
 
 [[package]]
@@ -749,8 +752,6 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "common",
- "ed25519-dalek",
- "indexmap 2.14.0",
  "openssl",
  "reqwest 0.13.4",
  "reqwest-middleware",
@@ -759,7 +760,6 @@ dependencies = [
  "thiserror 2.0.19",
  "tokio",
  "tracing",
- "web-bot-auth",
 ]
 
 [[package]]
