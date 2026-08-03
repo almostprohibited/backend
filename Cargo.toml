@@ -52,7 +52,7 @@ serenity = { version = "0.12.5", features = ["model"] }
 urlencoding = "2.1.3"
 strum = "0.28.0"
 strum_macros = "0.28.0"
-base64 = "0.22.1"
+base64 = "0.23.0"
 futures = "0.3.32"
 openssl = { version = "0.10", features = ["vendored"] }
 clap = { version = "4.6.1", features = ["derive"] }
@@ -77,4 +77,4 @@ web-bot-auth = "0.7.0"
 # indexmap is only used for web-bot-auth, their impl requires IndexMap return type
 indexmap = "2.14.0"
 # ed25519-dalek is used to generate padded signing key from PKCS PEM file
-ed25519-dalek = { version = "2.1.1", features = ["pkcs8", "pem"] }
+ed25519-dalek = { version = "3.0.0", features = ["pkcs8", "pem"] }
