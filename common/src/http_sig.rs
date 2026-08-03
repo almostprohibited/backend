@@ -15,14 +15,14 @@ use crate::{string_utils::generate_random_string, utils::is_beta_environment};
 const PRIVATE_KEY_ENV: &str = "PRIVATE_KEY";
 
 // TODO: don't hard code these
-pub const JWK_KID: &str = "HE08axWirsRZyAyvEiiHJ_oQdyzGtSEehXho3SF5q5c";
+pub const JWK_KID: &str = "FyDnM_QljsIvAZWPXujjT_zwCd1EO3nItEkKuIE9Jbk";
 pub const JWK_KEYS: LazyLock<Value> = LazyLock::new(|| {
     json!({
        "keys": [
            {
                "kty": "OKP",
                "crv": "Ed25519",
-               "x": "mkXzzFb6KUbe-5Crh8At9Ptv8HYsuFSoOehjqy2S27c"
+               "x": "rp5V-cgqkOiAt2Mn63b7KIau0FoxkvFbwBpW7n31JHw"
            }
        ]
     })

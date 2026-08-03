@@ -35,6 +35,8 @@ runs:
         mv ./.download/* ./.toolbox/backend/
       shell: bash
     - name: Build Docker image
+      env:
+        BUILDX_NO_DEFAULT_ATTESTATIONS: 1
       run: |
         set -ueo pipefail
 
@@ -47,8 +49,6 @@ runs:
         fi
 
         cd ./.toolbox/backend/
-
-        export BUILDX_NO_DEFAULT_ATTESTATIONS=1
 
         docker build \
           --pull \

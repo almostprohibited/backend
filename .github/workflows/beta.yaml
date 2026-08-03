@@ -40,3 +40,4 @@ jobs:
           deployment-stage: ${{ env.STAGE }}
           docker-volume-path: ${{ vars.VOLUME_PATH }}
           env-file: ${{ secrets.ENV_BETA }}
+          private-key: ${{ secrets.PRIVATE_KEY }}

@@ -18,6 +18,10 @@ inputs:
     type: string
     required: true
     description: "env file contents"
+  private-key:
+    type: string
+    required: true
+    description: "Private key for Web Bot Auth signing"
 
 runs:
   using: "composite"
@@ -33,12 +37,12 @@ runs:
       shell: bash
     - name: Update and deploy MongoDB
       if: inputs.deployment-stage == 'release'
+      env:
+        VOLUME_PATH: ${{ inputs.docker-volume-path }}
       run: |
         set -ueo pipefail
 
         cd ./.toolbox/backend
-
-        export VOLUME_PATH=${{ inputs.docker-volume-path }}
 
         mkdir -p $VOLUME_PATH/prometheus
         touch $VOLUME_PATH/prometheus/prometheus.yml || true
@@ -48,6 +52,10 @@ runs:
         docker compose -f docker-compose.yaml up -d mongo mongo-express prometheus grafana
       shell: bash
     - name: Update and deploy backend
+      env:
+        PRIVATE_KEY: ${{ inputs.private-key }}
+        VOLUME_PATH: ${{ inputs.docker-volume-path }}
+        STAGE: ${{ inputs.deployment-stage }}
       run: |
         set -ueo pipefail
 
@@ -59,9 +67,6 @@ runs:
         else
           echo "${{ inputs.env-file }}" > ${{ inputs.docker-volume-path }}/.env.release
         fi
-
-        export VOLUME_PATH=${{ inputs.docker-volume-path }}
-        export STAGE=${{ inputs.deployment-stage }}
 
         docker compose -f docker-compose.yaml pull backend-${{ inputs.deployment-stage }}
         docker compose -f docker-compose.yaml down backend-${{ inputs.deployment-stage }}
