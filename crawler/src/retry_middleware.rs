@@ -6,6 +6,7 @@ use reqwest_retry::{
     RetryTransientMiddleware, Retryable, RetryableStrategy, default_on_request_failure,
     policies::ExponentialBackoff,
 };
+use tracing::warn;
 
 const PAGE_MIN_SECS_BACKOFF: u64 = 10;
 const PAGE_MAX_SECS_BACKOFF: u64 = 60;
@@ -20,6 +21,12 @@ impl RetryableStrategy for RetryStrategy {
                 if finished_request.status().is_client_error()
                     || finished_request.status().is_server_error()
                 {
+                    warn!(
+                        "Retrying request for {}, had gotten {}",
+                        finished_request.url(),
+                        finished_request.status()
+                    );
+
                     return Some(Retryable::Transient);
                 }
 

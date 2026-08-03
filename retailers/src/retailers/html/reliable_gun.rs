@@ -5,71 +5,54 @@ use common::result::{
 };
 use crawler::{request::Request, traits::HttpMethod};
 use scraper::{ElementRef, Html, Selector};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tracing::debug;
 
 use crate::{
     errors::RetailerError,
     structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
     utils::{
-        conversions::{price_to_cents, string_to_u64},
+        conversions::price_to_cents,
         html::{element_extract_attr, element_to_text, extract_element_from_element},
     },
 };
 
+const PAGE_SIZE: &str = "48";
+const BASE_URL: &str = "https://www.reliablegun.com";
+// so they have this in their robots.txt
+// I've never been one to respect that file for any retailer
+// but this is more friendly on their servers than normal pagination
+const URL: &str = "https://www.reliablegun.com/catalog/es-filter";
+
 #[derive(Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 struct ReliablePayload {
+    order_by: String,
+    page: String,
+    page_size: String,
+    view_mode: String,
     category_id: String,
-    manufacturer_id: String,
-    vendor_id: String,
-    page_number: String,
-    orderby: String,
-    viewmode: String,
-    pagesize: String,
-    query_string: String,
-    should_not_start_from_first_page: bool,
-    keyword: String,
-    search_category_id: String,
-    search_manufacturer_id: String,
-    search_vendor_id: String,
-    price_from: String,
-    price_to: String,
-    include_subcategories: String,
-    search_in_product_descriptions: String,
-    advanced_search: String,
-    is_on_search_page: String,
 }
 
 impl ReliablePayload {
     fn new(category_id: String, page: u64) -> Self {
         Self {
+            order_by: "0".into(),
+            page: (page + 1).to_string(),
+            page_size: PAGE_SIZE.into(),
+            view_mode: "grid".into(),
             category_id,
-            manufacturer_id: "0".into(),
-            vendor_id: "0".into(),
-            page_number: (page + 1).to_string(),
-            orderby: "0".into(),
-            viewmode: "grid".into(),
-            pagesize: PAGE_SIZE.to_string(),
-            query_string: "".into(),
-            should_not_start_from_first_page: true,
-            keyword: "".into(),
-            search_category_id: "0".into(),
-            search_manufacturer_id: "0".into(),
-            search_vendor_id: "0".into(),
-            price_from: "".into(),
-            price_to: "".into(),
-            include_subcategories: "False".into(),
-            search_in_product_descriptions: "False".into(),
-            advanced_search: "False".into(),
-            is_on_search_page: "False".into(),
         }
     }
 }
 
-const PAGE_SIZE: &str = "24"; // Reliable Gun's site is slow
-const BASE_URL: &str = "https://www.reliablegun.com";
-const URL: &str = "https://www.reliablegun.com/getFilteredProducts";
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ReliableResponse {
+    products_html: String,
+    success: bool,
+    total_pages: u64,
+}
 
 pub struct ReliableGun;
 
@@ -137,7 +120,15 @@ impl HtmlRetailer for ReliableGun {
     ) -> Result<Vec<CrawlResult>, RetailerError> {
         let mut results: Vec<CrawlResult> = Vec::new();
 
-        let fragment = Html::parse_document(response);
+        let deserialized_response = serde_json::from_str::<ReliableResponse>(response)?;
+
+        if !deserialized_response.success {
+            return Err(RetailerError::GeneralError(
+                "Failed to perform Reliable call".into(),
+            ));
+        }
+
+        let fragment = Html::parse_document(&deserialized_response.products_html);
 
         for element in fragment.select(&Selector::parse("div.product-item").unwrap()) {
             let description_element = extract_element_from_element(element, "div.description")?;
@@ -219,14 +210,15 @@ impl HtmlRetailer for ReliableGun {
     }
 
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {
-        let html = Html::parse_fragment(response);
-        let page_selector = Selector::parse("div.pager > div > ul > li.individual-page").unwrap();
-        let mut page_links = html.select(&page_selector);
+        let deserialized_response = serde_json::from_str::<ReliableResponse>(response)?;
 
-        let Some(last_page_element) = page_links.next_back() else {
-            return Ok(0);
-        };
+        if !deserialized_response.success {
+            return Err(RetailerError::GeneralError(
+                "Failed to perform Reliable call".into(),
+            ));
+        }
 
-        string_to_u64(element_to_text(last_page_element))
+        // I'm going to trust the resposne from Reliable
+        Ok(deserialized_response.total_pages)
     }
 }
