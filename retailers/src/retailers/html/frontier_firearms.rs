@@ -61,7 +61,7 @@ impl Retailer for FrontierFirearms {
                     term: link,
                     category: Category::Ammunition,
                 });
-            } else if link.starts_with("firearms.html") {
+            } else if link == "firearms" {
                 return Some(HtmlSearchQuery {
                     term: link,
                     category: Category::Firearm,
