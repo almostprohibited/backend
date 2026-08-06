@@ -14,6 +14,8 @@ use crate::{string_utils::generate_random_string, utils::is_beta_environment};
 
 const PRIVATE_KEY_ENV: &str = "PRIVATE_KEY";
 
+const SIG_EXPIRY_SECONDS: u64 = 120;
+
 // TODO: don't hard code these
 pub const JWK_KID: &str = "FyDnM_QljsIvAZWPXujjT_zwCd1EO3nItEkKuIE9Jbk";
 pub const JWK_KEYS: LazyLock<Value> = LazyLock::new(|| {
@@ -22,7 +24,8 @@ pub const JWK_KEYS: LazyLock<Value> = LazyLock::new(|| {
            {
                "kty": "OKP",
                "crv": "Ed25519",
-               "x": "rp5V-cgqkOiAt2Mn63b7KIau0FoxkvFbwBpW7n31JHw"
+               "x": "rp5V-cgqkOiAt2Mn63b7KIau0FoxkvFbwBpW7n31JHw",
+               "kid": JWK_KID,
            }
        ]
     })
@@ -110,7 +113,7 @@ pub fn create_directory_headers(host: &str) -> HttpSignatureHeaders {
     signer
         .generate_signature_headers_content(
             &mut headers,
-            Duration::from_secs(10),
+            Duration::from_secs(SIG_EXPIRY_SECONDS),
             Algorithm::Ed25519,
             &get_signing_key(),
         )
@@ -134,7 +137,7 @@ pub fn create_request_headers(request_url: &str) -> HttpSignatureHeaders {
     signer
         .generate_signature_headers_content(
             &mut headers,
-            Duration::from_secs(120),
+            Duration::from_secs(SIG_EXPIRY_SECONDS),
             Algorithm::Ed25519,
             &get_signing_key(),
         )
