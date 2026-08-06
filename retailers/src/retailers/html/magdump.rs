@@ -21,7 +21,7 @@ use crate::{
 };
 
 const SITEMAP: &str = "https://magdump.ca/sitemap";
-const URL: &str = "https://magdump.ca/{category}?q=Availability-In+stock&from-xhr&page={page}";
+const URL: &str = "https://magdump.ca/{category}?from-xhr&page={page}";
 
 #[derive(Deserialize)]
 struct Response {
@@ -114,7 +114,7 @@ impl HtmlRetailerSuper for MagDump {}
 
 #[async_trait]
 impl Retailer for MagDump {
-    // Marstar mixes and matches items in several categories
+    // Magdump mixes and matches items in several categories
     // make an attempt to normalize the URIs
     async fn init(&mut self) -> Result<(), RetailerError> {
         let request = RequestBuilder::new().set_url(SITEMAP).build();
