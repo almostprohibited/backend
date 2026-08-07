@@ -61,18 +61,21 @@ impl WebClient {
             request_builder = request_builder.headers(header_map);
         }
 
-        let sig_headers = create_request_headers(&request.url);
+        if !request.url.contains("londerosports.com") {
+            let sig_headers = create_request_headers(&request.url);
 
-        debug!(
-            "HTTP signatures\n{}\n{}\n{:?}",
-            sig_headers.signature, sig_headers.signature_input, sig_headers.signature_agent
-        );
+            debug!(
+                "HTTP signatures\n{}\n{}\n{:?}",
+                sig_headers.signature, sig_headers.signature_input, sig_headers.signature_agent
+            );
 
-        request_builder = request_builder.header("Signature", sig_headers.signature);
-        request_builder = request_builder.header("Signature-Input", sig_headers.signature_input);
+            request_builder = request_builder.header("Signature", sig_headers.signature);
+            request_builder =
+                request_builder.header("Signature-Input", sig_headers.signature_input);
 
-        if let Some(sig_agent) = sig_headers.signature_agent {
-            request_builder = request_builder.header("Signature-Agent", sig_agent);
+            if let Some(sig_agent) = sig_headers.signature_agent {
+                request_builder = request_builder.header("Signature-Agent", sig_agent);
+            }
         }
 
         let response = request_builder.send().await?;
