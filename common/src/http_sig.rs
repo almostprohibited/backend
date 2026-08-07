@@ -25,6 +25,7 @@ pub const JWK_KEYS: LazyLock<Value> = LazyLock::new(|| {
                "kty": "OKP",
                "crv": "Ed25519",
                "x": "rp5V-cgqkOiAt2Mn63b7KIau0FoxkvFbwBpW7n31JHw",
+               "kid": JWK_KID,
            }
        ]
     })
