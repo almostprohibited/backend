@@ -1,0 +1,131 @@
+use std::{
+    env,
+    str::FromStr,
+    sync::{Arc, LazyLock, OnceLock},
+    time::Duration,
+};
+
+use common::{constants::PROXY_ADDRESS, get_user_agent};
+use reqwest::{ClientBuilder as BaseClientBuilder, Proxy as BaseProxy, Url, cookie::Jar};
+use reqwest::{
+    StatusCode,
+    header::{HeaderMap, HeaderName, HeaderValue},
+};
+use reqwest_middleware::{ClientBuilder as RetryableClientBuilder, ClientWithMiddleware};
+use tracing::debug;
+
+use crate::{
+    constants::{PAGE_TIMEOUT_SECONDS, PROXY_DOMAINS},
+    errors::CrawlerError,
+    request::Request,
+    retry_middleware::get_retry_middleware,
+    traits::{CrawlerResponse, HttpMethod},
+};
+
+static REQWEST_CLIENT: OnceLock<ClientWithMiddleware> = OnceLock::new();
+static COOKIE_JAR: LazyLock<Arc<Jar>> = LazyLock::new(|| Arc::new(Jar::default()));
+
+pub(crate) fn set_cookie(url: &str, cookie: &str) {
+    let cookie_jar = COOKIE_JAR.clone();
+    cookie_jar.add_cookie_str(cookie, &Url::from_str(url).unwrap());
+}
+
+fn create_base_client() -> ClientWithMiddleware {
+    let mut base_client_builder = BaseClientBuilder::new()
+        .gzip(true)
+        .http1_ignore_invalid_headers_in_responses(true)
+        .timeout(Duration::from_secs(PAGE_TIMEOUT_SECONDS))
+        .user_agent(get_user_agent())
+        .https_only(true)
+        .cookie_provider(COOKIE_JAR.clone())
+        .connection_verbose(true);
+
+    if let Ok(proxy_address) = env::var(PROXY_ADDRESS) {
+        debug!("Configuring proxy");
+
+        let proxy_url = Url::parse(&proxy_address).expect("Valid proxy domain");
+
+        base_client_builder = base_client_builder.proxy(BaseProxy::custom(move |url| {
+            let Some(checked_url) = url.host_str() else {
+                debug!("Failed to parse host as string: {url}");
+
+                return None;
+            };
+
+            if PROXY_DOMAINS
+                .into_iter()
+                .any(|proxied_domain| checked_url.ends_with(proxied_domain))
+            {
+                debug!("Proxying {checked_url}");
+
+                return Some(proxy_url.clone());
+            }
+
+            None
+        }));
+    }
+
+    let base_client = base_client_builder
+        .build()
+        .expect("Valid base reqwest to be built");
+
+    RetryableClientBuilder::new(base_client)
+        .with(get_retry_middleware())
+        .build()
+}
+
+pub(crate) async fn send_request(
+    request: Request,
+    http_sig_headers: Option<HeaderMap>,
+) -> Result<CrawlerResponse, CrawlerError> {
+    let client = REQWEST_CLIENT.get_or_init(|| create_base_client());
+
+    let mut request_builder = match request.method {
+        HttpMethod::GET => client.get(request.url.clone()),
+        HttpMethod::POST => client.post(request.url.clone()),
+    };
+
+    if let Some(json) = request.json {
+        request_builder = request_builder.json(&json);
+    }
+
+    if let Some(body) = request.body {
+        request_builder = request_builder.body(body);
+    }
+
+    if let Some(headers) = request.headers {
+        let mut header_map = HeaderMap::new();
+
+        for (key, value) in headers.iter() {
+            header_map.append(HeaderName::from_str(key)?, HeaderValue::from_str(value)?);
+        }
+
+        request_builder = request_builder.headers(header_map);
+    }
+
+    if let Some(sig_headers) = http_sig_headers {
+        request_builder = request_builder.headers(sig_headers);
+    }
+
+    let response = request_builder.send().await?;
+
+    debug!("{response:?}");
+
+    let status_code = response.status();
+
+    if status_code.is_client_error() && status_code != StatusCode::NOT_FOUND {
+        return Err(CrawlerError::InvalidResponseCodeError(status_code));
+    }
+
+    let headers = response.headers().clone();
+
+    let body_bytes = response.bytes().await?.to_vec();
+    let body_str = String::from_utf8_lossy(&body_bytes).into_owned();
+
+    Ok(CrawlerResponse {
+        body: body_str,
+        raw_bytes: body_bytes,
+        response_code: status_code,
+        headers,
+    })
+}

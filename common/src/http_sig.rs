@@ -1,8 +1,7 @@
-use std::{env, str::FromStr, sync::LazyLock, time::Duration};
+use std::{env, sync::LazyLock, time::Duration};
 
 use ed25519_dalek::{SigningKey, pkcs8::DecodePrivateKey};
 use indexmap::IndexMap;
-use reqwest::Url;
 use serde_json::{Value, json};
 use web_bot_auth::{
     components::{CoveredComponent, DerivedComponent, HTTPField, HTTPFieldParametersSet},
@@ -10,7 +9,10 @@ use web_bot_auth::{
     message_signatures::{MessageSigner, UnsignedMessage},
 };
 
-use crate::{string_utils::generate_random_string, utils::is_beta_environment};
+use crate::{
+    string_utils::{generate_random_string, get_domain},
+    utils::is_beta_environment,
+};
 
 const PRIVATE_KEY_ENV: &str = "PRIVATE_KEY";
 
@@ -129,10 +131,11 @@ pub fn create_request_headers(request_url: &str) -> HttpSignatureHeaders {
         tag: "web-bot-auth".into(),
     };
 
-    let parsed_url = Url::from_str(request_url).unwrap();
-    let host = parsed_url.domain().unwrap().to_string().replace("www.", "");
-
-    let mut headers = HttpSignatureHeaders::new(&host, false, Some(get_signing_identity()));
+    let mut headers = HttpSignatureHeaders::new(
+        &get_domain(request_url),
+        false,
+        Some(get_signing_identity()),
+    );
 
     signer
         .generate_signature_headers_content(

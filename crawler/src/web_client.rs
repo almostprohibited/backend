@@ -1,103 +1,84 @@
-use std::{str::FromStr, sync::OnceLock};
-
-use common::http_sig::create_request_headers;
-use reqwest::{
-    StatusCode,
-    header::{HeaderMap, HeaderName, HeaderValue},
-};
-use reqwest_middleware::ClientWithMiddleware;
+use common::{http_sig::create_request_headers, string_utils::get_domain};
+use reqwest::header::{HeaderMap, HeaderValue};
 use tracing::{debug, info};
 
 use crate::{
-    base_client::{create_base_client, set_cookie},
+    clients::{
+        base::{send_request as send_base_request, set_cookie as set_base_cookie},
+        emulated::{send_request as send_emulated_request, set_cookie as set_emulated_cookie},
+    },
+    constants::{EMULATED_DOMAINS, HTTP_SIG_EXCLUDED_DOMAINS},
     errors::CrawlerError,
     request::Request,
-    traits::{CrawlerResponse, HttpMethod},
-    user_agent::shuffle_user_agent,
+    traits::CrawlerResponse,
 };
-
-static REQWEST_CLIENT: OnceLock<ClientWithMiddleware> = OnceLock::new();
 
 #[derive(Copy, Clone)]
 pub struct WebClient {}
 
 impl WebClient {
     pub fn set_cookie(url: &str, cookie: &str) {
-        set_cookie(url, cookie);
+        match Self::should_use_emulated_client(url) {
+            true => set_emulated_cookie(url, cookie),
+            false => set_base_cookie(url, cookie),
+        }
     }
 
     pub async fn make_web_request(request: Request) -> Result<CrawlerResponse, CrawlerError> {
-        let client = REQWEST_CLIENT.get_or_init(|| create_base_client());
-
-        let mut request_builder = match request.method {
-            HttpMethod::GET => client.get(request.url.clone()),
-            HttpMethod::POST => client.post(request.url.clone()),
-        };
+        let should_emulate = Self::should_use_emulated_client(&request.url);
 
         info!(
-            "Sending request to {} (body: {:?}) (json: {:?})",
+            "Sending request to {} (emulated: {should_emulate}) (body: {:?}) (json: {:?})",
             request.url, request.body, request.json
         );
 
-        if let Some(user_agent) = shuffle_user_agent(&request.url) {
-            request_builder = request_builder.header("User-Agent", user_agent);
-        }
+        match should_emulate {
+            true => send_emulated_request(request).await,
+            false => {
+                let sig_headers = match HTTP_SIG_EXCLUDED_DOMAINS
+                    .iter()
+                    .any(|excluded_domain| request.url.contains(excluded_domain))
+                {
+                    true => None,
+                    false => Some(Self::get_http_sig_headers(&request)),
+                };
 
-        if let Some(json) = request.json {
-            request_builder = request_builder.json(&json);
-        }
-
-        if let Some(body) = request.body {
-            request_builder = request_builder.body(body);
-        }
-
-        if let Some(headers) = request.headers {
-            let mut header_map = HeaderMap::new();
-
-            for (key, value) in headers.iter() {
-                header_map.append(HeaderName::from_str(key)?, HeaderValue::from_str(value)?);
+                send_base_request(request, sig_headers).await
             }
-
-            request_builder = request_builder.headers(header_map);
         }
+    }
 
-        if !request.url.contains("londerosports.com") {
-            let sig_headers = create_request_headers(&request.url);
+    fn should_use_emulated_client(request_url: &str) -> bool {
+        EMULATED_DOMAINS.contains(&get_domain(request_url).as_str())
+    }
 
-            debug!(
-                "HTTP signatures\n{}\n{}\n{:?}",
-                sig_headers.signature, sig_headers.signature_input, sig_headers.signature_agent
+    fn get_http_sig_headers(request: &Request) -> HeaderMap {
+        let sig_headers = create_request_headers(&request.url);
+
+        debug!(
+            "HTTP signatures\n{}\n{}\n{:?}",
+            sig_headers.signature, sig_headers.signature_input, sig_headers.signature_agent
+        );
+
+        let mut return_headers = HeaderMap::new();
+
+        return_headers.insert(
+            "Signature",
+            HeaderValue::from_str(&sig_headers.signature).unwrap(),
+        );
+
+        return_headers.insert(
+            "Signature-Input",
+            HeaderValue::from_str(&sig_headers.signature_input).unwrap(),
+        );
+
+        if let Some(sig_agent) = sig_headers.signature_agent {
+            return_headers.insert(
+                "Signature-Agent",
+                HeaderValue::from_str(&sig_agent).unwrap(),
             );
-
-            request_builder = request_builder.header("Signature", sig_headers.signature);
-            request_builder =
-                request_builder.header("Signature-Input", sig_headers.signature_input);
-
-            if let Some(sig_agent) = sig_headers.signature_agent {
-                request_builder = request_builder.header("Signature-Agent", sig_agent);
-            }
         }
 
-        let response = request_builder.send().await?;
-
-        debug!("{response:?}");
-
-        let status_code = response.status();
-
-        if status_code.is_client_error() && status_code != StatusCode::NOT_FOUND {
-            return Err(CrawlerError::InvalidResponseCodeError(status_code));
-        }
-
-        let headers = response.headers().clone();
-
-        let body_bytes = response.bytes().await?.to_vec();
-        let body_str = String::from_utf8_lossy(&body_bytes).into_owned();
-
-        Ok(CrawlerResponse {
-            body: body_str,
-            raw_bytes: body_bytes,
-            response_code: status_code,
-            headers,
-        })
+        return_headers
     }
 }

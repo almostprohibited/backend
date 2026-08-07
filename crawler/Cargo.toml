@@ -23,3 +23,5 @@ tracing.workspace = true
 thiserror.workspace = true
 openssl.workspace = true
 chrono.workspace = true
+wreq.workspace = true
+wreq-util.workspace = true

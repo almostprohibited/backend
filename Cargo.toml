@@ -78,3 +78,5 @@ web-bot-auth = "0.7.0"
 indexmap = "2.14.0"
 # ed25519-dalek is used to generate padded signing key from PKCS PEM file
 ed25519-dalek = { version = "3.0.0", features = ["pkcs8", "pem"] }
+wreq = { version = "6.0.0-rc", features = ["cookies", "gzip", "json"] }
+wreq-util = "3.0.0-rc"
