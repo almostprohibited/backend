@@ -130,9 +130,9 @@ pub fn create_request_headers(request_url: &str) -> HttpSignatureHeaders {
     };
 
     let parsed_url = Url::from_str(request_url).unwrap();
-    let host = parsed_url.host_str().unwrap();
+    let host = parsed_url.domain().unwrap().to_string().replace("www.", "");
 
-    let mut headers = HttpSignatureHeaders::new(host, false, Some(get_signing_identity()));
+    let mut headers = HttpSignatureHeaders::new(&host, false, Some(get_signing_identity()));
 
     signer
         .generate_signature_headers_content(
