@@ -15,7 +15,14 @@ use crate::{
     },
 };
 
-const VALID_IMAGE_ATTRS: [&str; 4] = ["data-src", "src", "data-wood-src", "data-lazy-src"];
+const VALID_IMAGE_ATTRS: [&str; 5] = [
+    "data-src",
+    "src",
+    "data-wood-src",
+    "data-lazy-src",
+    "data-src-img",
+    // "data-src-webp", // odd that someone not have -img, but will have -webp
+];
 
 const DEFAULT_PRODUCT_NAME_SELECTORS: [&str; 2] = [
     "div.product-element-bottom > h3 > a",
