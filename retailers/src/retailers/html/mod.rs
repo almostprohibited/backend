@@ -11,6 +11,7 @@ mod crafm;
 mod dante_sports;
 mod dominion_outdoors;
 mod doubletap_sports;
+mod ds_tactical;
 mod easthill_outdoors;
 mod ellwood_epps;
 mod firearms_outlet_canada; // why is FOC so bloated it uses so much memory in a browser window
@@ -65,6 +66,7 @@ pub use crafm::Crafm;
 pub use dante_sports::DanteSports;
 pub use dominion_outdoors::DominionOutdoors;
 pub use doubletap_sports::DoubleTapSports;
+pub use ds_tactical::DsTactical;
 pub use easthill_outdoors::EasthillOutdoors;
 pub use ellwood_epps::EllwoodEpps;
 pub use firearms_outlet_canada::FirearmsOutletCanada;

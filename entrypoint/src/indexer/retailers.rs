@@ -84,6 +84,7 @@ fn html_retailers() -> HashMap<RetailerName, HtmlRetailerSuperFactory> {
     retailers.insert(RetailerName::SightsAndArms, || Box::new(SightsAndArms::new()));
     retailers.insert(RetailerName::AagCanada, || Box::new(AagCanada::new()));
     retailers.insert(RetailerName::SwampDonkeyOutdoors, || Box::new(SwampDonkeyOutdoors::new()));
+    // retailers.insert(RetailerName::DsTactical, || Box::new(DsTactical::new()));
 
     retailers
 }
