@@ -28,9 +28,9 @@ openid_connect = { path = "./openid_connect" }
 email = { path = "./email" }
 semantic_matcher = { path = "./semantic_matcher" }
 
-reqwest = "0.13.4"
+reqwest = { version = "0.13.4", features = ["json", "cookies", "gzip", "http2", "rustls"] }
 reqwest-retry = "0.9.1"
-reqwest-middleware = "0.5.2"
+reqwest-middleware = { version = "0.5.2", features = ["json"] }
 serde = "1.0.228"
 serde_json = "1.0.150"
 serde_with = "3.20.0"
@@ -54,7 +54,6 @@ strum = "0.28.0"
 strum_macros = "0.28.0"
 base64 = "0.23.0"
 futures = "0.3.32"
-openssl = { version = "0.10", features = ["vendored"] }
 clap = { version = "4.6.1", features = ["derive"] }
 mimalloc = "0.1.52"
 chrono = "0.4.44"
@@ -70,7 +69,7 @@ sha1 = "0.11.0"
 openidconnect = { version = "4.0.1", features = ["reqwest"] }
 rand = "0.10.1"
 sha2 = "0.11.0"
-lettre = { version = "0.11.22", features = ["tokio1", "tokio1-native-tls"] }
+lettre = { version = "0.11.22", default-features = false, features = ["builder", "hostname", "pool", "smtp-transport", "tokio1", "tokio1-rustls", "aws-lc-rs", "rustls-platform-verifier"] }
 bm25 = { version = "2.3.2", features = ["parallelism"] }
 csv = "1.4.0"
 web-bot-auth = "0.7.0"

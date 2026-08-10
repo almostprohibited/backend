@@ -14,14 +14,13 @@ doc = false
 common.workspace = true
 
 #headless_chrome = {git = "https://github.com/rust-headless-chrome/rust-headless-chrome", features = ["fetch"]}
-reqwest = { workspace = true, features = ["json", "cookies", "gzip", "http2"] }
+reqwest.workspace = true
 reqwest-retry.workspace = true
-reqwest-middleware = { workspace = true, features = ["json"] }
+reqwest-middleware.workspace = true
 serde_json.workspace = true
 tokio = { workspace = true, features = ["full"] }
 tracing.workspace = true
 thiserror.workspace = true
-openssl.workspace = true
 chrono.workspace = true
 wreq.workspace = true
 wreq-util.workspace = true
