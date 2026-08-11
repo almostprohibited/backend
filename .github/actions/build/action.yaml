@@ -5,7 +5,7 @@ inputs:
     type: string
     required: false
     description: "Rust build target"
-    default: aarch64-unknown-linux-musl
+    default: aarch64-unknown-linux-gnu
 
 outputs:
   artifact-id:
@@ -19,7 +19,6 @@ runs:
       run: |
         set -ueo pipefail
 
-        sudo apt install -y musl-tools
         rustup target add ${{ inputs.rust-target }}
 
         cargo build --release --bins --target ${{ inputs.rust-target }}
