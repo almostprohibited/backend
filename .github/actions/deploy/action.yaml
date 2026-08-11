@@ -51,7 +51,7 @@ runs:
         docker compose -f docker-compose.yaml down mongo mongo-express prometheus grafana
         docker compose -f docker-compose.yaml up -d mongo mongo-express prometheus grafana
       shell: bash
-    - name: Update and deploy backend
+    - name: Update and deploy backend API
       env:
         PRIVATE_KEY: ${{ inputs.private-key }}
         VOLUME_PATH: ${{ inputs.docker-volume-path }}
@@ -71,6 +71,28 @@ runs:
         docker compose -f docker-compose.yaml pull backend-${{ inputs.deployment-stage }}
         docker compose -f docker-compose.yaml down backend-${{ inputs.deployment-stage }}
         docker compose -f docker-compose.yaml up -d backend-${{ inputs.deployment-stage }}
+      shell: bash
+    - name: Update and deploy backend indexer
+      if: inputs.deployment-stage == 'release'
+      env:
+        PRIVATE_KEY: ${{ inputs.private-key }}
+        VOLUME_PATH: ${{ inputs.docker-volume-path }}
+        STAGE: ${{ inputs.deployment-stage }}
+      run: |
+        set -ueo pipefail
+
+        cd ./.toolbox/backend
+
+        if [ "${{ inputs.deployment-stage }}" = "beta" ]; then
+          export RUST_LOG=debug
+          echo "${{ inputs.env-file }}" > ${{ inputs.docker-volume-path }}/.env.beta
+        else
+          echo "${{ inputs.env-file }}" > ${{ inputs.docker-volume-path }}/.env.release
+        fi
+
+        docker compose -f docker-compose.yaml pull backend-indexer-${{ inputs.deployment-stage }}
+        docker compose -f docker-compose.yaml down backend-indexer-${{ inputs.deployment-stage }}
+        docker compose -f docker-compose.yaml up -d backend-indexer-${{ inputs.deployment-stage }}
       shell: bash
     - name: Clean images
       run: docker image prune -f
