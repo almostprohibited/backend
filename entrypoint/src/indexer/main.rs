@@ -13,11 +13,6 @@ use crate::retailers::get_retailers;
 mod clients;
 mod retailers;
 
-// https://nickb.dev/blog/default-musl-allocator-considered-harmful-to-performance
-#[cfg(target_env = "musl")]
-#[global_allocator]
-static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
-
 #[derive(Parser)]
 #[command(version)]
 struct Arguments {
