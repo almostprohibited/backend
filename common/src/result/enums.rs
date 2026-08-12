@@ -93,6 +93,7 @@ pub enum RetailerName {
     AagCanada,
     SwampDonkeyOutdoors,
     DsTactical,
+    PartsOnly,
 }
 
 impl RetailerName {

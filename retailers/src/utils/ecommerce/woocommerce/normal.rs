@@ -24,9 +24,10 @@ const VALID_IMAGE_ATTRS: [&str; 5] = [
     // "data-src-webp", // odd that someone not have -img, but will have -webp
 ];
 
-const DEFAULT_PRODUCT_NAME_SELECTORS: [&str; 2] = [
+const DEFAULT_PRODUCT_NAME_SELECTORS: [&str; 3] = [
     "div.product-element-bottom > h3 > a",
     "a.woocommerce-LoopProduct-link > h2.woocommerce-loop-product__title",
+    "h2.woocommerce-loop-product__title > a.woocommerce-LoopProduct-link",
 ];
 
 const DEFAULT_PRODUCT_URL_SELECTORS: [&str; 2] = [
@@ -116,21 +117,17 @@ impl WooCommerce {
             };
 
         let regular_non_sale_price =
-            extract_element_from_element(price_element, ":scope > span.amount > bdi");
+            extract_element_from_element(price_element, ":scope > span.amount");
 
         match regular_non_sale_price {
             Ok(regular_price_element) => {
                 price.regular_price = price_to_cents(element_to_text(regular_price_element))?;
             }
             Err(_) => {
-                let sale_price = extract_element_from_element(
-                    price_element,
-                    ":scope > ins > span.amount > bdi",
-                )?;
-                let previous_price = extract_element_from_element(
-                    price_element,
-                    ":scope > del > span.amount > bdi",
-                )?;
+                let sale_price =
+                    extract_element_from_element(price_element, ":scope > ins > span.amount")?;
+                let previous_price =
+                    extract_element_from_element(price_element, ":scope > del > span.amount")?;
 
                 price.regular_price = price_to_cents(element_to_text(previous_price))?;
                 price.sale_price = Some(price_to_cents(element_to_text(sale_price))?);
