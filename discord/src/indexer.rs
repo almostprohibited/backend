@@ -153,7 +153,13 @@ impl IndexerWebhook {
                 retailer_field += &format!("**```\n{error_blob}\n```**");
             }
 
-            fields.push((retailer.to_string(), retailer_field, false));
+            let mut title = retailer.to_string();
+
+            if let Some(end_time) = stats.end_time {
+                title = format!("{title} ({} secs)", end_time - stats.start_time);
+            }
+
+            fields.push((title, retailer_field, false));
 
             count += 1;
 
