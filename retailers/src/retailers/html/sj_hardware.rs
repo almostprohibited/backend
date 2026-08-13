@@ -95,7 +95,7 @@ impl HtmlRetailer for SJHardware {
             let price_text = element_to_text(price_element);
 
             if button_text.contains("choose options") || price_text.contains("-") {
-                let title_element = extract_element_from_element(product, "h4.card-title > a")?;
+                let title_element = extract_element_from_element(product, ".card-title > a")?;
                 let url = element_extract_attr(title_element, "href")?;
 
                 // TODO: fix this, sj hardware has a product that is in stock, but
