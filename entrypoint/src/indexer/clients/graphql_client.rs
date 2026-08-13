@@ -50,7 +50,12 @@ impl Client for GqlClient {
                 break;
             }
 
-            sleep(Duration::from_secs(get_api_call_delay())).await;
+            let sleep_duration = self
+                .retailer
+                .sleep_override()
+                .unwrap_or(get_api_call_delay());
+
+            sleep(Duration::from_secs(sleep_duration)).await;
         }
 
         Ok(())

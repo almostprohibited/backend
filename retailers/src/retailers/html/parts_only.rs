@@ -22,6 +22,8 @@ const SITEMAP_URL: &str = "https://partsonly.ca/wp-sitemap-taxonomies-product_ca
 const URL: &str =
     "https://partsonly.ca/product-category/{category}/page/{page}/?filter_stock_status=instock";
 
+const SLEEP_OVERRIDE_SECS: u64 = 15;
+
 pub struct PartsOnly {
     search_queries: Vec<HtmlSearchQuery>,
 }
@@ -60,6 +62,10 @@ impl Retailer for PartsOnly {
 
     fn get_retailer_name(&self) -> RetailerName {
         RetailerName::PartsOnly
+    }
+
+    fn sleep_override(&self) -> Option<u64> {
+        Some(SLEEP_OVERRIDE_SECS)
     }
 }
 

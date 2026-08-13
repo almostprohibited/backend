@@ -17,6 +17,10 @@ pub trait Retailer {
     async fn init(&mut self) -> Result<(), RetailerError> {
         Ok(())
     }
+
+    fn sleep_override(&self) -> Option<u64> {
+        None
+    }
 }
 
 #[async_trait]
