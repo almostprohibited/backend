@@ -72,10 +72,13 @@ impl HtmlRetailer for DsTactical {
         let product_selector = Selector::parse("ul.productGrid > li.product").unwrap();
 
         for element in fragment.select(&product_selector) {
-            let cart_button = extract_element_from_element(
+            let Ok(cart_button) = extract_element_from_element(
                 element,
                 "div.card-figcaption--action-buttons > a[data-event-type='product-click']",
-            )?;
+            ) else {
+                debug!("Skipping product with no cart button");
+                continue;
+            };
 
             let cart_text = element_to_text(cart_button).to_lowercase();
 
