@@ -3,6 +3,7 @@ use std::env;
 use common::constants::{
     OIDC_CLIENT_ID_DISCORD, OIDC_CLIENT_ID_GOOGLE, OIDC_CLIENT_ID_MICROSOFT,
     OIDC_CLIENT_SECRET_DISCORD, OIDC_CLIENT_SECRET_GOOGLE, OIDC_CLIENT_SECRET_MICROSOFT,
+    OIDC_TENANT_ID_MICROSOFT,
 };
 use openidconnect::core::CoreAuthPrompt;
 
@@ -40,11 +41,12 @@ pub fn get_google_oidc_provider(callback_url: &str, scopes: Vec<String>) -> Base
 pub fn get_microsoft_oidc_provider(callback_url: &str, scopes: Vec<String>) -> BaseOidcProvider {
     let client_id = env::var(OIDC_CLIENT_ID_MICROSOFT).unwrap().to_string();
     let client_secret = env::var(OIDC_CLIENT_SECRET_MICROSOFT).unwrap().to_string();
+    let tenant_id = env::var(OIDC_TENANT_ID_MICROSOFT).unwrap().to_string();
 
     // of course microsoft would be the ones to not implement OIDC according
     // to the standard, for now I'll only support personal microsoft accounts
     BaseOidcProviderBuilder::new(
-        "https://login.microsoftonline.com/9188040d-6c67-4c5b-b112-36a304b66dad/v2.0",
+        &format!("https://login.microsoftonline.com/{tenant_id}/v2.0"),
         callback_url,
         &client_id,
         &client_secret,

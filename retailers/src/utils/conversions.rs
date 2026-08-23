@@ -13,7 +13,12 @@ pub(crate) fn price_to_cents(price: String) -> Result<u64, RetailerError> {
         trimmed_price.remove(0);
     }
 
-    trimmed_price = trimmed_price.replace(",", "");
+    [
+        (",", ""),
+        (" CAD", ""), // handle sights and arms
+    ]
+    .iter()
+    .for_each(|(from, to)| trimmed_price = trimmed_price.replace(from, to));
 
     // lazily deal with missing cents
     // turns "100" -> "100.00"

@@ -16,8 +16,8 @@ use crate::{
     structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
     utils::{
         conversions::price_to_cents,
-        ecommerce::WooCommerce,
-        html::{element_extract_attr, element_to_text, extract_element_from_element},
+        ecommerce::{WooCommerce, WooCommerceBuilder},
+        html::{element_to_text, extract_element_from_element},
     },
 };
 
@@ -111,11 +111,16 @@ impl HtmlRetailer for SightsAndArms {
         let fragment = Html::parse_document(response);
 
         let product_selector = Selector::parse("ul.products > li.product.instock").unwrap();
+        let woocommerce_helper = WooCommerceBuilder::default()
+            .with_product_url_selector("a.ast-loop-product__link")
+            .with_product_name_selector("a.ast-loop-product__link")
+            .build();
 
         for element in fragment.select(&product_selector) {
             let title_element = extract_element_from_element(element, "a.ast-loop-product__link")?;
-            let link = element_extract_attr(title_element, "href")?;
             let name = element_to_text(title_element);
+
+            debug!("{name}");
 
             if extract_element_from_element(element, "span.price").is_err() {
                 debug!("Skipping {name} as it is a listed product with no price");
@@ -147,12 +152,8 @@ impl HtmlRetailer for SightsAndArms {
                 category = Category::Firearm;
             }
 
-            let image_element =
-                extract_element_from_element(element, "img.attachment-woocommerce_thumbnail")?;
-            let image_link = element_extract_attr(image_element, "data-src")?;
-
-            let result = CrawlResult::new(name, link, price, self.get_retailer_name(), category)
-                .with_image_url(image_link);
+            let result =
+                woocommerce_helper.parse_product(element, self.get_retailer_name(), category)?;
 
             results.push(result);
         }
