@@ -12,6 +12,7 @@ pub(crate) const PROXY_DOMAINS: [&str; 9] = [
     "uxbridgearms.com",
 ];
 
-pub(crate) const EMULATED_DOMAINS: [&str; 2] = ["canfirearm.com", "reliablegun.com"];
+pub(crate) const EMULATED_DOMAINS: [&str; 3] =
+    ["canfirearm.com", "reliablegun.com", "rangeviewsports.ca"];
 
 pub(crate) const HTTP_SIG_EXCLUDED_DOMAINS: [&str; 1] = ["londerosports.com"];
