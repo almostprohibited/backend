@@ -11,7 +11,7 @@ use retailers::{
         DominionOutdoors, DoubleTapSports, DsTactical, EasthillOutdoors, EllwoodEpps,
         FirearmsOutletCanada, FrontierFirearms, Fwgc, G4CGunStore, GeneralGun, Gobles, GoldNLoan,
         GreatNorthGun, InterSurplus, InternationalShootingSupplies, ItalianSportingGoods,
-        LanzShootingSupplies, Latulippe, LeverArms, LonderoSports, MagDump, Marstar,
+        LanzShootingSupplies, Latulippe, LeverArms, Liangjian, LonderoSports, MagDump, Marstar,
         NechakoOutdoors, PDEnterprises, PartsOnly, RangeArts, RangeviewSports, Rdsc, ReliableGun,
         SJHardware, ShootersChoice, SightsAndArms, SoleyOutdoors, SwampDonkeyOutdoors, Tenda,
         Tesro, TheAmmoSource, TheGunDealer, Tillsonburg, TrueNorthArms, UxbridgeArms,
@@ -87,6 +87,7 @@ fn html_retailers() -> HashMap<RetailerName, HtmlRetailerSuperFactory> {
     retailers.insert(RetailerName::SwampDonkeyOutdoors, || Box::new(SwampDonkeyOutdoors::new()));
     retailers.insert(RetailerName::DsTactical, || Box::new(DsTactical::new()));
     retailers.insert(RetailerName::PartsOnly, || Box::new(PartsOnly::new()));
+    retailers.insert(RetailerName::Liangjian, || Box::new(Liangjian::new()));
 
     retailers
 }

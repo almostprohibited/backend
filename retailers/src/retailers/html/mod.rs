@@ -28,6 +28,7 @@ mod italian_sporting_goods; // they have arsenalforce in their robots.txt
 mod lanz_shooting_supplies;
 mod latulippe;
 mod lever_arms;
+mod liangjian;
 mod londero_sports;
 mod magdump;
 mod marstar;
@@ -84,6 +85,7 @@ pub use italian_sporting_goods::ItalianSportingGoods;
 pub use lanz_shooting_supplies::LanzShootingSupplies;
 pub use latulippe::Latulippe;
 pub use lever_arms::LeverArms;
+pub use liangjian::Liangjian;
 pub use londero_sports::LonderoSports;
 pub use magdump::MagDump;
 pub use marstar::Marstar;

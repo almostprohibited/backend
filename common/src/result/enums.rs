@@ -94,6 +94,7 @@ pub enum RetailerName {
     SwampDonkeyOutdoors,
     DsTactical,
     PartsOnly,
+    Liangjian,
 }
 
 impl RetailerName {
