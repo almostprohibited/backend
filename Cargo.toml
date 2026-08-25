@@ -78,3 +78,6 @@ indexmap = "2.14.0"
 ed25519-dalek = { version = "3.0.0", features = ["pkcs8", "pem"] }
 wreq = { version = "6.0.0-rc", features = ["cookies", "gzip", "json"] }
 wreq-util = "3.0.0-rc"
+
+# test
+rstest = "0.26.1"

@@ -26,7 +26,7 @@ static PATTERNS: LazyLock<Vec<Regex>> = LazyLock::new(|| {
         Regex::new(r"(?i)(?:box|case|pack|tin|brick|can|pk|bottle|bulk) of (\d+)")
             .expect("Ammo count regex to compile"),
         Regex::new(
-            r"(?i)(\d+)\s*/?(?:ct|count|rd|rnd|rs/box|round|pack|pc|shell|box|qty|pk|brick|per box|case)s?\b",
+            r"(?i) (\d+)\s*/?(?:ct|count|rd|rnd|rs/box|round|pack|pc|shell|box|qty|pk|brick|per box|case)s?\b",
         )
         .expect("Ammo count regex to compile"),
     ]
@@ -182,18 +182,23 @@ impl CrawlResult {
 
 #[cfg(test)]
 mod test {
+    use rstest::rstest;
+
     use crate::result::{base::CrawlResult, metadata::Metadata};
 
-    #[test]
-    fn test_capture() {
-        let result = CrawlResult::get_ammo_metadata(
-            "PRVI PPU .223 Rem 55Gr FMJ (Bulk 1000 Rounds, With ammo Box) - 20rds",
-        );
+    #[rstest]
+    #[case(
+        "PRVI PPU .223 Rem 55Gr FMJ (Bulk 1000 Rounds, With ammo Box) - 20rds",
+        20
+    )]
+    #[case("Winchester USA 9MM Luger, 115 Gr FMJ / 500 Rds WINQ4172CASE", 500)]
+    fn test_capture(#[case] name: &str, #[case] expected_count: u64) {
+        let result = CrawlResult::get_ammo_metadata(name);
 
         assert!(result.is_some());
 
         match result.unwrap() {
-            Metadata::Ammunition(ammo) => assert_eq!(ammo.round_count.unwrap(), 20),
+            Metadata::Ammunition(ammo) => assert_eq!(ammo.round_count.unwrap(), expected_count),
             _ => panic!("not ammo"),
         };
     }

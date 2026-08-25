@@ -10,6 +10,9 @@ doctest = false
 test = false
 doc = false
 
+[dev-dependencies]
+rstest.workspace = true
+
 [dependencies]
 reqwest.workspace = true
 serde.workspace = true
