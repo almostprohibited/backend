@@ -2,6 +2,7 @@ use common::result::{
     base::{CrawlResult, Price},
     enums::{Category, RetailerName},
 };
+use itertools::Itertools;
 use scraper::{ElementRef, Html, Selector};
 
 use crate::{
@@ -93,6 +94,41 @@ pub(crate) struct WooCommerce {
     options: WooCommerceBuilder,
 }
 
+// I swear, if this breaks everyone I'm not going to be happy
+// but that's also on me for not having unit tests
+//
+// This method is specifically to handle northern elite representing
+// decimals using a pseudo ::before element
+// (1,234) - (::before.content = '.') - (99)
+// becomes 1,23499 instead of 1,234.99
+fn get_cleaned_price(element: ElementRef) -> String {
+    let temp_string = element
+        .text()
+        .filter_map(|text| {
+            let mut stripped_string = text.trim().to_string();
+
+            for stripped_char in ["C", "$"] {
+                stripped_string = stripped_string
+                    .strip_prefix(stripped_char)
+                    .unwrap_or(&stripped_string)
+                    .to_owned();
+            }
+
+            if stripped_string.is_empty() {
+                return None;
+            }
+
+            Some(stripped_string)
+        })
+        // place great amounts of trust that everyone plays by
+        // the books and only has at most 2 text blocks
+        .join(".")
+        .trim()
+        .to_string();
+
+    temp_string
+}
+
 impl WooCommerce {
     fn parse_price(element: ElementRef) -> Result<Price, RetailerError> {
         let mut price = Price {
@@ -121,7 +157,7 @@ impl WooCommerce {
 
         match regular_non_sale_price {
             Ok(regular_price_element) => {
-                price.regular_price = price_to_cents(element_to_text(regular_price_element))?;
+                price.regular_price = price_to_cents(get_cleaned_price(regular_price_element))?;
             }
             Err(_) => {
                 let sale_price =
@@ -129,8 +165,8 @@ impl WooCommerce {
                 let previous_price =
                     extract_element_from_element(price_element, ":scope > del > span.amount")?;
 
-                price.regular_price = price_to_cents(element_to_text(previous_price))?;
-                price.sale_price = Some(price_to_cents(element_to_text(sale_price))?);
+                price.regular_price = price_to_cents(get_cleaned_price(previous_price))?;
+                price.sale_price = Some(price_to_cents(get_cleaned_price(sale_price))?);
             }
         }
 

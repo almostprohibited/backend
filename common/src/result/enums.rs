@@ -95,6 +95,7 @@ pub enum RetailerName {
     DsTactical,
     PartsOnly,
     Liangjian,
+    NorthernElite,
 }
 
 impl RetailerName {
