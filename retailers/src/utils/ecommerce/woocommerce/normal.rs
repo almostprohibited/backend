@@ -36,9 +36,10 @@ const DEFAULT_PRODUCT_URL_SELECTORS: [&str; 2] = [
     "a.woocommerce-LoopProduct-link",
 ];
 
-const DEFAULT_IMAGE_URL_SELECTORS: [&str; 2] = [
+const DEFAULT_IMAGE_URL_SELECTORS: [&str; 3] = [
     "a.product-image-link > img",
     "a.woocommerce-LoopProduct-link img",
+    "a.product-image-link > picture > img", // budget shooter does this for some reason
 ];
 
 const PRICE_WRAPPER: [&str; 3] = ["span.price", "div.price", "p.price"];
