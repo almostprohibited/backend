@@ -1,4 +1,4 @@
-pub(crate) const PAGE_TIMEOUT_SECONDS: u64 = 60;
+pub(crate) const PAGE_TIMEOUT_SECONDS: u64 = 30;
 
 pub(crate) const PROXY_DOMAINS: [&str; 9] = [
     "italiansportinggoods.com",
