@@ -27,20 +27,7 @@ use crate::{
 static EMULATED_CLIENT: OnceLock<Client> = OnceLock::new();
 static EMULATED_COOKIE_JAR: LazyLock<Arc<Jar>> = LazyLock::new(|| Arc::new(Jar::default()));
 
-const PROFILES: [Profile; 4] = [
-    // Profile::Chrome149,
-    // Profile::Chrome148,
-    // Profile::Chrome147,
-    // Profile::Chrome146,
-    // Profile::Edge148,
-    // Profile::Edge147,
-    // Profile::Edge146,
-    // Profile::Edge145,
-    Profile::Firefox151,
-    Profile::Firefox150,
-    Profile::Firefox149,
-    Profile::Firefox148,
-];
+const PROFILES: [Profile; 3] = [Profile::Chrome149, Profile::Edge148, Profile::Firefox151];
 
 fn hash_host_to_index(max_items: u64) -> u64 {
     let datetime = Utc::now();
