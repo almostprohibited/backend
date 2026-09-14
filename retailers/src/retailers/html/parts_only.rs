@@ -22,7 +22,7 @@ const SITEMAP_URL: &str = "https://partsonly.ca/wp-sitemap-taxonomies-product_ca
 const URL: &str =
     "https://partsonly.ca/product-category/{category}/page/{page}/?filter_stock_status=instock";
 
-const SLEEP_OVERRIDE_SECS: u64 = 15;
+const SLEEP_OVERRIDE_SECS: u64 = 30;
 
 pub struct PartsOnly {
     search_queries: Vec<HtmlSearchQuery>,
