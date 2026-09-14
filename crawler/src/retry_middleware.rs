@@ -10,7 +10,7 @@ use tracing::warn;
 
 const PAGE_MIN_SECS_BACKOFF: u64 = 10;
 const PAGE_MAX_SECS_BACKOFF: u64 = 30;
-const MAX_RETRY: u32 = 5;
+const MAX_RETRY: u32 = 10;
 
 pub(crate) struct RetryStrategy;
 
