@@ -80,4 +80,4 @@ wreq = { version = "0.16.1", features = ["cookies", "gzip", "json"] }
 wreq-util = "0.2.0"
 
 # test
-rstest = "0.26.1"
+rstest = "0.27.0"
