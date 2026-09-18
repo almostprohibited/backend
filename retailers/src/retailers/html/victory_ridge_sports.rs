@@ -5,7 +5,6 @@ use common::result::{
 };
 use crawler::request::{Request, RequestBuilder};
 use scraper::{Html, Selector};
-use serde::Deserialize;
 use tracing::debug;
 
 use crate::{
@@ -16,13 +15,6 @@ use crate::{
         html::{element_extract_attr, element_to_text, extract_element_from_element},
     },
 };
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct ApiResponse {
-    items: String,
-    next_page: String,
-}
 
 const MAX_PER_PAGE: &str = "45";
 const URL: &str = "https://victoryridgesports.ca/product-category/{category}/page/{page}/?woo_ajax=1&per_page={max_per_page}";
@@ -38,21 +30,6 @@ impl Default for VictoryRidgeSports {
 impl VictoryRidgeSports {
     pub fn new() -> Self {
         Self {}
-    }
-
-    fn parse_clean_html(&self, raw_html: String) -> Html {
-        Html::parse_fragment(&raw_html.replace("\t", "").replace("\n", ""))
-    }
-
-    fn is_ending_page(&self, parsed_response: ApiResponse) -> Result<bool, RetailerError> {
-        if parsed_response.next_page.is_empty() {
-            return Ok(true);
-        }
-
-        let html = self.parse_clean_html(parsed_response.items);
-        let selector = Selector::parse("div:is(.onbackorder, .outofstock)").unwrap();
-
-        Ok(html.select(&selector).next().is_some())
     }
 }
 
@@ -90,12 +67,10 @@ impl HtmlRetailer for VictoryRidgeSports {
     ) -> Result<Vec<CrawlResult>, RetailerError> {
         let mut results: Vec<CrawlResult> = Vec::new();
 
-        let parsed_response = serde_json::from_str::<ApiResponse>(response)?;
+        let html = Html::parse_document(response);
+        let product_selector = Selector::parse("ul.products > li.product.instock").unwrap();
 
-        let html = Html::parse_document(&parsed_response.items);
-        let product_selector = Selector::parse("div.instock > div.product-wrapper").unwrap();
-
-        let css_selector = "div.wd-product-header > h3 > a";
+        let css_selector = "a.ast-loop-product__link";
 
         let woocommerce_helper = WooCommerceBuilder::default()
             .with_product_name_selector(css_selector)
@@ -106,12 +81,11 @@ impl HtmlRetailer for VictoryRidgeSports {
 
         for product in html.select(&product_selector) {
             let add_cart_button =
-                extract_element_from_element(product, "div.wd-product-footer > div > a")?;
+                extract_element_from_element(product, "a.add_to_cart_button.button")?;
 
             match element_to_text(add_cart_button).to_lowercase().as_str() {
                 "select options" => {
-                    let product_url_element = extract_element_from_element(product, css_selector)?;
-                    let product_url = element_extract_attr(product_url_element, "href")?;
+                    let product_url = element_extract_attr(add_cart_button, "href")?;
 
                     variant_links.push(product_url);
                 }
@@ -122,7 +96,9 @@ impl HtmlRetailer for VictoryRidgeSports {
                         search_term.category,
                     )?);
                 }
-                _ => {}
+                _ => {
+                    debug!("Skipping product with no cart button")
+                }
             };
         }
 
@@ -186,12 +162,13 @@ impl HtmlRetailer for VictoryRidgeSports {
     }
 
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {
-        let parsed_response = serde_json::from_str::<ApiResponse>(response)?;
+        let html = Html::parse_fragment(response);
+        let selector = Selector::parse("li:is(.onbackorder, .outofstock)").unwrap();
 
-        if parsed_response.next_page.is_empty() || self.is_ending_page(parsed_response)? {
+        if html.select(&selector).next().is_some() {
             return Ok(0);
         }
 
-        Ok(u64::MAX)
+        WooCommerce::parse_max_pages(response)
     }
 }
