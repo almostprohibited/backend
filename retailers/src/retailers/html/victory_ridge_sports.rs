@@ -80,8 +80,12 @@ impl HtmlRetailer for VictoryRidgeSports {
         let mut variant_links: Vec<String> = vec![];
 
         for product in html.select(&product_selector) {
-            let add_cart_button =
-                extract_element_from_element(product, "a.add_to_cart_button.button")?;
+            let Ok(add_cart_button) =
+                extract_element_from_element(product, "a.add_to_cart_button.button")
+            else {
+                debug!("Skipping out of stock product");
+                continue;
+            };
 
             match element_to_text(add_cart_button).to_lowercase().as_str() {
                 "select options" => {
@@ -97,7 +101,7 @@ impl HtmlRetailer for VictoryRidgeSports {
                     )?);
                 }
                 _ => {
-                    debug!("Skipping product with no cart button")
+                    debug!("Skipping product with no valid cart text")
                 }
             };
         }
