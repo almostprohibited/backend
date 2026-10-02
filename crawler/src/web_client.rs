@@ -32,19 +32,19 @@ impl WebClient {
             request.url, request.body, request.json
         );
 
-        match should_emulate {
-            true => send_emulated_request(request).await,
-            false => {
-                let sig_headers = match HTTP_SIG_EXCLUDED_DOMAINS
-                    .iter()
-                    .any(|excluded_domain| request.url.contains(excluded_domain))
-                {
-                    true => None,
-                    false => Some(Self::get_http_sig_headers(&request)),
-                };
+        let sig_headers = match HTTP_SIG_EXCLUDED_DOMAINS
+            .iter()
+            .any(|excluded_domain| request.url.contains(excluded_domain))
+        {
+            true => None,
+            false => Some(Self::get_http_sig_headers(&request)),
+        };
 
-                send_base_request(request, sig_headers).await
-            }
+        match should_emulate {
+            // TODO: this messes with TLS/HTTP fingerprinting, remove sig
+            // headers from emulated client
+            true => send_emulated_request(request, sig_headers).await,
+            false => send_base_request(request, sig_headers).await,
         }
     }
 
@@ -56,8 +56,11 @@ impl WebClient {
         let sig_headers = create_request_headers(&request.url);
 
         debug!(
-            "HTTP signatures\n{}\n{}\n{:?}",
-            sig_headers.signature, sig_headers.signature_input, sig_headers.signature_agent
+            "HTTP signatures\n{}\n{}\n{:?}\n{}",
+            sig_headers.signature,
+            sig_headers.signature_input,
+            sig_headers.signature_agent,
+            request.url
         );
 
         let mut return_headers = HeaderMap::new();

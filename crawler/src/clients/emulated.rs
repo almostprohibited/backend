@@ -79,7 +79,11 @@ fn create_emulated_client() -> Client {
         .expect("Valid base reqwest to be built")
 }
 
-pub(crate) async fn send_request(request: Request) -> Result<CrawlerResponse, CrawlerError> {
+pub(crate) async fn send_request(
+    request: Request,
+    // TODO: this messes with TLS/HTTP fingerprinting, remove this
+    http_sig_headers: Option<HeaderMap>,
+) -> Result<CrawlerResponse, CrawlerError> {
     let client = EMULATED_CLIENT.get_or_init(|| create_emulated_client());
 
     let mut request_builder = match request.method {
@@ -106,6 +110,11 @@ pub(crate) async fn send_request(request: Request) -> Result<CrawlerResponse, Cr
         }
 
         request_builder = request_builder.headers(header_map);
+    }
+
+    // TODO: this messes with TLS/HTTP fingerprinting, remove this
+    if let Some(sig_headers) = http_sig_headers {
+        request_builder = request_builder.headers(sig_headers);
     }
 
     let response = request_builder.send().await.unwrap();

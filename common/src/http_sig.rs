@@ -16,7 +16,7 @@ use crate::{
 
 const PRIVATE_KEY_ENV: &str = "PRIVATE_KEY";
 
-const SIG_EXPIRY_SECONDS: u64 = 120;
+const SIG_EXPIRY_SECONDS: u64 = 60 * 60;
 
 // TODO: don't hard code these
 pub const JWK_KID: &str = "FyDnM_QljsIvAZWPXujjT_zwCd1EO3nItEkKuIE9Jbk";

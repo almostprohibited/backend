@@ -1,6 +1,6 @@
 pub(crate) const PAGE_TIMEOUT_SECONDS: u64 = 60;
 
-pub(crate) const PROXY_DOMAINS: [&str; 9] = [
+pub(crate) const PROXY_DOMAINS: [&str; 8] = [
     "italiansportinggoods.com",
     "ellwoodepps.com",
     "x-reload.com",
@@ -9,10 +9,34 @@ pub(crate) const PROXY_DOMAINS: [&str; 9] = [
     "internationalshootingsupplies.com",
     "thegundealer.ca",
     "swampdonkeyoutdoors.ca",
-    "uxbridgearms.com",
 ];
 
-pub(crate) const EMULATED_DOMAINS: [&str; 3] =
-    ["canfirearm.com", "reliablegun.com", "rangeviewsports.ca"];
+pub(crate) const EMULATED_DOMAINS: [&str; 8] = [
+    "canfirearm.com",
+    "reliablegun.com",
+    "rangeviewsports.ca",
+    // shopify appears to completely
+    // gimp requests that come from a datacenter
+    // and have a "non-human" UA regardless of
+    // web bot signed headers
+    "aagcanada.ca",      // shopify
+    "fishingworldgc.ca", // shopify
+    "uxbridgearms.com",  // shopify
+    "crafm.com",         // shopify
+    "intersurplus.com",  // shopify
+];
 
-pub(crate) const HTTP_SIG_EXCLUDED_DOMAINS: [&str; 1] = ["londerosports.com"];
+// TODO: this messes with TLS/HTTP fingerprinting
+// careful when adding domains here
+/// Add domains here that should NOT have web sigs generated
+pub(crate) const HTTP_SIG_EXCLUDED_DOMAINS: [&str; 4] = [
+    "londerosports.com",
+    "canfirearm.com",
+    "reliablegun.com",
+    "rangeviewsports.ca",
+    // "aagcanada.ca",      // shopify
+    // "fishingworldgc.ca", // shopify
+    // "uxbridgearms.com",  // shopify
+    // "crafm.com",         // shopify
+    // "intersurplus.com",  // shopify
+];
