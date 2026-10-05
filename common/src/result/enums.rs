@@ -97,6 +97,7 @@ pub enum RetailerName {
     Liangjian,
     NorthernElite,
     WildWest,
+    GoBigTactical,
 }
 
 impl RetailerName {

@@ -18,6 +18,7 @@ static PATTERNS: LazyLock<Vec<Regex>> = LazyLock::new(|| {
         .expect("Regex to not fail creation"),
         Regex::new(r#"graphQLToken\\":\\"(.+?)\\""#).expect("Regex to not fail creation"),
         Regex::new(r#"bearerToken\\":\\"(.+?)\\""#).expect("Regex to not fail creation"),
+        Regex::new(r#"gqlToken = \'(.+?)\';"#).expect("Regex to not fail creation"),
     ]
 });
 

@@ -4,7 +4,9 @@ use crate::clients::{
 use common::result::enums::RetailerName;
 use discord::get_indexer_webhook;
 use retailers::{
-    gql::{AlFlahertys, CalgaryShootingCentre, ProphetRiver, SelectShootingSupplies},
+    gql::{
+        AlFlahertys, CalgaryShootingCentre, GoBigTactical, ProphetRiver, SelectShootingSupplies,
+    },
     html::{
         AagCanada, AlSimmons, BartonsBigCountry, BudgetShooterSupply, BullseyeNorth,
         CabinCreekSupply, CanFirearm, CanadasGunStore, ClintonSportingGoods, Crafm, DanteSports,
@@ -104,6 +106,7 @@ fn gql_retailers() -> HashMap<RetailerName, GqlRetailerSuperFactory> {
     retailers.insert(RetailerName::AlFlahertys, || Box::new(AlFlahertys::new()));
     retailers.insert(RetailerName::SelectShootingSupplies, || Box::new(SelectShootingSupplies::new()));
     retailers.insert(RetailerName::CalgaryShootingCentre, || Box::new(CalgaryShootingCentre::new()));
+    retailers.insert(RetailerName::GoBigTactical, || Box::new(GoBigTactical::new()));
 
     retailers
 }
