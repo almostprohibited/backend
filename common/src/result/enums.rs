@@ -96,6 +96,7 @@ pub enum RetailerName {
     PartsOnly,
     Liangjian,
     NorthernElite,
+    WildWest,
 }
 
 impl RetailerName {

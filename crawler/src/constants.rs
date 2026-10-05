@@ -1,8 +1,7 @@
 pub(crate) const PAGE_TIMEOUT_SECONDS: u64 = 60;
 
-pub(crate) const PROXY_DOMAINS: [&str; 8] = [
+pub(crate) const PROXY_DOMAINS: [&str; 7] = [
     "italiansportinggoods.com",
-    "ellwoodepps.com",
     "x-reload.com",
     "dantesports.com",
     "londerosports.com",
@@ -11,8 +10,7 @@ pub(crate) const PROXY_DOMAINS: [&str; 8] = [
     "swampdonkeyoutdoors.ca",
 ];
 
-pub(crate) const EMULATED_DOMAINS: [&str; 8] = [
-    "canfirearm.com",
+pub(crate) const EMULATED_DOMAINS: [&str; 7] = [
     "reliablegun.com",
     "rangeviewsports.ca",
     // shopify appears to completely
@@ -29,9 +27,8 @@ pub(crate) const EMULATED_DOMAINS: [&str; 8] = [
 // TODO: this messes with TLS/HTTP fingerprinting
 // careful when adding domains here
 /// Add domains here that should NOT have web sigs generated
-pub(crate) const HTTP_SIG_EXCLUDED_DOMAINS: [&str; 4] = [
+pub(crate) const HTTP_SIG_EXCLUDED_DOMAINS: [&str; 3] = [
     "londerosports.com",
-    "canfirearm.com",
     "reliablegun.com",
     "rangeviewsports.ca",
     // "aagcanada.ca",      // shopify

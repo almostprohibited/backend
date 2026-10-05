@@ -15,7 +15,7 @@ use retailers::{
         NechakoOutdoors, NorthernElite, PDEnterprises, PartsOnly, RangeArts, RangeviewSports, Rdsc,
         ReliableGun, SJHardware, ShootersChoice, SightsAndArms, SoleyOutdoors, SwampDonkeyOutdoors,
         Tenda, Tesro, TheAmmoSource, TheGunDealer, Tillsonburg, TrueNorthArms, UxbridgeArms,
-        VictoryRidgeSports, WolverineSupplies, XReload,
+        VictoryRidgeSports, WildWest, WolverineSupplies, XReload,
     },
     structures::{GqlRetailerSuper, HtmlRetailerSuper},
 };
@@ -89,6 +89,7 @@ fn html_retailers() -> HashMap<RetailerName, HtmlRetailerSuperFactory> {
     retailers.insert(RetailerName::PartsOnly, || Box::new(PartsOnly::new()));
     retailers.insert(RetailerName::Liangjian, || Box::new(Liangjian::new()));
     retailers.insert(RetailerName::NorthernElite, || Box::new(NorthernElite::new()));
+    retailers.insert(RetailerName::WildWest, || Box::new(WildWest::new()));
 
     retailers
 }

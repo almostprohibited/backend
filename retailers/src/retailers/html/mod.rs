@@ -53,6 +53,7 @@ mod tillsonburg_gun_shop;
 mod true_north_arms;
 mod uxbridge_arms;
 mod victory_ridge_sports;
+mod wild_west;
 mod wolverine_supplies;
 mod x_reload;
 
@@ -111,5 +112,6 @@ pub use tillsonburg_gun_shop::Tillsonburg;
 pub use true_north_arms::TrueNorthArms;
 pub use uxbridge_arms::UxbridgeArms;
 pub use victory_ridge_sports::VictoryRidgeSports;
+pub use wild_west::WildWest;
 pub use wolverine_supplies::WolverineSupplies;
 pub use x_reload::XReload;
