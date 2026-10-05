@@ -19,7 +19,7 @@ use crate::{
 const MAX_PER_PAGE: &str = "20";
 const URL: &str = "https://www.rangeviewsports.ca/product-category/{category}/page/{page}/?per_page={max_per_page}";
 
-const BLOCKED_TITLE_TERMS: [&str; 2] = ["special order*", "*in store only*"];
+const BLOCKED_TITLE_TERMS: [&str; 1] = ["*in store only*"];
 
 pub struct RangeviewSports {}
 

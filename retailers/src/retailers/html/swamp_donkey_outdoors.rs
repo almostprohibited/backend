@@ -18,7 +18,7 @@ use crate::{
 
 const URL: &str = "https://swampdonkeyoutdoors.ca/product-category/{category}/page/{page}/";
 
-const BLOCKED_TITLE_TERMS: [&str; 1] = ["pre-order"];
+const BLOCKED_TITLE_TERMS: [&str; 0] = [];
 
 pub struct SwampDonkeyOutdoors {}
 
