@@ -1,5 +1,6 @@
 pub mod constants;
 pub mod db;
+pub mod domain_config;
 pub mod http_sig;
 pub mod image_cache;
 pub mod messages;

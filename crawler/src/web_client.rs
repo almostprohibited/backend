@@ -1,16 +1,14 @@
-use common::{http_sig::create_request_headers, string_utils::get_domain};
-use reqwest::header::{HeaderMap, HeaderValue};
-use tracing::{debug, info};
+use common::{
+    domain_config::{ClientType, default::DEFAULT_SETTINGS},
+    string_utils::get_domain,
+};
+use tracing::info;
 
 use crate::{
-    clients::{
-        base::{send_request as send_base_request, set_cookie as set_base_cookie},
-        emulated::{send_request as send_emulated_request, set_cookie as set_emulated_cookie},
-    },
-    constants::{EMULATED_DOMAINS, HTTP_SIG_EXCLUDED_DOMAINS},
+    clients::{base::BaseClient, emulated::EmulatedClient},
     errors::CrawlerError,
     request::Request,
-    traits::CrawlerResponse,
+    traits::{Client, CrawlerResponse},
 };
 
 #[derive(Copy, Clone)]
@@ -18,70 +16,33 @@ pub struct WebClient {}
 
 impl WebClient {
     pub fn set_cookie(url: &str, cookie: &str) {
-        match Self::should_use_emulated_client(url) {
-            true => set_emulated_cookie(url, cookie),
-            false => set_base_cookie(url, cookie),
-        }
+        Self::get_client(url).set_cookie(url, cookie);
     }
 
     pub async fn make_web_request(request: Request) -> Result<CrawlerResponse, CrawlerError> {
-        let should_emulate = Self::should_use_emulated_client(&request.url);
-
         info!(
-            "Sending request to {} (emulated: {should_emulate}) (body: {:?}) (json: {:?})",
-            request.url, request.body, request.json
+            "Sending request to {} (client: {:?}) (body: {:?}) (json: {:?}) (proxy: {:?}) (sigs: {})",
+            request.url,
+            request.get_client_settings().client_type,
+            request.body,
+            request.json,
+            request.get_client_settings().proxy_type,
+            request.get_client_settings().include_http_sigs,
         );
 
-        let sig_headers = match HTTP_SIG_EXCLUDED_DOMAINS
-            .iter()
-            .any(|excluded_domain| request.url.contains(excluded_domain))
-        {
-            true => None,
-            false => Some(Self::get_http_sig_headers(&request)),
+        Self::get_client(&request.url).send_request(request).await
+    }
+
+    fn get_client(url: &str) -> &'static dyn Client {
+        let domain = get_domain(url);
+
+        let Some(settings) = DEFAULT_SETTINGS.get(&domain) else {
+            return &BaseClient {};
         };
 
-        match should_emulate {
-            // TODO: this messes with TLS/HTTP fingerprinting, remove sig
-            // headers from emulated client
-            true => send_emulated_request(request, sig_headers).await,
-            false => send_base_request(request, sig_headers).await,
+        match settings.client_type {
+            ClientType::Emulated => &EmulatedClient {},
+            _ => &BaseClient {},
         }
-    }
-
-    fn should_use_emulated_client(request_url: &str) -> bool {
-        EMULATED_DOMAINS.contains(&get_domain(request_url).as_str())
-    }
-
-    fn get_http_sig_headers(request: &Request) -> HeaderMap {
-        let sig_headers = create_request_headers(&request.url);
-
-        debug!(
-            "HTTP signatures\n{}\n{}\n{:?}\n{}",
-            sig_headers.signature,
-            sig_headers.signature_input,
-            sig_headers.signature_agent,
-            request.url
-        );
-
-        let mut return_headers = HeaderMap::new();
-
-        return_headers.insert(
-            "Signature",
-            HeaderValue::from_str(&sig_headers.signature).unwrap(),
-        );
-
-        return_headers.insert(
-            "Signature-Input",
-            HeaderValue::from_str(&sig_headers.signature_input).unwrap(),
-        );
-
-        if let Some(sig_agent) = sig_headers.signature_agent {
-            return_headers.insert(
-                "Signature-Agent",
-                HeaderValue::from_str(&sig_agent).unwrap(),
-            );
-        }
-
-        return_headers
     }
 }

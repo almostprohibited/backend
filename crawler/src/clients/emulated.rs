@@ -6,8 +6,9 @@ use std::{
     time::Duration,
 };
 
+use async_trait::async_trait;
 use chrono::{Datelike, Utc};
-use common::constants::PROXY_ADDRESS;
+use common::{constants::PROXY_ADDRESS, domain_config::ProxyType};
 use tracing::debug;
 use wreq::{
     Client, Proxy, StatusCode,
@@ -21,13 +22,100 @@ use crate::{
     constants::PAGE_TIMEOUT_SECONDS,
     errors::CrawlerError,
     request::Request,
-    traits::{CrawlerResponse, HttpMethod},
+    traits::{Client as InternalClient, CrawlerResponse, HttpMethod},
+    utils::get_http_sig_headers,
 };
 
 static EMULATED_CLIENT: OnceLock<Client> = OnceLock::new();
+static EMULATED_PROXIED_CLIENT: OnceLock<Client> = OnceLock::new();
+
 static EMULATED_COOKIE_JAR: LazyLock<Arc<Jar>> = LazyLock::new(|| Arc::new(Jar::default()));
 
 const PROFILES: [Profile; 3] = [Profile::Chrome149, Profile::Edge148, Profile::Firefox151];
+
+pub(crate) struct EmulatedClient {}
+
+#[async_trait]
+impl InternalClient for EmulatedClient {
+    fn set_cookie(&self, url: &str, cookie: &str) {
+        let cookie_jar = EMULATED_COOKIE_JAR.clone();
+        cookie_jar.add(cookie, url);
+    }
+
+    async fn send_request(&self, request: Request) -> Result<CrawlerResponse, CrawlerError> {
+        debug!(
+            "{} (proxy: {:?})",
+            request.url,
+            request.get_client_settings().proxy_type
+        );
+
+        let client = match request.get_client_settings().proxy_type {
+            ProxyType::Normal => {
+                EMULATED_PROXIED_CLIENT.get_or_init(|| create_emulated_client(true))
+            }
+            _ => EMULATED_CLIENT.get_or_init(|| create_emulated_client(false)),
+        };
+
+        let mut request_builder = match request.method {
+            HttpMethod::GET => client.get(request.url.clone()),
+            HttpMethod::POST => client.post(request.url.clone()),
+        };
+
+        if let Some(json) = &request.json {
+            request_builder = request_builder.json(&json);
+        }
+
+        if let Some(body) = &request.body {
+            request_builder = request_builder.body(body.clone());
+        }
+
+        if let Some(headers) = &request.headers {
+            let mut header_map = HeaderMap::new();
+
+            for (key, value) in headers.iter() {
+                header_map.append(
+                    HeaderName::from_str(key).unwrap(),
+                    HeaderValue::from_str(value).unwrap(),
+                );
+            }
+
+            request_builder = request_builder.headers(header_map);
+        }
+
+        // TODO: this messes with TLS/HTTP fingerprinting, remove this
+        if request.get_client_settings().include_http_sigs {
+            let mut reqwest_headers = HeaderMap::new();
+
+            for (key, value) in get_http_sig_headers(&request).iter() {
+                reqwest_headers.append(HeaderName::from_str(key)?, HeaderValue::from_str(value)?);
+            }
+
+            request_builder = request_builder.headers(reqwest_headers);
+        }
+
+        let response = request_builder.send().await.unwrap();
+
+        debug!("{response:?}");
+
+        let status_code = response.status();
+
+        if status_code.is_client_error() && status_code != StatusCode::NOT_FOUND {
+            return Err(CrawlerError::InvalidResponseCodeError(status_code));
+        }
+
+        let headers = response.headers().clone();
+
+        let body_bytes = response.bytes().await.unwrap().to_vec();
+        let body_str = String::from_utf8_lossy(&body_bytes).into_owned();
+
+        Ok(CrawlerResponse {
+            body: body_str,
+            raw_bytes: body_bytes,
+            response_code: status_code,
+            headers,
+        })
+    }
+}
 
 fn hash_host_to_index(max_items: u64) -> u64 {
     let datetime = Utc::now();
@@ -52,12 +140,7 @@ fn shuffle_profile() -> Emulation {
     emulation_profile.build()
 }
 
-pub(crate) fn set_cookie(url: &str, cookie: &str) {
-    let cookie_jar = EMULATED_COOKIE_JAR.clone();
-    cookie_jar.add(cookie, url);
-}
-
-fn create_emulated_client() -> Client {
+fn create_emulated_client(with_proxy: bool) -> Client {
     let mut emulated_client_builder = Client::builder()
         .emulation(shuffle_profile())
         .gzip(true)
@@ -68,7 +151,9 @@ fn create_emulated_client() -> Client {
         .retry(Policy::default())
         .connection_verbose(true);
 
-    if let Ok(proxy_address) = env::var(PROXY_ADDRESS) {
+    if let Ok(proxy_address) = env::var(PROXY_ADDRESS)
+        && with_proxy
+    {
         debug!("Configuring proxy");
 
         emulated_client_builder = emulated_client_builder.proxy(Proxy::all(proxy_address).unwrap());
@@ -77,65 +162,4 @@ fn create_emulated_client() -> Client {
     emulated_client_builder
         .build()
         .expect("Valid base reqwest to be built")
-}
-
-pub(crate) async fn send_request(
-    request: Request,
-    // TODO: this messes with TLS/HTTP fingerprinting, remove this
-    http_sig_headers: Option<HeaderMap>,
-) -> Result<CrawlerResponse, CrawlerError> {
-    let client = EMULATED_CLIENT.get_or_init(|| create_emulated_client());
-
-    let mut request_builder = match request.method {
-        HttpMethod::GET => client.get(request.url.clone()),
-        HttpMethod::POST => client.post(request.url.clone()),
-    };
-
-    if let Some(json) = request.json {
-        request_builder = request_builder.json(&json);
-    }
-
-    if let Some(body) = request.body {
-        request_builder = request_builder.body(body);
-    }
-
-    if let Some(headers) = request.headers {
-        let mut header_map = HeaderMap::new();
-
-        for (key, value) in headers.iter() {
-            header_map.append(
-                HeaderName::from_str(key).unwrap(),
-                HeaderValue::from_str(value).unwrap(),
-            );
-        }
-
-        request_builder = request_builder.headers(header_map);
-    }
-
-    // TODO: this messes with TLS/HTTP fingerprinting, remove this
-    if let Some(sig_headers) = http_sig_headers {
-        request_builder = request_builder.headers(sig_headers);
-    }
-
-    let response = request_builder.send().await.unwrap();
-
-    debug!("{response:?}");
-
-    let status_code = response.status();
-
-    if status_code.is_client_error() && status_code != StatusCode::NOT_FOUND {
-        return Err(CrawlerError::InvalidResponseCodeError(status_code));
-    }
-
-    let headers = response.headers().clone();
-
-    let body_bytes = response.bytes().await.unwrap().to_vec();
-    let body_str = String::from_utf8_lossy(&body_bytes).into_owned();
-
-    Ok(CrawlerResponse {
-        body: body_str,
-        raw_bytes: body_bytes,
-        response_code: status_code,
-        headers,
-    })
 }

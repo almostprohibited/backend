@@ -1,3 +1,7 @@
+use common::{
+    domain_config::{ClientSettings, default::DEFAULT_SETTINGS},
+    string_utils::get_domain,
+};
 use serde_json::Value;
 
 use crate::traits::HttpMethod;
@@ -9,6 +13,7 @@ pub struct Request {
     pub(crate) json: Option<Value>,
     pub(crate) body: Option<String>,
     pub(crate) headers: Option<Vec<(String, String)>>,
+    client_settings: Option<ClientSettings>,
 }
 
 pub struct RequestBuilder {
@@ -24,10 +29,25 @@ impl Request {
         Request {
             method: HttpMethod::GET,
             url: Default::default(),
-            json: None,
-            body: None,
-            headers: None,
+            json: Default::default(),
+            body: Default::default(),
+            headers: Default::default(),
+            client_settings: Default::default(),
         }
+    }
+
+    pub fn get_client_settings(&self) -> ClientSettings {
+        if let Some(setting) = self.client_settings.clone() {
+            return setting;
+        }
+
+        let domain = get_domain(&self.url);
+
+        if let Some(setting) = DEFAULT_SETTINGS.get(&domain) {
+            return setting.clone();
+        }
+
+        Default::default()
     }
 }
 
@@ -70,6 +90,12 @@ impl RequestBuilder {
 
     pub fn set_headers(mut self, headers: &[(String, String)]) -> Self {
         self.request.headers = Some(headers.to_vec());
+
+        self
+    }
+
+    pub fn set_client_settings(mut self, settings: ClientSettings) -> Self {
+        self.request.client_settings = Some(settings);
 
         self
     }

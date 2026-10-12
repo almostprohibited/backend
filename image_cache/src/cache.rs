@@ -1,4 +1,9 @@
-use common::{image_cache::CachedImageObject, result::base::CrawlResult};
+use common::{
+    domain_config::{ClientSettings, images::IMAGE_SETTINGS},
+    image_cache::CachedImageObject,
+    result::base::CrawlResult,
+    string_utils::get_domain,
+};
 use crawler::{WebClient, errors::CrawlerError, request::RequestBuilder};
 use tracing::debug;
 
@@ -8,7 +13,16 @@ pub struct ImageCache {}
 
 impl ImageCache {
     async fn download_image(url: &str) -> Result<CachedImageObject, CrawlerError> {
-        let request = RequestBuilder::new().set_url(url).build();
+        let config = IMAGE_SETTINGS
+            .get(&get_domain(url))
+            .cloned()
+            .unwrap_or(ClientSettings::default());
+
+        let request = RequestBuilder::new()
+            .set_url(url)
+            .set_client_settings(config)
+            .build();
+
         let crawler = WebClient::make_web_request(request).await?;
 
         let mime_type = crawler
