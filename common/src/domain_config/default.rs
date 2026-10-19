@@ -41,6 +41,10 @@ pub static DEFAULT_SETTINGS: LazyLock<HashMap<String, ClientSettings>> = LazyLoc
                 .without_http_sigs(),
         ),
         (
+            "victoryridgesports.ca".into(), // canadian IP check
+            ClientSettings::default().with_proxy_type(ProxyType::Normal),
+        ),
+        (
             "reliablegun.com".into(), // we are blocked by user agent, no email response
             ClientSettings::default()
                 .with_proxy_type(ProxyType::Normal)
