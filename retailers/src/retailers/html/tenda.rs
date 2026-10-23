@@ -84,7 +84,7 @@ impl Retailer for Tenda {
     async fn init(&mut self) -> Result<(), RetailerError> {
         let cookie = get_sucuri_cookie(BASE_URL).await?;
 
-        WebClient::set_cookie(BASE_URL, &cookie);
+        WebClient::set_cookie(BASE_URL, &cookie).await;
 
         debug!("Using cookie: {cookie}");
 

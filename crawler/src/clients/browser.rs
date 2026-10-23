@@ -1,88 +1,205 @@
-// https://commondatastorage.googleapis.com/chromium-browser-snapshots/index.html?prefix=Linux_x64/
-// https://commondatastorage.googleapis.com/chromium-browser-snapshots/index.html?prefix=Linux_ARM_Cross-Compile/
-// https://storage.googleapis.com/chromium-browser-snapshots/Linux_x64/1711941/chrome-linux.zip
-// https://storage.googleapis.com/chrome-for-testing-public/Linux_x64/1711941/chrome-linux.zip
+// https://googlechromelabs.github.io/chrome-for-testing/
+// https://storage.googleapis.com/chrome-for-testing-public/154.0.8037.92/linux64/chrome-linux64.zip
 
-mod test {
-    use std::time::Duration;
+use std::{env, time::Duration};
 
-    use chromiumoxide::{
-        Browser, BrowserConfig, cdp::browser_protocol::page::CaptureScreenshotFormat,
-        page::ScreenshotParams,
-    };
-    use futures::StreamExt;
-    use tokio::time::{MissedTickBehavior, interval};
+use async_trait::async_trait;
+use chromiumoxide::{
+    Browser, BrowserConfig, Page,
+    cdp::browser_protocol::network::{
+        CookieParamBuilder, EventResponseReceived, Headers, ResourceType,
+    },
+};
+use common::{constants::CHROME_PATH, string_utils::get_domain};
+use futures::StreamExt;
+use reqwest::{StatusCode, header::HeaderMap};
+use tokio::{
+    sync::{RwLock, RwLockReadGuard},
+    task::JoinHandle,
+    time::timeout,
+};
+use tracing::debug;
 
-    #[tokio::test]
-    async fn test_browser() {
-        println!("starting chrome");
-        let (mut browser, mut handler) = Browser::launch(
-            BrowserConfig::builder()
-                // .chrome_executable("/home/lucas/project-carbon/backend/chrome/chrome-linux/chrome")
-                .chrome_executable("/home/lucas/project-carbon/backend/chrome/chrome-154/chrome")
-                .with_head()
-                .hide()
-                .window_size(1680, 1050)
-                .viewport(None)
-                .disable_default_args()
-                .arg("no-first-run")
-                .arg(("lang", "en_US"))
-                // .headless_mode(HeadlessMode::New)
-                .build()
-                .unwrap(),
-        )
-        .await
-        .unwrap();
+use crate::{
+    constants::PAGE_TIMEOUT_SECONDS,
+    errors::CrawlerError,
+    request::Request,
+    traits::{Client, CrawlerResponse},
+};
 
-        let handle = tokio::spawn(async move {
-            while let Some(h) = handler.next().await {
-                if h.is_err() {
-                    break;
-                }
-            }
-        });
+struct BrowserProps {
+    browser: Browser,
+    cdp_handler: JoinHandle<()>,
+}
 
-        println!("loading page");
-        let page = browser.new_page("about:blank").await.unwrap();
-        // page.enable_stealth_mode_with_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36").await.unwrap();
+static BROWSER: RwLock<Option<BrowserProps>> = RwLock::const_new(None);
 
-        page.goto("https://latulippe.com/en/catalog/shooting/hunting-rifles/")
-            .await
-            .unwrap();
+async fn initialize_browser() -> BrowserProps {
+    debug!("Starting browser");
 
-        page.wait_for_navigation().await.unwrap();
-
-        println!("save page");
-        // page.save_screenshot(
-        //     ScreenshotParams::builder()
-        //         .format(CaptureScreenshotFormat::Png)
-        //         .full_page(true)
-        //         .omit_background(false)
-        //         .build(),
-        //     "/home/lucas/project-carbon/backend/chrome/output5.png",
-        // )
-        // .await
-        // .unwrap();
-        let out_dir = "/home/lucas/project-carbon/backend/chrome/frames";
-        tokio::fs::create_dir_all(out_dir).await.unwrap();
-
-        let mut tick = interval(Duration::from_secs(1));
-        tick.set_missed_tick_behavior(MissedTickBehavior::Skip);
-
-        for i in 0..10 {
-            tick.tick().await;
-            page.save_screenshot(
-                ScreenshotParams::builder()
-                    .format(CaptureScreenshotFormat::Png)
-                    .build(),
-                format!("{out_dir}/frame_{i:04}.png"),
+    let (browser, mut cdp_handler) = Browser::launch(
+        BrowserConfig::builder()
+            .chrome_executable(
+                env::var(format!("{CHROME_PATH}")).expect(&format!("Missing {CHROME_PATH}")),
             )
-            .await
-            .unwrap();
+            .with_head()
+            .hide()
+            .window_size(1680, 1050)
+            .viewport(None)
+            .disable_default_args()
+            .arg("no-first-run")
+            .arg(("lang", "en_US"))
+            .build()
+            .unwrap(),
+    )
+    .await
+    .unwrap();
+
+    let handler_thread = tokio::spawn(async move {
+        debug!("Starting poller");
+
+        while let Some(command) = cdp_handler.next().await {
+            if command.is_err() {
+                break;
+            }
+        }
+    });
+
+    BrowserProps {
+        browser,
+        cdp_handler: handler_thread,
+    }
+}
+
+async fn get_browser() -> RwLockReadGuard<'static, Browser> {
+    loop {
+        if let Ok(browser) = RwLockReadGuard::try_map(BROWSER.read().await, |result| {
+            result.as_ref().map(|props| &props.browser)
+        }) {
+            return browser;
         }
 
-        println!("killing");
-        browser.close().await.unwrap();
-        handle.await.unwrap();
+        let mut write_lock = BROWSER.write().await;
+
+        if write_lock.is_none() {
+            *write_lock = Some(initialize_browser().await);
+        }
+    }
+}
+
+pub(crate) struct BrowserClient {}
+
+#[async_trait]
+impl Client for BrowserClient {
+    async fn set_cookie(&self, url: &str, cookie: &str) {
+        let cookie = CookieParamBuilder::default()
+            .domain(url)
+            .value(cookie)
+            .build()
+            .unwrap();
+
+        let _ = get_browser().await.set_cookies(vec![cookie]).await;
+    }
+
+    async fn send_request(&self, request: Request) -> Result<CrawlerResponse, CrawlerError> {
+        debug!("Create tab for {}", request.url);
+
+        let page = get_browser().await.new_page("about:blank").await.unwrap();
+
+        debug!("Register listener for {}", request.url);
+        let document_watcher = self.register_page_watcher(&page, &request.url).await;
+
+        debug!("Sending browser request for {}", request.url);
+        page.goto(request.url.clone()).await.unwrap();
+
+        debug!("Waiting for response {}", request.url);
+        let response_metadata = document_watcher.await.unwrap().unwrap().inner().clone();
+
+        let response_nav = page.wait_for_navigation_response().await.unwrap().unwrap();
+        let status_code = response_nav.response.clone().unwrap().status as u16;
+
+        debug!("{:?}", response_metadata);
+
+        let response = page.content().await.unwrap();
+        let response_bytes = page.content_bytes().await.unwrap();
+
+        debug!("Kill tab: {}", request.url);
+        let _ = page.close().await;
+
+        Ok(CrawlerResponse {
+            body: response,
+            raw_bytes: response_bytes.to_vec(),
+            response_code: StatusCode::from_u16(status_code).unwrap(),
+            headers: HeaderMap::default(),
+        })
+    }
+}
+
+impl BrowserClient {
+    pub async fn kill_browser() {
+        let Some(mut props) = BROWSER.write().await.take() else {
+            return;
+        };
+
+        // "This method is provided to help if the browser does not close by itself. You should prefer to use Browser::close."
+        // I will proceed to ignore this advice, thanks
+        props.browser.kill().await;
+
+        let _ = props.cdp_handler.await;
+    }
+
+    async fn register_page_watcher(&self, page: &Page, url: &str) -> JoinHandle<Option<Headers>> {
+        let domain = get_domain(url);
+        let url = url.to_string();
+
+        let mut events = page
+            .event_listener::<EventResponseReceived>()
+            .await
+            .unwrap();
+
+        tokio::spawn(async move {
+            debug!("Starting task spawn {url}");
+
+            let result = timeout(Duration::from_secs(PAGE_TIMEOUT_SECONDS), async move {
+                while let Some(event) = events.next().await {
+                    let conditions: Vec<bool> = vec![
+                        event.r#type == ResourceType::Document,
+                        event.response.status >= 200,
+                        event.response.status < 300,
+                        event.response.url.contains(&domain),
+                        event
+                            .response
+                            .headers
+                            .inner()
+                            .get("content-type")
+                            .unwrap_or_default()
+                            .to_string()
+                            .contains("text/html"),
+                    ];
+
+                    if event.r#type == ResourceType::Document {
+                        debug!(
+                            "[{:?}]: {}\n{} {:?}",
+                            event.r#type,
+                            event.response.url,
+                            event.response.status,
+                            event.response.headers.inner()
+                        );
+                    }
+
+                    if conditions.iter().all(|cond| *cond) {
+                        debug!("{url} loaded");
+                        return Some(event.response.headers.clone());
+                    }
+                }
+
+                debug!("{url} timed out");
+
+                None
+            })
+            .await;
+
+            result.unwrap_or_default()
+        })
     }
 }

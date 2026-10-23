@@ -37,7 +37,7 @@ pub(crate) struct EmulatedClient {}
 
 #[async_trait]
 impl InternalClient for EmulatedClient {
-    fn set_cookie(&self, url: &str, cookie: &str) {
+    async fn set_cookie(&self, url: &str, cookie: &str) {
         let cookie_jar = EMULATED_COOKIE_JAR.clone();
         cookie_jar.add(cookie, url);
     }

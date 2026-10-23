@@ -92,6 +92,9 @@ pub(super) struct JavascriptJsonProducts {
     pub(super) in_stock_attributes: Vec<u64>,
 }
 
+// TODO: I'm lazy and just wanted to get rid
+// of build warnings - remove this
+#[allow(dead_code)]
 pub(crate) struct SitemapEntry {
     pub(crate) name: String,
     pub(crate) part: String,

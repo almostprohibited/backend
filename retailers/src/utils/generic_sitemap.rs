@@ -1,12 +1,19 @@
+use common::domain_config::{ClientSettings, ClientType};
 use crawler::{WebClient, request::RequestBuilder};
 use scraper::{Html, Selector};
 
 use crate::{errors::RetailerError, structures::HtmlSearchQuery, utils::html::element_to_text};
 
+// TODO: I'm lazy and just wanted to get rid
+// of build warnings - remove this
+#[allow(dead_code)]
 pub(crate) async fn get_nested_sitemap_urls(
     sitemap_url: &str,
 ) -> Result<Vec<String>, RetailerError> {
-    let request = RequestBuilder::new().set_url(sitemap_url).build();
+    let request = RequestBuilder::new()
+        .set_url(sitemap_url)
+        .set_client_settings(ClientSettings::default().with_client_type(ClientType::Normal))
+        .build();
     let response = WebClient::make_web_request(request).await?;
 
     let sitemap = Html::parse_fragment(&response.body);
@@ -31,7 +38,10 @@ pub(crate) async fn get_search_queries<T: Fn(String) -> Option<HtmlSearchQuery>>
     product_url_base: &str,
     filter_map_method: T,
 ) -> Result<Vec<HtmlSearchQuery>, RetailerError> {
-    let request = RequestBuilder::new().set_url(sitemap_url).build();
+    let request = RequestBuilder::new()
+        .set_url(sitemap_url)
+        .set_client_settings(ClientSettings::default().with_client_type(ClientType::Normal))
+        .build();
     let response = WebClient::make_web_request(request).await?;
 
     let mut base_url = product_url_base.to_string();

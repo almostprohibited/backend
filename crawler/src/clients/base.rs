@@ -36,7 +36,7 @@ pub(crate) struct BaseClient;
 
 #[async_trait]
 impl Client for BaseClient {
-    fn set_cookie(&self, url: &str, cookie: &str) {
+    async fn set_cookie(&self, url: &str, cookie: &str) {
         let cookie_jar = COOKIE_JAR.clone();
         cookie_jar.add_cookie_str(cookie, &Url::from_str(url).unwrap());
     }

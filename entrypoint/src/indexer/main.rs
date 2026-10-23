@@ -1,5 +1,6 @@
 use clap::Parser;
 use common::result::enums::RetailerName;
+use crawler::WebClient;
 use discord::get_indexer_webhook;
 use metrics::{configure_metrics, shutdown_metrics};
 use mongodb_connector::connector::MongoDBConnector;
@@ -77,4 +78,6 @@ async fn main() {
     webhook.update_main_message().await;
 
     shutdown_metrics();
+
+    WebClient::kill_clients().await;
 }

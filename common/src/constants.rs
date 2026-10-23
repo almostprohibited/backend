@@ -22,3 +22,5 @@ pub const CRAWL_COOLDOWN_SECS: u64 = 10;
 pub const TOKEN_COOKIE_TTL_SECS: u64 = 60 * 60 * 24 * 7;
 
 pub const SESSION_TOKEN_LENGTH: u64 = 32;
+
+pub const CHROME_PATH: &str = "CHROME_PATH";

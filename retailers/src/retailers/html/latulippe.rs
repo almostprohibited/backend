@@ -3,10 +3,7 @@ use common::result::{
     base::{CrawlResult, Price},
     enums::{Category, RetailerName},
 };
-use crawler::{
-    WebClient,
-    request::{Request, RequestBuilder},
-};
+use crawler::request::{Request, RequestBuilder};
 use scraper::{ElementRef, Html, Selector};
 use tracing::{debug, info};
 
@@ -18,12 +15,10 @@ use crate::{
         generic_sitemap::get_search_queries,
         helpers::clean_url,
         html::{element_extract_attr, element_to_text, extract_element_from_element},
-        sucuri_cookie::get_sucuri_cookie,
     },
 };
 
 const SITE_MAP: &str = "https://latulippe.com/Content/SiteMap/sitemap.xml";
-const BASE_URL: &str = "https://latulippe.com/en/";
 const URL: &str = "https://latulippe.com/en/{category}/?page={page}";
 
 pub struct Latulippe {
@@ -53,12 +48,6 @@ impl Retailer for Latulippe {
     }
 
     async fn init(&mut self) -> Result<(), RetailerError> {
-        let cookie = get_sucuri_cookie(BASE_URL).await?;
-
-        WebClient::set_cookie(BASE_URL, &cookie);
-
-        debug!("Using cookie: {cookie}");
-
         // not using constant for domain here since
         // their antibot logic works kinda weird and
         // treats subdomains different

@@ -10,6 +10,9 @@ use crate::{
     },
 };
 
+// TODO: I'm lazy and just wanted to get rid
+// of build warnings - remove this
+#[allow(dead_code)]
 pub(crate) trait BigCommerceSitemap {
     async fn get_search_terms<T: Fn(SitemapEntry) -> Option<HtmlSearchQuery>>(
         base_url: impl Into<String>,

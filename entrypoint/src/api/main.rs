@@ -3,6 +3,7 @@ use axum::{
     routing::{delete, get, post},
 };
 use common::utils::is_beta_environment;
+use crawler::WebClient;
 use metrics::{configure_metrics, shutdown_metrics};
 use mongodb_connector::connector::MongoDBConnector;
 use service_layers::build_service_layers;
@@ -173,13 +174,19 @@ async fn main() {
         .unwrap();
 
     shutdown_metrics();
+
+    WebClient::kill_clients().await;
 }
 
 async fn shutdown_signal() {
     select! {
-        _ = async {ctrl_c().await.unwrap()} => {},
+        _ = async {ctrl_c().await.unwrap()} => {
+            WebClient::kill_clients().await
+        },
 
         // sorry Windows people, not dealing with windows related sigs
-        _ = async {unix::signal(SignalKind::terminate()).unwrap().recv().await} => {},
+        _ = async {unix::signal(SignalKind::terminate()).unwrap().recv().await} => {
+            WebClient::kill_clients().await
+        },
     };
 }

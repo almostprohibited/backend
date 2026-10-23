@@ -50,4 +50,5 @@ pub enum ClientType {
     #[default]
     Normal,
     Emulated,
+    Browser,
 }
