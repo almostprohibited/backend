@@ -1,5 +1,6 @@
 // https://googlechromelabs.github.io/chrome-for-testing/
 // https://storage.googleapis.com/chrome-for-testing-public/154.0.8037.92/linux64/chrome-linux64.zip
+// https://storage.googleapis.com/chrome-for-testing-public/154.0.8037.92/linux-arm64/chrome-linux-arm64.zip
 
 use std::{env, time::Duration};
 
