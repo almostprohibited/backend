@@ -22,6 +22,7 @@ use crate::{
 
 const SITEMAP: &str = "https://magdump.ca/sitemap";
 const URL: &str = "https://magdump.ca/{category}?from-xhr&page={page}";
+const DELAY: u64 = 30;
 
 #[derive(Deserialize)]
 struct Response {
@@ -190,6 +191,10 @@ impl Retailer for MagDump {
 
     fn get_retailer_name(&self) -> RetailerName {
         RetailerName::MagDump
+    }
+
+    fn sleep_override(&self) -> Option<u64> {
+        Some(DELAY)
     }
 }
 
