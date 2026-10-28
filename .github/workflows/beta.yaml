@@ -21,14 +21,15 @@ jobs:
     if: github.repository == 'almostprohibited/backend'
     steps:
       - uses: actions/checkout@v6
-      - name: Package
-        parallel:
-          - uses: ./.github/actions/package-api
+      - parallel:
+          - name: Package API
+            uses: ./.github/actions/package-api
             with:
               artifact-id: ${{ steps.build.outputs.artifact-id }}
               github-token: ${{ secrets.GITHUB_TOKEN }}
               deployment-stage: ${{ env.STAGE }}
-          - uses: ./.github/actions/package-chrome
+          - name: Package Chrome
+            uses: ./.github/actions/package-chrome
             with:
               github-token: ${{ secrets.GITHUB_TOKEN }}
   deploy:
