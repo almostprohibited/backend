@@ -1,0 +1,49 @@
+name: Package Chrome
+
+inputs:
+  github-token:
+    type: string
+    required: true
+    description: "Github Actions token"
+
+runs:
+  using: composite
+  steps:
+    # this is not a typo, first checkout checkouts this backend repo
+    # the other checkout grabs the toolbox package
+    - uses: actions/checkout@v6
+    - uses: actions/checkout@v6
+      with:
+        repository: almostprohibited/toolbox
+        ref: main
+        path: ./.toolbox
+    - name: Build Chrome Docker image
+      env:
+        BUILDX_NO_DEFAULT_ATTESTATIONS: 1
+      run: |
+        set -ueo pipefail
+
+        docker run --privileged --rm tonistiigi/binfmt --install arm64
+
+        cd ./.toolbox/backend/dockerfiles/chrome
+
+        docker build \
+          --pull \
+          --no-cache \
+          --platform=linux/arm64 \
+          -f Dockerfile-backend-chrome.dockerfile \
+          -t ghcr.io/almostprohibited/backend-chrome:latest \
+          .
+
+        echo ${{ inputs.github-token }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+        docker push ghcr.io/almostprohibited/backend-chrome:latest
+      shell: bash
+    - name: Clean old chrome package versions
+      uses: actions/delete-package-versions@v5
+      with:
+        owner: almostprohibited
+        package-name: backend-chrome
+        package-type: container
+        min-versions-to-keep: 1
+        delete-only-untagged-versions: true

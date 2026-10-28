@@ -1,4 +1,4 @@
-name: Package
+name: Package Indexer
 
 inputs:
   github-token:
@@ -32,39 +32,17 @@ runs:
         artifact-ids: ${{ inputs.artifact-id }}
         path: ./.download
     - run: |
-        mv ./.download/* ./.toolbox/backend/
+        mv ./.download/* ./.toolbox/backend/dockerfiles/indexer
 
         docker run --privileged --rm tonistiigi/binfmt --install arm64
       shell: bash
-    - name: Build API Docker image
-      env:
-        BUILDX_NO_DEFAULT_ATTESTATIONS: 1
-      run: |
-        set -ueo pipefail
-
-        cd ./.toolbox/backend/
-
-        docker build \
-          --pull \
-          --no-cache \
-          --build-arg API_BINARY_NAME=api \
-          --platform=linux/arm64 \
-          -f Dockerfile-backend-web.dockerfile \
-          -t ghcr.io/almostprohibited/backend-web:${{ inputs.deployment-stage }} \
-          .
-
-        echo ${{ inputs.github-token }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
-        docker push ghcr.io/almostprohibited/backend-web:${{ inputs.deployment-stage }}
-      shell: bash
     - name: Build indexer Docker image
-      if: inputs.deployment-stage == 'release'
       env:
         BUILDX_NO_DEFAULT_ATTESTATIONS: 1
       run: |
         set -ueo pipefail
 
-        cd ./.toolbox/backend/
+        cd ./.toolbox/backend/dockerfiles/indexer
 
         docker build \
           --pull \
@@ -79,14 +57,6 @@ runs:
 
         docker push ghcr.io/almostprohibited/backend-indexer:${{ inputs.deployment-stage }}
       shell: bash
-    - name: Clean old API package versions
-      uses: actions/delete-package-versions@v5
-      with:
-        owner: almostprohibited
-        package-name: backend-web
-        package-type: container
-        min-versions-to-keep: 1
-        delete-only-untagged-versions: true
     - name: Clean old indexer package versions
       uses: actions/delete-package-versions@v5
       with:

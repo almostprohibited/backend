@@ -6,12 +6,12 @@ use std::{env, time::Duration};
 
 use async_trait::async_trait;
 use chromiumoxide::{
-    Browser, BrowserConfig, Page,
+    Browser, Page,
     cdp::browser_protocol::network::{
         CookieParamBuilder, EventResponseReceived, Headers, ResourceType,
     },
 };
-use common::{constants::CHROME_PATH, string_utils::get_domain};
+use common::{constants::CHROME_URL, string_utils::get_domain};
 use futures::StreamExt;
 use reqwest::{StatusCode, header::HeaderMap};
 use tokio::{
@@ -38,20 +38,8 @@ static BROWSER: RwLock<Option<BrowserProps>> = RwLock::const_new(None);
 async fn initialize_browser() -> BrowserProps {
     debug!("Starting browser");
 
-    let (browser, mut cdp_handler) = Browser::launch(
-        BrowserConfig::builder()
-            .chrome_executable(
-                env::var(format!("{CHROME_PATH}")).expect(&format!("Missing {CHROME_PATH}")),
-            )
-            .with_head()
-            .hide()
-            .window_size(1680, 1050)
-            .viewport(None)
-            .disable_default_args()
-            .arg("no-first-run")
-            .arg(("lang", "en_US"))
-            .build()
-            .unwrap(),
+    let (browser, mut cdp_handler) = Browser::connect(
+        env::var(format!("{CHROME_URL}")).expect(&format!("Missing {CHROME_URL}")),
     )
     .await
     .unwrap();
@@ -138,15 +126,11 @@ impl Client for BrowserClient {
 
 impl BrowserClient {
     pub async fn kill_browser() {
-        let Some(mut props) = BROWSER.write().await.take() else {
+        let Some(props) = BROWSER.write().await.take() else {
             return;
         };
 
-        // "This method is provided to help if the browser does not close by itself. You should prefer to use Browser::close."
-        // I will proceed to ignore this advice, thanks
-        props.browser.kill().await;
-
-        let _ = props.cdp_handler.await;
+        props.cdp_handler.abort();
     }
 
     async fn register_page_watcher(&self, page: &Page, url: &str) -> JoinHandle<Option<Headers>> {

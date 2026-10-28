@@ -35,21 +35,6 @@ runs:
     - name: Login to ghcr.io
       run: echo ${{ inputs.github-token }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       shell: bash
-    - name: Download Chrome
-      env:
-        VOLUME_PATH: ${{ inputs.docker-volume-path }}
-      run: |
-        set -ueo pipefail
-
-        if [ ! -d $VOLUME_PATH/chrome ]; then
-          mkdir -p $VOLUME_PATH/chrome
-          cd $VOLUME_PATH/chrome
-
-          curl https://storage.googleapis.com/chrome-for-testing-public/154.0.8037.92/linux-arm64/chrome-linux-arm64.zip -o chrome.zip
-          unzip chrome.zip -d 154
-          rm chrome.zip
-        fi
-      shell: bash
     - name: Update and deploy MongoDB
       if: inputs.deployment-stage == 'release'
       env:
@@ -83,9 +68,9 @@ runs:
           echo "${{ inputs.env-file }}" > ${{ inputs.docker-volume-path }}/.env.release
         fi
 
-        docker compose -f docker-compose.yaml pull backend-${{ inputs.deployment-stage }}
-        docker compose -f docker-compose.yaml down backend-${{ inputs.deployment-stage }}
-        docker compose -f docker-compose.yaml up -d backend-${{ inputs.deployment-stage }}
+        docker compose -f docker-compose.yaml pull backend-${{ inputs.deployment-stage }} backend-chrome-${{ inputs.deployment-stage }}
+        docker compose -f docker-compose.yaml down backend-${{ inputs.deployment-stage }} backend-chrome-${{ inputs.deployment-stage }}
+        docker compose -f docker-compose.yaml up -d backend-${{ inputs.deployment-stage }} backend-chrome-${{ inputs.deployment-stage }}
       shell: bash
     - name: Update and deploy backend indexer
       if: inputs.deployment-stage == 'release'
