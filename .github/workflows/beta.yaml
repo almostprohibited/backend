@@ -15,25 +15,30 @@ jobs:
       - uses: actions/checkout@v6
       - name: Build
         uses: ./.github/actions/build
-  package:
+  package-api:
+    needs: [build]
+    runs-on: ubuntu-24.04-arm
+    if: github.repository == 'almostprohibited/backend'
+    steps:
+      - uses: actions/checkout@v6
+      - name: Package API
+        uses: ./.github/actions/package-api
+        with:
+          artifact-id: ${{ steps.build.outputs.artifact-id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          deployment-stage: ${{ env.STAGE }}
+  package-chrome:
     needs: [build]
     runs-on: ubuntu-latest
     if: github.repository == 'almostprohibited/backend'
     steps:
       - uses: actions/checkout@v6
-      - parallel:
-          - name: Package API
-            uses: ./.github/actions/package-api
-            with:
-              artifact-id: ${{ steps.build.outputs.artifact-id }}
-              github-token: ${{ secrets.GITHUB_TOKEN }}
-              deployment-stage: ${{ env.STAGE }}
-          - name: Package Chrome
-            uses: ./.github/actions/package-chrome
-            with:
-              github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Package Chrome
+        uses: ./.github/actions/package-chrome
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
   deploy:
-    needs: [package]
+    needs: [package-api, package-chrome]
     runs-on: self-hosted
     if: github.repository == 'almostprohibited/backend'
     steps:

@@ -9,9 +9,6 @@ inputs:
 runs:
   using: composite
   steps:
-    # this is not a typo, first checkout checkouts this backend repo
-    # the other checkout grabs the toolbox package
-    - uses: actions/checkout@v6
     - uses: actions/checkout@v6
       with:
         repository: almostprohibited/toolbox
