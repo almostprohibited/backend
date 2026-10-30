@@ -23,14 +23,12 @@ runs:
       run: |
         set -ueo pipefail
 
-        docker run --privileged --rm tonistiigi/binfmt --install arm64
-
         cd ./.toolbox/backend/dockerfiles/chrome
 
         docker build \
           --pull \
           --no-cache \
-          --platform=linux/arm64 \
+          --platform=linux/amd64 \
           -f Dockerfile-backend-chrome.dockerfile \
           -t ghcr.io/almostprohibited/backend-chrome:latest \
           .
