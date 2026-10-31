@@ -25,15 +25,17 @@ const VALID_IMAGE_ATTRS: [&str; 5] = [
     // "data-src-webp", // odd that someone not have -img, but will have -webp
 ];
 
-const DEFAULT_PRODUCT_NAME_SELECTORS: [&str; 3] = [
+const DEFAULT_PRODUCT_NAME_SELECTORS: [&str; 4] = [
     "div.product-element-bottom > h3 > a",
     "a.woocommerce-LoopProduct-link > h2.woocommerce-loop-product__title",
     "h2.woocommerce-loop-product__title > a.woocommerce-LoopProduct-link",
+    "div.product-content > a.product-loop-title",
 ];
 
-const DEFAULT_PRODUCT_URL_SELECTORS: [&str; 2] = [
+const DEFAULT_PRODUCT_URL_SELECTORS: [&str; 3] = [
     "div.product-element-bottom > h3 > a",
     "a.woocommerce-LoopProduct-link",
+    "div.product-content > a.product-loop-title",
 ];
 
 const DEFAULT_IMAGE_URL_SELECTORS: [&str; 3] = [

@@ -98,6 +98,8 @@ pub enum RetailerName {
     NorthernElite,
     WildWest,
     GoBigTactical,
+    NorthProSports,
+    TigerArms,
 }
 
 impl RetailerName {
