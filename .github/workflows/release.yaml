@@ -32,6 +32,7 @@ jobs:
     runs-on: ubuntu-24.04-arm
     if: github.repository == 'almostprohibited/backend'
     steps:
+      - uses: actions/checkout@v6
       - name: Package indexer
         uses: ./.github/actions/package-indexer
         with:
