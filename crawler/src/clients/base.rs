@@ -36,9 +36,11 @@ pub(crate) struct BaseClient;
 
 #[async_trait]
 impl Client for BaseClient {
-    async fn set_cookie(&self, url: &str, cookie: &str) {
+    async fn set_cookie(&self, url: &str, cookie: &str) -> Result<(), CrawlerError> {
         let cookie_jar = COOKIE_JAR.clone();
         cookie_jar.add_cookie_str(cookie, &Url::from_str(url).unwrap());
+
+        Ok(())
     }
 
     async fn send_request(&self, request: Request) -> Result<CrawlerResponse, CrawlerError> {

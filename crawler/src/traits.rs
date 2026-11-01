@@ -18,6 +18,6 @@ pub struct CrawlerResponse {
 
 #[async_trait]
 pub(crate) trait Client {
-    async fn set_cookie(&self, url: &str, cookie: &str);
+    async fn set_cookie(&self, url: &str, cookie: &str) -> Result<(), CrawlerError>;
     async fn send_request(&self, request: Request) -> Result<CrawlerResponse, CrawlerError>;
 }

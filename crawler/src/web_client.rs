@@ -17,15 +17,14 @@ pub struct WebClient {}
 impl WebClient {
     // TODO: refactor this, it won't respect client settings
     // correctly (eg. caller cannot define client used)
-    pub async fn set_cookie(url: &str, cookie: &str) {
+    pub async fn set_cookie(url: &str, cookie: &str) -> Result<(), CrawlerError> {
         let domain = get_domain(url);
 
         let Some(settings) = DEFAULT_SETTINGS.get(&domain) else {
-            BaseClient {}.set_cookie(url, cookie).await;
-            return;
+            return BaseClient {}.set_cookie(url, cookie).await;
         };
 
-        Self::get_client(settings).set_cookie(url, cookie).await;
+        Self::get_client(settings).set_cookie(url, cookie).await
     }
 
     pub async fn make_web_request(request: Request) -> Result<CrawlerResponse, CrawlerError> {

@@ -37,9 +37,11 @@ pub(crate) struct EmulatedClient {}
 
 #[async_trait]
 impl InternalClient for EmulatedClient {
-    async fn set_cookie(&self, url: &str, cookie: &str) {
+    async fn set_cookie(&self, url: &str, cookie: &str) -> Result<(), CrawlerError> {
         let cookie_jar = EMULATED_COOKIE_JAR.clone();
         cookie_jar.add(cookie, url);
+
+        Ok(())
     }
 
     async fn send_request(&self, request: Request) -> Result<CrawlerResponse, CrawlerError> {
