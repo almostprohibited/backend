@@ -20,7 +20,7 @@ use crate::{
 static PATTERNS: LazyLock<Vec<Regex>> = LazyLock::new(|| {
     vec![
         Regex::new(
-            r"(?i)(?:box)/(\d+)\b",
+            r"(?i)(?:box/|qty: )(\d+)\b",
         )
         .expect("Ammo count regex to compile"),
         Regex::new(r"(?i)(?:box|case|pack|tin|brick|can|pk|bottle|bulk) of (\d+)")
@@ -192,6 +192,10 @@ mod test {
         20
     )]
     #[case("Winchester USA 9MM Luger, 115 Gr FMJ / 500 Rds WINQ4172CASE", 500)]
+    #[case(
+        "Hornady LEVERevolution Ammunition: 308 Marlin Express, 160 Grain, FTX, 2660 fps, Qty: 20 | 82733",
+        20
+    )]
     fn test_capture(#[case] name: &str, #[case] expected_count: u64) {
         let result = CrawlResult::get_ammo_metadata(name);
 

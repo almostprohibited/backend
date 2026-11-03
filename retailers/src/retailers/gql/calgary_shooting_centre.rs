@@ -97,7 +97,9 @@ impl GqlRetailer for CalgaryShootingCentre {
         )?;
 
         products.iter_mut().for_each(|product| {
-            if product.category == Category::Ammunition {
+            if product.category == Category::Ammunition
+                && !product.name.to_lowercase().contains("qty: ")
+            {
                 product.update_name(&format!("{}rds", product.name));
             }
         });
