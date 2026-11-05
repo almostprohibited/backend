@@ -61,7 +61,7 @@ pub static DEFAULT_SETTINGS: LazyLock<HashMap<String, ClientSettings>> = LazyLoc
         (
             "latulippe.com".into(), // cloudflare bot checks
             ClientSettings::default()
-                .with_client_type(ClientType::Emulated)
+                .with_client_type(ClientType::Browser)
                 .without_http_sigs(),
         ),
         (
