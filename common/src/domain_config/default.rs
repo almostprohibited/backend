@@ -72,38 +72,23 @@ pub static DEFAULT_SETTINGS: LazyLock<HashMap<String, ClientSettings>> = LazyLoc
         ),
         (
             "aagcanada.ca".into(), // shopify
-            ClientSettings::default()
-                .with_proxy_type(ProxyType::Normal)
-                .with_client_type(ClientType::Emulated)
-                .without_http_sigs(),
+            ClientSettings::default().with_proxy_type(ProxyType::Normal),
         ),
         (
             "fishingworldgc.ca".into(), // shopify
-            ClientSettings::default()
-                .with_proxy_type(ProxyType::Normal)
-                .with_client_type(ClientType::Emulated)
-                .without_http_sigs(),
+            ClientSettings::default().with_proxy_type(ProxyType::Normal),
         ),
         (
             "uxbridgearms.com".into(), // shopify
-            ClientSettings::default()
-                .with_proxy_type(ProxyType::Normal)
-                .with_client_type(ClientType::Emulated)
-                .without_http_sigs(),
+            ClientSettings::default().with_proxy_type(ProxyType::Normal),
         ),
         (
             "crafm.com".into(), // shopify
-            ClientSettings::default()
-                .with_proxy_type(ProxyType::Normal)
-                .with_client_type(ClientType::Emulated)
-                .without_http_sigs(),
+            ClientSettings::default().with_proxy_type(ProxyType::Normal),
         ),
         (
             "intersurplus.com".into(), // shopify
-            ClientSettings::default()
-                .with_proxy_type(ProxyType::Normal)
-                .with_client_type(ClientType::Emulated)
-                .without_http_sigs(),
+            ClientSettings::default().with_proxy_type(ProxyType::Normal),
         ),
     ])
 });
