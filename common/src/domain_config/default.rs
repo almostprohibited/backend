@@ -8,10 +8,6 @@ pub static DEFAULT_SETTINGS: LazyLock<HashMap<String, ClientSettings>> = LazyLoc
             "italiansportinggoods.com".into(), // canadian IP check
             ClientSettings::default().with_proxy_type(ProxyType::Normal),
         ),
-        // (
-        //     "x-reload.com".into(), // canadian IP check
-        //     ClientSettings::default().with_proxy_type(ProxyType::Normal),
-        // ),
         (
             "dantesports.com".into(), // canadian IP check
             ClientSettings::default().with_proxy_type(ProxyType::Normal),
@@ -60,12 +56,6 @@ pub static DEFAULT_SETTINGS: LazyLock<HashMap<String, ClientSettings>> = LazyLoc
         ),
         (
             "latulippe.com".into(), // cloudflare bot checks
-            ClientSettings::default()
-                .with_client_type(ClientType::Browser)
-                .without_http_sigs(),
-        ),
-        (
-            "partsonly.ca".into(), // cloudflare bot checks
             ClientSettings::default()
                 .with_client_type(ClientType::Browser)
                 .without_http_sigs(),

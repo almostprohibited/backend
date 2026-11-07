@@ -17,12 +17,12 @@ use reqwest::{StatusCode, header::HeaderMap};
 use tokio::{
     sync::{RwLock, RwLockReadGuard},
     task::JoinHandle,
-    time::timeout,
+    time::{sleep, timeout},
 };
 use tracing::{debug, warn};
 
 use crate::{
-    constants::PAGE_TIMEOUT_SECONDS,
+    constants::{PAGE_MAX_SECS_BACKOFF, PAGE_TIMEOUT_SECONDS},
     errors::CrawlerError,
     request::Request,
     traits::{Client, CrawlerResponse},
@@ -96,9 +96,19 @@ impl Client for BrowserClient {
 
         let page = get_browser().await?.new_page("about:blank").await?;
 
-        let result = self.send_request_inner(&page, &request).await;
+        let result = match self.send_request_inner(&page, &request).await {
+            Ok(res) => Ok(res),
+            Err(err) if err.is_browser_retryable() => {
+                debug!("Retrying browser request {}", request.url);
+
+                sleep(Duration::from_secs(PAGE_MAX_SECS_BACKOFF)).await;
+                self.send_request_inner(&page, &request).await
+            }
+            Err(err) => Err(err),
+        };
 
         debug!("Kill tab: {}", request.url);
+
         if let Err(err) = page.close().await {
             warn!("Failed to close tab: {}", err);
         }

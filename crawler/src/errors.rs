@@ -40,3 +40,14 @@ impl From<InvalidHeaderValue> for CrawlerError {
         Self::UnprotectedClientInvalidHeader
     }
 }
+
+impl CrawlerError {
+    pub(crate) fn is_browser_retryable(&self) -> bool {
+        match self {
+            Self::BrowserMissingHeaders
+            | Self::BrowserMissingStatus
+            | Self::BrowserMissingResponse => true,
+            _ => false,
+        }
+    }
+}

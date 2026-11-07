@@ -8,9 +8,7 @@ use reqwest_retry::{
 };
 use tracing::warn;
 
-const PAGE_MIN_SECS_BACKOFF: u64 = 10;
-const PAGE_MAX_SECS_BACKOFF: u64 = 30;
-const MAX_RETRY: u32 = 10;
+use crate::constants::{MAX_RETRY, PAGE_MAX_SECS_BACKOFF, PAGE_MIN_SECS_BACKOFF};
 
 pub(crate) struct RetryStrategy;
 

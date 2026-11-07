@@ -19,8 +19,7 @@ use crate::{
 
 const BASE_URL: &str = "https://partsonly.ca/product-category/";
 const SITEMAP_URL: &str = "https://partsonly.ca/wp-sitemap-taxonomies-product_cat-1.xml";
-const URL: &str =
-    "https://partsonly.ca/product-category/{category}/page/{page}/?filter_stock_status=instock";
+const URL: &str = "https://partsonly.ca/product-category/{category}/page/{page}/";
 
 const SLEEP_OVERRIDE_SECS: u64 = 30;
 
