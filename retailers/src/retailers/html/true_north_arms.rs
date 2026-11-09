@@ -11,7 +11,7 @@ use crate::{
     errors::RetailerError,
     structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
     utils::{
-        ecommerce::{BigCommerce, BigCommerceNested},
+        ecommerce::{BigCommerce, BigCommerceBuilder, BigCommerceNested},
         html::{element_to_text, extract_element_from_element},
     },
 };
@@ -64,7 +64,7 @@ impl HtmlRetailer for TrueNorthArms {
         response: &String,
         search_term: &HtmlSearchQuery,
     ) -> Result<Vec<CrawlResult>, RetailerError> {
-        let mut bigcommerce_helper = BigCommerce::new();
+        let mut bigcommerce_helper = BigCommerceBuilder::default().build();
 
         let mut results: Vec<CrawlResult> = Vec::new();
 

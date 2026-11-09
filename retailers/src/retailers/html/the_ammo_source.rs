@@ -10,7 +10,7 @@ use crate::{
     errors::RetailerError,
     structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
     utils::{
-        ecommerce::BigCommerce,
+        ecommerce::{BigCommerce, BigCommerceBuilder},
         html::{element_to_text, extract_element_from_element},
     },
 };
@@ -71,7 +71,7 @@ impl HtmlRetailer for TheAmmoSource {
         response: &String,
         search_term: &HtmlSearchQuery,
     ) -> Result<Vec<CrawlResult>, RetailerError> {
-        let bigcommerce_helper = BigCommerce::new();
+        let bigcommerce_helper = BigCommerceBuilder::default().build();
         let mut results: Vec<CrawlResult> = Vec::new();
 
         let html = Html::parse_document(response);

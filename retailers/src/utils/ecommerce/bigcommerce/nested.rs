@@ -274,10 +274,10 @@ impl BigCommerceNested for BigCommerce {
         category: Category,
     ) -> Result<(), RetailerError> {
         self.parse_queue.push(NestedProduct {
-            name: Self::get_item_name(element)?,
-            fallback_image_url: Self::get_image_url(element)?,
+            name: self.get_item_name(element)?,
+            fallback_image_url: self.get_image_url(element)?,
             category,
-            product_url: Self::get_item_link(element)?,
+            product_url: self.get_item_link(element)?,
         });
 
         Ok(())

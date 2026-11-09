@@ -10,7 +10,7 @@ use tracing::debug;
 use crate::{
     errors::RetailerError,
     structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
-    utils::ecommerce::BigCommerce,
+    utils::ecommerce::{BigCommerce, BigCommerceBuilder},
 };
 
 const URL: &str = "https://wolverinesupplies.com/{category}/?page={page}&in_stock=1";
@@ -66,7 +66,7 @@ impl HtmlRetailer for WolverineSupplies {
 
         let product_selector = Selector::parse("ul.productGrid > li.product").unwrap();
 
-        let bigcommerce_helper = BigCommerce::new();
+        let bigcommerce_helper = BigCommerceBuilder::default().build();
 
         for element in fragment.select(&product_selector) {
             let result = bigcommerce_helper.parse_product(

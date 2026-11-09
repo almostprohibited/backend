@@ -11,7 +11,7 @@ use crate::{
     errors::RetailerError,
     structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
     utils::{
-        ecommerce::{BigCommerce, BigCommerceNested},
+        ecommerce::{BigCommerce, BigCommerceBuilder, BigCommerceNested},
         generic_sitemap::get_search_queries,
         html::{element_to_text, extract_element_from_element},
     },
@@ -110,7 +110,7 @@ impl HtmlRetailer for NechakoOutdoors {
         response: &String,
         search_term: &HtmlSearchQuery,
     ) -> Result<Vec<CrawlResult>, RetailerError> {
-        let mut bigcommerce_helper = BigCommerce::new();
+        let mut bigcommerce_helper = BigCommerceBuilder::default().build();
         let mut results: Vec<CrawlResult> = Vec::new();
 
         let fragment = Html::parse_document(response);

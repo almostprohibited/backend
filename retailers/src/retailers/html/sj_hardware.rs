@@ -13,13 +13,13 @@ use crate::{
     errors::RetailerError,
     structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
     utils::{
-        ecommerce::{BigCommerce, BigCommerceNested},
-        html::{element_extract_attr, element_to_text, extract_element_from_element},
+        ecommerce::{BigCommerce, BigCommerceBuilder, BigCommerceNested},
+        html::{element_to_text, extract_element_from_element},
     },
 };
 
 const SITE_URL: &str = "https://sjhardware.com/";
-const URL: &str = "https://sjhardware.com/product-category/{category}/?page={page}&in_stock=1";
+const URL: &str = "https://sjhardware.com/product-category/{category}/?page={page}";
 
 pub struct SJHardware;
 
@@ -76,34 +76,20 @@ impl HtmlRetailer for SJHardware {
         response: &String,
         search_term: &HtmlSearchQuery,
     ) -> Result<Vec<CrawlResult>, RetailerError> {
-        let mut bigcommerce_helper = BigCommerce::new();
+        let bigcommerce_helper = BigCommerceBuilder::default().build();
 
         let mut results: Vec<CrawlResult> = Vec::new();
 
         let html = Html::parse_document(response);
-        let product_selector = Selector::parse("ul.productGrid > li.product").unwrap();
+        let product_selector = Selector::parse("div.prod-grid > article.prod").unwrap();
 
         for product in html.select(&product_selector) {
-            let cart_button =
-                extract_element_from_element(product, "div.card-text.add-to-cart-button")?;
+            let cart_button = extract_element_from_element(product, "div.prod-actions > a.btn")?;
             let button_text = element_to_text(cart_button).to_lowercase();
 
-            let price_element = extract_element_from_element(
-                product,
-                "div.price-section > span.price.price--withoutTax",
-            )?;
-            let price_text = element_to_text(price_element);
-
-            if button_text.contains("choose options") || price_text.contains("-") {
-                let title_element = extract_element_from_element(product, ".card-title > a")?;
-                let url = element_extract_attr(title_element, "href")?;
-
-                // TODO: fix this, sj hardware has a product that is in stock, but
-                // does not actually go anywhere when visited (it 404s)
-                if !url.contains("https://sjhardware.com/6-israeli-bandages") {
-                    let _ = bigcommerce_helper
-                        .enqueue_nested_product_element(product, search_term.category);
-                }
+            if button_text.contains("choose options") {
+                // let _ = bigcommerce_helper
+                //     .enqueue_nested_product_element(product, search_term.category);
             } else if button_text.contains("add to cart") {
                 let result = bigcommerce_helper.parse_product(
                     product,

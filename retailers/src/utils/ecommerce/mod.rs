@@ -7,6 +7,7 @@ mod woocommerce;
 
 pub(crate) use bigcommerce::nested::BigCommerceNested;
 pub(crate) use bigcommerce::normal::BigCommerce;
+pub(crate) use bigcommerce::normal::BigCommerceBuilder;
 #[allow(unused_imports)]
 pub(crate) use bigcommerce::sitemap::BigCommerceSitemap;
 pub(crate) use lightspeed::parser::LightSpeed;
