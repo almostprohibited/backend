@@ -43,6 +43,7 @@ pub enum ProxyType {
     #[default]
     None,
     Normal,
+    Residential,
 }
 
 #[derive(Default, Debug, Clone)]

@@ -9,10 +9,9 @@ pub static IMAGE_SETTINGS: LazyLock<HashMap<String, ClientSettings>> = LazyLock:
             ClientSettings::default().with_proxy_type(ProxyType::Normal),
         ),
         (
-            "londerosports.com".into(), // odd behaviour, they protect their images with CF but not products
+            "londerosports.com".into(), // canadian IP check, they also hate the http sig for some reason
             ClientSettings::default()
-                .with_proxy_type(ProxyType::Normal)
-                .with_client_type(ClientType::Emulated)
+                .with_proxy_type(ProxyType::Residential)
                 .without_http_sigs(),
         ),
         (
@@ -30,12 +29,12 @@ pub static IMAGE_SETTINGS: LazyLock<HashMap<String, ClientSettings>> = LazyLock:
                 .with_client_type(ClientType::Emulated)
                 .without_http_sigs(),
         ),
-        (
-            "rangeviewsports.ca".into(), // cloudflare bot checks
-            ClientSettings::default()
-                .with_proxy_type(ProxyType::Normal)
-                .with_client_type(ClientType::Emulated)
-                .without_http_sigs(),
-        ),
+        // (
+        //     "rangeviewsports.ca".into(), // cloudflare bot checks
+        //     ClientSettings::default()
+        //         .with_proxy_type(ProxyType::Normal)
+        //         .with_client_type(ClientType::Emulated)
+        //         .without_http_sigs(),
+        // ),
     ])
 });

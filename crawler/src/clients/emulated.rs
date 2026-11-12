@@ -1,5 +1,4 @@
 use std::{
-    env,
     hash::{DefaultHasher, Hash, Hasher},
     str::FromStr,
     sync::{Arc, LazyLock, OnceLock},
@@ -8,7 +7,7 @@ use std::{
 
 use async_trait::async_trait;
 use chrono::{Datelike, Utc};
-use common::{constants::PROXY_ADDRESS, domain_config::ProxyType};
+use common::domain_config::ProxyType;
 use tracing::debug;
 use wreq::{
     Client, Proxy, StatusCode,
@@ -21,6 +20,7 @@ use wreq_util::{Emulation, Platform, Profile};
 use crate::{
     constants::PAGE_TIMEOUT_SECONDS,
     errors::CrawlerError,
+    proxy::get_proxy_details,
     request::Request,
     traits::{Client as InternalClient, CrawlerResponse, HttpMethod},
     utils::get_http_sig_headers,
@@ -28,6 +28,7 @@ use crate::{
 
 static EMULATED_CLIENT: OnceLock<Client> = OnceLock::new();
 static EMULATED_PROXIED_CLIENT: OnceLock<Client> = OnceLock::new();
+static EMULATED_PROXIED_RESIDENTIAL_CLIENT: OnceLock<Client> = OnceLock::new();
 
 static EMULATED_COOKIE_JAR: LazyLock<Arc<Jar>> = LazyLock::new(|| Arc::new(Jar::default()));
 
@@ -51,11 +52,15 @@ impl InternalClient for EmulatedClient {
             request.get_client_settings().proxy_type
         );
 
-        let client = match request.get_client_settings().proxy_type {
+        let proxy_type = request.get_client_settings().proxy_type;
+
+        let client = match proxy_type {
             ProxyType::Normal => {
-                EMULATED_PROXIED_CLIENT.get_or_init(|| create_emulated_client(true))
+                EMULATED_PROXIED_CLIENT.get_or_init(|| create_emulated_client(proxy_type))
             }
-            _ => EMULATED_CLIENT.get_or_init(|| create_emulated_client(false)),
+            ProxyType::Residential => EMULATED_PROXIED_RESIDENTIAL_CLIENT
+                .get_or_init(|| create_emulated_client(proxy_type)),
+            _ => EMULATED_CLIENT.get_or_init(|| create_emulated_client(proxy_type)),
         };
 
         let mut request_builder = match request.method {
@@ -142,7 +147,7 @@ fn shuffle_profile() -> Emulation {
     emulation_profile.build()
 }
 
-fn create_emulated_client(with_proxy: bool) -> Client {
+fn create_emulated_client(proxy_type: ProxyType) -> Client {
     let mut emulated_client_builder = Client::builder()
         .emulation(shuffle_profile())
         .gzip(true)
@@ -153,12 +158,21 @@ fn create_emulated_client(with_proxy: bool) -> Client {
         .retry(Policy::default())
         .connection_verbose(true);
 
-    if let Ok(proxy_address) = env::var(PROXY_ADDRESS)
-        && with_proxy
-    {
+    if let Some(proxy_details) = get_proxy_details(proxy_type) {
         debug!("Configuring proxy");
 
-        emulated_client_builder = emulated_client_builder.proxy(Proxy::all(proxy_address).unwrap());
+        let mut proxy = Proxy::all(proxy_details.address).unwrap();
+
+        if let (Some(username), Some(password)) = (proxy_details.username, proxy_details.password)
+            && !username.is_empty()
+            && !password.is_empty()
+        {
+            debug!("Configuring proxy auth");
+
+            proxy = proxy.basic_auth(&username, &password);
+        };
+
+        emulated_client_builder = emulated_client_builder.proxy(proxy);
     }
 
     emulated_client_builder

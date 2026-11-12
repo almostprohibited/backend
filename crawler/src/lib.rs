@@ -1,6 +1,7 @@
 pub(crate) mod clients;
 pub(crate) mod constants;
 pub mod errors;
+pub(crate) mod proxy;
 pub mod request;
 pub(crate) mod retry_middleware;
 pub mod traits;

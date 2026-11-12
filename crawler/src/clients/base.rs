@@ -1,18 +1,12 @@
 use std::{
-    env,
     str::FromStr,
     sync::{Arc, LazyLock, OnceLock},
     time::Duration,
 };
 
 use async_trait::async_trait;
-use common::{
-    constants::PROXY_ADDRESS,
-    domain_config::{ProxyType, default::DEFAULT_SETTINGS},
-    get_user_agent,
-    string_utils::get_domain,
-};
-use reqwest::{ClientBuilder as BaseClientBuilder, Proxy as BaseProxy, Url, cookie::Jar};
+use common::{domain_config::ProxyType, get_user_agent};
+use reqwest::{ClientBuilder as BaseClientBuilder, Proxy, Url, cookie::Jar};
 use reqwest::{
     StatusCode,
     header::{HeaderMap, HeaderName, HeaderValue},
@@ -23,6 +17,7 @@ use tracing::debug;
 use crate::{
     constants::PAGE_TIMEOUT_SECONDS,
     errors::CrawlerError,
+    proxy::get_proxy_details,
     request::Request,
     retry_middleware::get_retry_middleware,
     traits::{Client, CrawlerResponse, HttpMethod},
@@ -30,6 +25,9 @@ use crate::{
 };
 
 static REQWEST_CLIENT: OnceLock<ClientWithMiddleware> = OnceLock::new();
+static REQWEST_NORMAL_PROXY: OnceLock<ClientWithMiddleware> = OnceLock::new();
+static REQWEST_RESIDENTIAL_PROXY: OnceLock<ClientWithMiddleware> = OnceLock::new();
+
 static COOKIE_JAR: LazyLock<Arc<Jar>> = LazyLock::new(|| Arc::new(Jar::default()));
 
 pub(crate) struct BaseClient;
@@ -44,7 +42,16 @@ impl Client for BaseClient {
     }
 
     async fn send_request(&self, request: Request) -> Result<CrawlerResponse, CrawlerError> {
-        let client = REQWEST_CLIENT.get_or_init(|| create_base_client());
+        // the anon function looks weird but this is done so that I don't need to deal
+        // with the Copy impl
+        let client = match request.get_client_settings().proxy_type {
+            ProxyType::Normal => REQWEST_NORMAL_PROXY
+                .get_or_init(|| create_base_client(request.get_client_settings().proxy_type)),
+            ProxyType::Residential => REQWEST_RESIDENTIAL_PROXY
+                .get_or_init(|| create_base_client(request.get_client_settings().proxy_type)),
+            _ => REQWEST_CLIENT
+                .get_or_init(|| create_base_client(request.get_client_settings().proxy_type)),
+        };
 
         let mut request_builder = match request.method {
             HttpMethod::GET => client.get(request.url.clone()),
@@ -103,7 +110,7 @@ impl Client for BaseClient {
     }
 }
 
-fn create_base_client() -> ClientWithMiddleware {
+fn create_base_client(proxy_type: ProxyType) -> ClientWithMiddleware {
     let mut base_client_builder = BaseClientBuilder::new()
         .gzip(true)
         .http1_ignore_invalid_headers_in_responses(true)
@@ -113,26 +120,21 @@ fn create_base_client() -> ClientWithMiddleware {
         .cookie_provider(COOKIE_JAR.clone())
         .connection_verbose(true);
 
-    if let Ok(proxy_address) = env::var(PROXY_ADDRESS) {
+    if let Some(proxy_details) = get_proxy_details(proxy_type) {
         debug!("Configuring proxy");
 
-        let proxy_url = Url::parse(&proxy_address).expect("Valid proxy domain");
+        let mut proxy = Proxy::all(proxy_details.address).unwrap();
 
-        base_client_builder = base_client_builder.proxy(BaseProxy::custom(move |url| {
-            let checked_url = get_domain(&url.to_string());
+        if let (Some(username), Some(password)) = (proxy_details.username, proxy_details.password)
+            && !username.is_empty()
+            && !password.is_empty()
+        {
+            debug!("Configuring proxy auth");
 
-            if let Some(settings) = DEFAULT_SETTINGS.get(&checked_url)
-                && matches!(settings.proxy_type, ProxyType::Normal)
-            {
-                debug!("Proxying {checked_url}");
+            proxy = proxy.basic_auth(&username, &password);
+        };
 
-                return Some(proxy_url.clone());
-            }
-
-            debug!("Skip proxying {checked_url}");
-
-            None
-        }));
+        base_client_builder = base_client_builder.proxy(proxy);
     }
 
     let base_client = base_client_builder
