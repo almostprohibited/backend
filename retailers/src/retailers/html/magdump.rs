@@ -1,7 +1,12 @@
+use std::cmp::max;
+
 use async_trait::async_trait;
-use common::result::{
-    base::{CrawlResult, Price},
-    enums::{Category, RetailerName},
+use common::{
+    constants::CRAWL_COOLDOWN_SECS,
+    result::{
+        base::{CrawlResult, Price},
+        enums::{Category, RetailerName},
+    },
 };
 use crawler::{
     WebClient,
@@ -194,7 +199,7 @@ impl Retailer for MagDump {
     }
 
     fn sleep_override(&self) -> Option<u64> {
-        Some(DELAY)
+        Some(max(DELAY, CRAWL_COOLDOWN_SECS))
     }
 }
 

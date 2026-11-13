@@ -1,7 +1,12 @@
+use std::cmp::max;
+
 use async_trait::async_trait;
-use common::result::{
-    base::CrawlResult,
-    enums::{Category, RetailerName},
+use common::{
+    constants::CRAWL_COOLDOWN_SECS,
+    result::{
+        base::CrawlResult,
+        enums::{Category, RetailerName},
+    },
 };
 use crawler::request::{Request, RequestBuilder};
 use scraper::{Html, Selector};
@@ -64,7 +69,7 @@ impl Retailer for PartsOnly {
     }
 
     fn sleep_override(&self) -> Option<u64> {
-        Some(SLEEP_OVERRIDE_SECS)
+        Some(max(SLEEP_OVERRIDE_SECS, CRAWL_COOLDOWN_SECS))
     }
 }
 
