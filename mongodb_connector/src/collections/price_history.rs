@@ -10,7 +10,6 @@ use mongodb::{
 
 use crate::constants::{COLLECTION_PRICE_HISTORY_NAME, DATABASE_NAME};
 
-const INDEX_NAME: &str = "search_index";
 const UPDATE_INDEX_NAME: &str = "name_url_lookup";
 
 pub(crate) struct PriceHistoryCollection {
@@ -34,21 +33,6 @@ impl PriceHistoryCollection {
             .unwrap_or_else(|_| {
                 panic!("Creating {COLLECTION_PRICE_HISTORY_NAME} collection to not fail")
             });
-
-        // TODO: remove the text search index, this is probably
-        // useless since we aren't doing searches in this collection
-        let index = IndexModel::builder()
-            .keys(doc! {
-                "name": "text",
-                "url": "text"
-            })
-            .options(IndexOptions::builder().name(INDEX_NAME.to_string()).build())
-            .build();
-
-        db.collection::<CollectionPriceHistory>(COLLECTION_PRICE_HISTORY_NAME)
-            .create_index(index)
-            .await
-            .unwrap();
 
         let update_index = IndexModel::builder()
             .keys(doc! {
