@@ -19,7 +19,7 @@ use crate::{
 };
 
 const SITE_URL: &str = "https://sjhardware.com/";
-const URL: &str = "https://sjhardware.com/product-category/{category}/?page={page}";
+const URL: &str = "https://sjhardware.com/product-category/{category}/?page={page}&in_stock=1";
 
 pub struct SJHardware;
 
