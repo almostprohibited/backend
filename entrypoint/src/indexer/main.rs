@@ -52,17 +52,22 @@ async fn main() {
 
             debug!("{:?}", results);
 
-            let mut webhook = get_indexer_webhook().await;
+            {
+                let mut webhook = get_indexer_webhook().await;
 
-            if let Err(err) = crawl_state {
-                webhook.record_retailer_failure(retailer_name, err.to_string());
+                if let Err(err) = &crawl_state {
+                    webhook.record_retailer_failure(retailer_name, err.to_string());
+                }
+
+                webhook.append_retailer_stats(retailer_name, &results);
+                webhook.update_main_message().await;
             }
-
-            webhook.append_retailer_stats(retailer_name, &results);
-            webhook.update_main_message().await;
 
             if !args.dry_run {
                 retailer.emit_metrics();
+
+                db.insert_retailer_status(retailer_name, &crawl_state, &results)
+                    .await;
                 db.insert_many_results(results).await;
             }
         }));

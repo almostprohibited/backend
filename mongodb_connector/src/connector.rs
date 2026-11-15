@@ -4,17 +4,19 @@ use common::{
     db::{AuthVerification, NotificationChannel, ServiceType, Session, VerificationStatus},
     messages::Message,
     price_history::{ApiPriceHistoryInput, CollectionPriceHistory},
-    result::base::CrawlResult,
+    result::{base::CrawlResult, enums::RetailerName},
     search_params::{ApiSearchInput, CollectionSearchResults},
     string_utils::sha256_hash_string,
 };
 use mongodb::{Client, bson::oid::ObjectId};
+use retailers::errors::RetailerError;
 use tracing::{debug, warn};
 
 use crate::collections::{
     alerts::AlertCollection, authentication::AuthenticationCollections,
     crawl_results::CrawlResultsCollection, live_results::LiveResultsView,
     messages::MessagesCollection, price_history::PriceHistoryCollection,
+    retailer_status::RetailerStatusCollection,
 };
 
 static CONNECTION_URI: LazyLock<String> = LazyLock::new(|| {
@@ -31,6 +33,7 @@ pub struct MongoDBConnector {
     price_history: PriceHistoryCollection,
     authentication: AuthenticationCollections,
     alerts: AlertCollection,
+    retailer_status: RetailerStatusCollection,
 }
 
 impl MongoDBConnector {
@@ -45,7 +48,8 @@ impl MongoDBConnector {
             messages: MessagesCollection::new(client.clone()).await,
             price_history: PriceHistoryCollection::new(client.clone()).await,
             authentication: AuthenticationCollections::new(client.clone()).await,
-            alerts: AlertCollection::new(client).await,
+            alerts: AlertCollection::new(client.clone()).await,
+            retailer_status: RetailerStatusCollection::new(client).await,
         }
     }
 
@@ -63,6 +67,17 @@ impl MongoDBConnector {
             self.live_results.insert_results(results.clone()),
             self.price_history.update_collection(results)
         );
+    }
+
+    pub async fn insert_retailer_status(
+        &self,
+        retailer: RetailerName,
+        result: &Result<(), RetailerError>,
+        products: &Vec<&CrawlResult>,
+    ) {
+        self.retailer_status
+            .insert_status(retailer, result.is_ok(), products)
+            .await;
     }
 
     pub async fn get_pricing_history(

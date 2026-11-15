@@ -6,6 +6,7 @@ pub mod image_cache;
 pub mod messages;
 pub mod price_history;
 pub mod result;
+pub mod retailer_status;
 pub mod search_params;
 pub mod serde_utils;
 pub mod string_utils;

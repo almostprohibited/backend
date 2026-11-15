@@ -794,6 +794,7 @@ name = "common"
 version = "0.1.0"
 dependencies = [
  "base64 0.23.1",
+ "chrono",
  "clap",
  "ed25519-dalek 3.0.0",
  "indexmap 2.14.2",
@@ -3052,6 +3053,7 @@ dependencies = [
 name = "mongodb_connector"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "common",
  "mongodb",
  "retailers",

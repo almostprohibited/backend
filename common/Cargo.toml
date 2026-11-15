@@ -31,3 +31,4 @@ base64.workspace = true
 web-bot-auth.workspace = true
 indexmap.workspace = true
 ed25519-dalek.workspace = true
+chrono.workspace = true

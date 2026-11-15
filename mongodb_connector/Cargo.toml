@@ -19,3 +19,4 @@ tokio = { workspace = true, features = ["full"] }
 tracing.workspace = true
 thiserror.workspace = true
 serde.workspace = true
+chrono.workspace = true

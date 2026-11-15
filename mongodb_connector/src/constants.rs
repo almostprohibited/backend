@@ -18,6 +18,8 @@ pub(crate) const VERIFICATIONS_EXPIRE_INDEX: &str = "verifications_expire_index"
 
 pub(crate) const COLLECTION_NOTIFICATION_CHANNELS_NAME: &str = "notification-channels";
 
+pub(crate) const COLLECTION_RETAILER_STATUS_NAME: &str = "retailer-status";
+
 /// 30 mins
 pub(crate) const VERIFICATIONS_EXPIRY_SECONDS: u64 = 60 * 30;
 
