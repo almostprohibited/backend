@@ -1,3 +1,4 @@
+use ::retailers::errors::RetailerError;
 use clap::Parser;
 use common::result::enums::RetailerName;
 use crawler::WebClient;
@@ -47,8 +48,14 @@ async fn main() {
 
             info!("Executing {retailer_name:?}");
 
-            let crawl_state = retailer.crawl().await;
+            let mut crawl_state = retailer.crawl().await;
             let results = retailer.get_results();
+
+            if results.is_empty() {
+                crawl_state = Err(RetailerError::GeneralError(
+                    "Retailer returned zero results".to_string(),
+                ));
+            }
 
             debug!("{:?}", results);
 
