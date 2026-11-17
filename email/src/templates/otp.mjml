@@ -28,7 +28,7 @@
     <mj-section full-width="full-width" css-class="header">
       <mj-column>
         <mj-text font-size="24px" font-weight="600">AlmostProhibited.ca</mj-text>
-        <mj-text>Canada's upcoming aggregator for firearms, parts, and accessories</mj-text>
+        <mj-text>Canada's aggregator for firearms, parts, and accessories</mj-text>
       </mj-column>
     </mj-section>
     <mj-section>
