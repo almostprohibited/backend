@@ -11,9 +11,15 @@ use crate::{
         conversions::{price_to_cents, string_to_u64},
         ecommerce::bigcommerce::structs::NestedProduct,
         helpers::clean_url,
-        html::{element_extract_attr, element_to_text, match_element_from_list},
+        html::{
+            element_extract_attr, element_to_text, extract_element_from_element,
+            match_element_from_list,
+        },
     },
 };
+
+const DEFAULT_IMAGE: &str =
+    "https://intersurplus.com/cdn/shopifycloud/storefront/assets/no-image-50-e6fb86f4_360x.gif";
 
 const VALID_IMAGE_ATTRS: [&str; 5] = [
     "data-src",
@@ -171,11 +177,23 @@ impl BigCommerce {
     }
 
     pub(super) fn get_image_url(&self, element: ElementRef) -> Result<String, RetailerError> {
-        let image_element = match_element_from_list(
+        // TODO: error is copied twice because I can't derive Clone
+        // as variants don't implement Clone
+        let Ok(image_element) = match_element_from_list(
             element,
             &self.options.image_url_selector,
             RetailerError::HtmlMissingElement("Missing valid image element".to_string()),
-        )?;
+        ) else {
+            // handle sjhardware using svg for empty image
+            match extract_element_from_element(element, "a.prod-figure > svg") {
+                Ok(_) => return Ok(DEFAULT_IMAGE.into()),
+                Err(_) => {
+                    return Err(RetailerError::HtmlMissingElement(
+                        "Missing valid image element".to_string(),
+                    ));
+                }
+            }
+        };
 
         for attr in VALID_IMAGE_ATTRS {
             if let Ok(data_src) = element_extract_attr(image_element, attr)
