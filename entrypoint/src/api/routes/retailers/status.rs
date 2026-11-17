@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::ServerState;
@@ -17,7 +18,6 @@ struct ApiRetailerStatusCount {
 
 #[derive(Serialize)]
 struct ApiRetailerStatus {
-    retailer: RetailerName,
     counts: ApiRetailerStatusCount,
     successful: bool,
     timestamp: u64,
@@ -26,7 +26,6 @@ struct ApiRetailerStatus {
 impl From<RetailerStatus> for ApiRetailerStatus {
     fn from(internal: RetailerStatus) -> Self {
         Self {
-            retailer: internal.retailer,
             counts: ApiRetailerStatusCount {
                 firearms: internal.counts.firearms,
                 other: internal.counts.other,
@@ -42,13 +41,16 @@ impl From<RetailerStatus> for ApiRetailerStatus {
 pub(crate) async fn retailer_status_handler(
     State(state): State<Arc<ServerState>>,
 ) -> Result<impl IntoResponse, StatusCode> {
-    let status = state
+    let mut map: HashMap<RetailerName, ApiRetailerStatus> = Default::default();
+
+    state
         .db
         .get_retailers_latest_status()
         .await
         .into_iter()
-        .map(ApiRetailerStatus::from)
-        .collect::<Vec<ApiRetailerStatus>>();
+        .for_each(|internal| {
+            let _ = map.insert(internal.retailer, ApiRetailerStatus::from(internal));
+        });
 
-    Ok(Json::from(status).into_response())
+    Ok(Json::from(map).into_response())
 }
