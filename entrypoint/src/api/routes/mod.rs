@@ -5,4 +5,5 @@ pub(crate) mod history;
 pub(crate) mod http_msg_sig_dir;
 pub(crate) mod image;
 pub(crate) mod notifications;
+pub(crate) mod retailers;
 pub(crate) mod search_query;

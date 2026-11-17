@@ -7,9 +7,11 @@ use common::{
     },
     retailer_status::{RetailerProductCountsBuilder, RetailerStatus},
 };
-use mongodb::{Client, Collection, Database};
+use mongodb::{Client, Collection, Database, IndexModel, bson::doc, options::IndexOptions};
 
 use crate::constants::{COLLECTION_RETAILER_STATUS_NAME, DATABASE_NAME};
+
+const GET_INDEX_NAME: &str = "get_index";
 
 pub(crate) struct RetailerStatusCollection {
     collection: Collection<RetailerStatus>,
@@ -32,6 +34,23 @@ impl RetailerStatusCollection {
             .unwrap_or_else(|_| {
                 panic!("Creating {COLLECTION_RETAILER_STATUS_NAME} collection to not fail")
             });
+
+        let get_index = IndexModel::builder()
+            .keys(doc! {
+                "retailer": 1,
+                "timestamp": -1
+            })
+            .options(
+                IndexOptions::builder()
+                    .name(GET_INDEX_NAME.to_string())
+                    .build(),
+            )
+            .build();
+
+        db.collection::<RetailerStatus>(COLLECTION_RETAILER_STATUS_NAME)
+            .create_index(get_index)
+            .await
+            .unwrap();
     }
 
     pub(crate) async fn insert_status(
@@ -77,5 +96,34 @@ impl RetailerStatusCollection {
         };
 
         let _ = self.collection.insert_one(status).await.unwrap();
+    }
+
+    pub(crate) async fn get_recent_status(&self) -> Vec<RetailerStatus> {
+        let mut cursor = self
+            .collection
+            .aggregate([
+                doc! {
+                    "$sort": {"retailer": 1, "timestamp": -1}
+                },
+                doc! {
+                    "$group": {"_id": "$retailer", "doc": { "$first": "$$ROOT" } }
+                },
+                doc! {
+                    "$replaceRoot": {"newRoot": "$doc" }
+                },
+            ])
+            .with_type::<RetailerStatus>()
+            .await
+            .unwrap();
+
+        let mut results: Vec<RetailerStatus> = vec![];
+
+        while cursor.advance().await.unwrap_or(false) {
+            let result = cursor.deserialize_current().unwrap();
+
+            results.push(result);
+        }
+
+        results
     }
 }

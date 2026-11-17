@@ -49,3 +49,30 @@ where
     // goodbye milliseconds
     Ok((input.timestamp_millis() / 1000) as u64)
 }
+
+// TODO: switch mongodb datetime serialization to this method
+// because mongodb is dumb and cannot/will not expose helper
+// methods to do this
+pub mod bson_chrono_conversions {
+    use chrono::Utc;
+    use mongodb::bson;
+    use serde::{Deserialize, Deserializer, Serialize, Serializer, de::Error};
+
+    pub fn serialize<S>(chrono: &chrono::DateTime<Utc>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        bson::DateTime::from_millis(chrono.timestamp_millis()).serialize(serializer)
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<chrono::DateTime<Utc>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let bson_datetime = bson::DateTime::deserialize(deserializer)?;
+        let timestamp = bson_datetime.timestamp_millis();
+
+        chrono::DateTime::from_timestamp_millis(timestamp)
+            .ok_or_else(|| Error::custom(format!("Invalid timestamp {timestamp}")))
+    }
+}

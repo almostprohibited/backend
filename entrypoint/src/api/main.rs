@@ -32,6 +32,7 @@ use crate::{
             delete_channels, get_notification_channels, notification_add_email,
             notification_callback, notification_provider,
         },
+        retailers::retailer_status_handler,
         search_query::search_handler,
     },
     structs::ServerState,
@@ -158,6 +159,12 @@ async fn main() {
                 delete(delete_channels)
                     .route_layer(GovernorLayer::new(get_governor(DEFAULT_AUTH_TPS_LIMIT))),
             );
+
+        router = router.route(
+            "/api/retailers/status",
+            get(retailer_status_handler)
+                .route_layer(GovernorLayer::new(get_governor(DEFAULT_TPS_LIMIT))),
+        );
     }
 
     let type_erased_router = router.with_state(state).layer(build_service_layers());

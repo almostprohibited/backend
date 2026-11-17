@@ -1,5 +1,6 @@
+use crate::serde_utils::bson_chrono_conversions;
 use chrono::{DateTime, Utc};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::result::enums::RetailerName;
 
@@ -50,7 +51,7 @@ impl RetailerProductCountsBuilder {
     }
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub struct RetailerProductCounts {
     pub firearms: u64,
     pub other: u64,
@@ -64,10 +65,11 @@ impl RetailerProductCounts {
     }
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub struct RetailerStatus {
     pub retailer: RetailerName,
     pub counts: RetailerProductCounts,
     pub successful: bool,
+    #[serde(with = "bson_chrono_conversions")]
     pub timestamp: DateTime<Utc>,
 }

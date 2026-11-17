@@ -5,6 +5,7 @@ use common::{
     messages::Message,
     price_history::{ApiPriceHistoryInput, CollectionPriceHistory},
     result::{base::CrawlResult, enums::RetailerName},
+    retailer_status::RetailerStatus,
     search_params::{ApiSearchInput, CollectionSearchResults},
     string_utils::sha256_hash_string,
 };
@@ -78,6 +79,10 @@ impl MongoDBConnector {
         self.retailer_status
             .insert_status(retailer, result.is_ok(), products)
             .await;
+    }
+
+    pub async fn get_retailers_latest_status(&self) -> Vec<RetailerStatus> {
+        self.retailer_status.get_recent_status().await
     }
 
     pub async fn get_pricing_history(
