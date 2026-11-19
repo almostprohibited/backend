@@ -8,24 +8,16 @@ use common::{
         enums::{Category, RetailerName},
     },
 };
-use crawler::{
-    WebClient,
-    request::{Request, RequestBuilder},
-};
-use scraper::{ElementRef, Html, Selector};
+use crawler::request::{Request, RequestBuilder};
 use serde::Deserialize;
 use tracing::debug;
 
 use crate::{
     errors::RetailerError,
     structures::{HtmlRetailer, HtmlRetailerSuper, HtmlSearchQuery, Retailer},
-    utils::{
-        conversions::price_to_cents,
-        html::{element_extract_attr, element_to_text},
-    },
+    utils::conversions::price_to_cents,
 };
 
-const SITEMAP: &str = "https://magdump.ca/sitemap";
 const URL: &str = "https://magdump.ca/{category}?from-xhr&page={page}";
 const DELAY: u64 = 30;
 
@@ -94,9 +86,7 @@ struct ResponseProductCoverImage {
     url: String,
 }
 
-pub struct MagDump {
-    query: Vec<HtmlSearchQuery>,
-}
+pub struct MagDump;
 
 impl Default for MagDump {
     fn default() -> Self {
@@ -106,13 +96,7 @@ impl Default for MagDump {
 
 impl MagDump {
     pub fn new() -> Self {
-        Self { query: Vec::new() }
-    }
-
-    fn init_get_uri(element: ElementRef) -> Result<String, RetailerError> {
-        let link_href = element_extract_attr(element, "href")?;
-
-        Ok(link_href.split_once(".ca/").unwrap().1.to_string())
+        Self {}
     }
 }
 
@@ -120,80 +104,6 @@ impl HtmlRetailerSuper for MagDump {}
 
 #[async_trait]
 impl Retailer for MagDump {
-    // Magdump mixes and matches items in several categories
-    // make an attempt to normalize the URIs
-    async fn init(&mut self) -> Result<(), RetailerError> {
-        let request = RequestBuilder::new().set_url(SITEMAP).build();
-        let response = WebClient::make_web_request(request).await?;
-
-        let fragment = Html::parse_document(&response.body);
-        let link_selector =
-            Selector::parse("div.col-md-3 > ul > li > ul > li > a[id*='category-page']").unwrap();
-
-        for link in fragment.select(&link_selector) {
-            let link_name = element_to_text(link).to_lowercase();
-            let uri = Self::init_get_uri(link)?;
-
-            match link_name.as_str() {
-                "rimfire" | "centerfire" | "bulk ammo" => {
-                    self.query.push(HtmlSearchQuery {
-                        term: uri,
-                        category: Category::Ammunition,
-                    });
-                }
-                "firearms" => {
-                    self.query.push(HtmlSearchQuery {
-                        term: uri,
-                        category: Category::Firearm,
-                    });
-                }
-                // handle the SBI category, there are firearms in here
-                "sbi" => {
-                    // TODO: deal with unwraps, this should be the parent <li> of the <a>
-                    let parent = ElementRef::wrap(link.parent().unwrap()).unwrap();
-
-                    let nested_selector =
-                        Selector::parse("ul.nested > li > a[id*='category-page']").unwrap();
-
-                    for sbi_child in parent.select(&nested_selector) {
-                        let nested_text = element_to_text(sbi_child).to_lowercase();
-
-                        if nested_text == "sbi" {
-                            continue;
-                        }
-
-                        let nested_uri = Self::init_get_uri(sbi_child)?;
-
-                        debug!("Parsing nested {nested_uri}");
-
-                        self.query.push(HtmlSearchQuery {
-                            term: nested_uri,
-                            category: if nested_text == "rifles" {
-                                Category::Firearm
-                            } else {
-                                Category::Other
-                            },
-                        });
-                    }
-                }
-                "made in canada" | "airgun" => {}
-                // I like playing games, add whatever we don't match as other
-                _ => {
-                    debug!("Matching non matched URL as other: {uri:?}");
-
-                    self.query.push(HtmlSearchQuery {
-                        term: uri,
-                        category: Category::Other,
-                    });
-                }
-            }
-        }
-
-        debug!("{:#?}", self.query);
-
-        Ok(())
-    }
-
     fn get_retailer_name(&self) -> RetailerName {
         RetailerName::MagDump
     }
@@ -252,8 +162,48 @@ impl HtmlRetailer for MagDump {
         Ok(results)
     }
 
+    // not the biggest fan of doing this but sitemap no longer lists categories
     fn get_search_terms(&self) -> Vec<HtmlSearchQuery> {
-        self.query.to_owned()
+        let mut terms = Vec::new();
+
+        for firearm in [
+            "46-rifles",
+            // contains receivers, which they're not wrong to say it's a firearm
+            // but just that these will likely be marked as "other" from us
+            // since it's probably going to be double fetched in other
+            "22-firearms",
+        ] {
+            terms.push(HtmlSearchQuery {
+                term: firearm.into(),
+                category: Category::Firearm,
+            });
+        }
+
+        for firearm in ["11-rimfire", "12-centerfire", "41-bulk-amm"] {
+            terms.push(HtmlSearchQuery {
+                term: firearm.into(),
+                category: Category::Ammunition,
+            });
+        }
+
+        for other in [
+            "30-accessories",
+            "48-1022-barrels",
+            "50-1022-bolts",
+            "54-1022-magazine-adapter",
+            "49-1022-parts",
+            "47-1022-receivers",
+            "55-1022-chassis-parts",
+            "56-muzzle-brakes",
+            "51-1022-chassis",
+        ] {
+            terms.push(HtmlSearchQuery {
+                term: other.into(),
+                category: Category::Other,
+            });
+        }
+
+        terms
     }
 
     fn get_num_pages(&self, response: &String) -> Result<u64, RetailerError> {
