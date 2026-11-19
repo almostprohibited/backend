@@ -101,6 +101,11 @@ async fn main() {
         .route(
             "/.well-known/http-message-signatures-directory",
             get(http_sigs),
+        )
+        .route(
+            "/api/retailers/status",
+            get(retailer_status_handler)
+                .route_layer(GovernorLayer::new(get_governor(DEFAULT_TPS_LIMIT))),
         );
 
     if is_beta {
@@ -159,12 +164,6 @@ async fn main() {
                 delete(delete_channels)
                     .route_layer(GovernorLayer::new(get_governor(DEFAULT_AUTH_TPS_LIMIT))),
             );
-
-        router = router.route(
-            "/api/retailers/status",
-            get(retailer_status_handler)
-                .route_layer(GovernorLayer::new(get_governor(DEFAULT_TPS_LIMIT))),
-        );
     }
 
     let type_erased_router = router.with_state(state).layer(build_service_layers());
