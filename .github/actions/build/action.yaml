@@ -21,6 +21,7 @@ runs:
 
         rustup target add ${{ inputs.rust-target }}
 
+        cargo test --bins --lib --target ${{ inputs.rust-target }}
         cargo build --release --bins --target ${{ inputs.rust-target }}
       shell: bash
     - uses: actions/upload-artifact@v7
