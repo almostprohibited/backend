@@ -1,37 +1,19 @@
-use std::{env, sync::LazyLock, time::Duration};
+use std::time::Duration;
 
-use ed25519_dalek::{SigningKey, pkcs8::DecodePrivateKey};
 use indexmap::IndexMap;
-use serde_json::{Value, json};
 use web_bot_auth::{
     components::{CoveredComponent, DerivedComponent, HTTPField, HTTPFieldParametersSet},
     keyring::Algorithm,
-    message_signatures::{MessageSigner, UnsignedMessage},
+    message_signatures::{MessageSigner, SignedMessage, UnsignedMessage},
 };
 
 use crate::{
+    http_sig::{JWK_KID, jwk::PRIVATE_KEY},
     string_utils::{generate_random_string, get_domain},
     utils::is_beta_environment,
 };
 
-const PRIVATE_KEY_ENV: &str = "PRIVATE_KEY";
-
 const SIG_EXPIRY_SECONDS: u64 = 60 * 60;
-
-// TODO: don't hard code these
-pub const JWK_KID: &str = "FyDnM_QljsIvAZWPXujjT_zwCd1EO3nItEkKuIE9Jbk";
-pub const JWK_KEYS: LazyLock<Value> = LazyLock::new(|| {
-    json!({
-       "keys": [
-           {
-               "kty": "OKP",
-               "crv": "Ed25519",
-               "x": "rp5V-cgqkOiAt2Mn63b7KIau0FoxkvFbwBpW7n31JHw",
-               "kid": JWK_KID,
-           }
-       ]
-    })
-});
 
 #[derive(Debug)]
 pub struct HttpSignatureHeaders {
@@ -53,6 +35,30 @@ impl HttpSignatureHeaders {
             signature: Default::default(),
             signature_input: Default::default(),
             signature_agent: signature_agent.and_then(|sig_agent| Some(format!("\"{sig_agent}\""))),
+        }
+    }
+}
+
+impl SignedMessage for HttpSignatureHeaders {
+    fn lookup_component(&self, name: &CoveredComponent) -> Vec<String> {
+        match name {
+            CoveredComponent::Derived(DerivedComponent::Authority { .. }) => {
+                vec![self.host.clone()]
+            }
+            CoveredComponent::HTTP(HTTPField { name, .. }) if name == "signature" => {
+                vec![self.signature.clone()]
+            }
+            CoveredComponent::HTTP(HTTPField { name, .. }) if name == "signature-input" => {
+                vec![self.signature_input.clone()]
+            }
+            CoveredComponent::HTTP(HTTPField { name, .. }) if name == "signature-agent" => {
+                let Some(sig_agent) = &self.signature_agent else {
+                    return vec![];
+                };
+
+                vec![sig_agent.clone()]
+            }
+            _ => vec![],
         }
     }
 }
@@ -85,14 +91,6 @@ impl UnsignedMessage for HttpSignatureHeaders {
     }
 }
 
-fn get_signing_key() -> [u8; 32] {
-    let pem = env::var(PRIVATE_KEY_ENV).expect("{PRIVATE_KEY_ENV} to be passed");
-
-    SigningKey::from_pkcs8_pem(&pem)
-        .expect("{PRIVATE_KEY_ENV} to be formatted correctly")
-        .to_bytes()
-}
-
 fn get_signing_identity() -> String {
     if is_beta_environment() {
         return "https://beta.almostprohibited.ca".into();
@@ -105,7 +103,7 @@ fn get_signing_identity() -> String {
 // https://datatracker.ietf.org/doc/html/draft-meunier-http-message-signatures-directory-03#name-binding-keys-to-the-directo
 pub fn create_directory_headers(host: &str) -> HttpSignatureHeaders {
     let signer = MessageSigner {
-        keyid: JWK_KID.into(),
+        keyid: JWK_KID.clone(),
         nonce: generate_random_string(24),
         tag: "http-message-signatures-directory".into(),
     };
@@ -117,7 +115,7 @@ pub fn create_directory_headers(host: &str) -> HttpSignatureHeaders {
             &mut headers,
             Duration::from_secs(SIG_EXPIRY_SECONDS),
             Algorithm::Ed25519,
-            &get_signing_key(),
+            &PRIVATE_KEY.to_bytes(),
         )
         .unwrap();
 
@@ -126,7 +124,7 @@ pub fn create_directory_headers(host: &str) -> HttpSignatureHeaders {
 
 pub fn create_request_headers(request_url: &str) -> HttpSignatureHeaders {
     let signer = MessageSigner {
-        keyid: JWK_KID.into(),
+        keyid: JWK_KID.clone(),
         nonce: generate_random_string(24),
         tag: "web-bot-auth".into(),
     };
@@ -142,9 +140,57 @@ pub fn create_request_headers(request_url: &str) -> HttpSignatureHeaders {
             &mut headers,
             Duration::from_secs(SIG_EXPIRY_SECONDS),
             Algorithm::Ed25519,
-            &get_signing_key(),
+            &PRIVATE_KEY.to_bytes(),
         )
         .unwrap();
 
     headers
+}
+
+#[cfg(test)]
+mod test {
+    use web_bot_auth::{
+        SignatureAgentLink, WebBotAuthVerifier,
+        components::{CoveredComponent::Derived, DerivedComponent::Authority},
+        keyring::{JSONWebKeySet, KeyRing},
+    };
+
+    use crate::{
+        http_sig::{create_request_headers, jwk::get_jwk_keys, web_sig::get_signing_identity},
+        string_utils::get_domain,
+    };
+
+    #[test]
+    fn test_message_sign() {
+        let url = "https://example.com";
+
+        let message = create_request_headers(url);
+        let verifier = WebBotAuthVerifier::parse(&message).unwrap();
+        let agents = verifier.get_signature_agents();
+
+        assert_eq!(agents.len(), 1);
+        assert!(
+            matches!(agents.first().unwrap(), SignatureAgentLink::External(domain) if domain == &get_signing_identity())
+        );
+
+        let base = verifier.get_parsed_label().base.clone();
+        let security = base.parameters.details.possibly_insecure(|_| false);
+
+        assert_eq!(
+            base.components
+                .get(&Derived(Authority { req: false }))
+                .unwrap(),
+            &get_domain(url)
+        );
+        assert_eq!(base.parameters.details.tag.clone().unwrap(), "web-bot-auth");
+
+        assert!(!security.is_expired.unwrap_or(true));
+        assert!(!security.nonce_is_invalid.unwrap_or(true));
+
+        let mut keyring = KeyRing::default();
+        let jwt: JSONWebKeySet = serde_json::from_value(get_jwk_keys().clone()).unwrap();
+        keyring.import_jwks(jwt);
+
+        assert!(verifier.verify(&keyring, None).is_ok());
+    }
 }
