@@ -5,7 +5,7 @@ use axum::{
     http::{HeaderMap, HeaderName, HeaderValue, StatusCode},
     response::IntoResponse,
 };
-use common::http_sig::{JWK_KEYS, create_directory_headers};
+use common::http_sig::{create_directory_headers, get_jwk_keys};
 use tracing::debug;
 
 pub(crate) async fn http_sigs(headers: HeaderMap) -> Result<impl IntoResponse, StatusCode> {
@@ -21,7 +21,7 @@ pub(crate) async fn http_sigs(headers: HeaderMap) -> Result<impl IntoResponse, S
 
     let http_sigs = create_directory_headers(host_val);
 
-    let response = Json::from(JWK_KEYS.clone());
+    let response = Json::from(get_jwk_keys().clone());
 
     let return_headers: HeaderMap = vec![
         (
