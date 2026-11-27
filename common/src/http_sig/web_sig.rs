@@ -14,6 +14,7 @@ use crate::{
 };
 
 const SIG_EXPIRY_SECONDS: u64 = 60 * 60;
+const KEY: &str = "sig1";
 
 #[derive(Debug)]
 pub struct HttpSignatureHeaders {
@@ -21,20 +22,29 @@ pub struct HttpSignatureHeaders {
     is_directory: bool,
     pub signature: String,
     pub signature_input: String,
-    /// Yields double quote formatted string
     pub signature_agent: Option<String>,
 }
 
 impl HttpSignatureHeaders {
     // TODO: write builder for this to get rid of constructor
-    /// Pass `signature_agent` as non quoted string if supplying agent
     pub fn new(host: &str, is_directory: bool, signature_agent: Option<String>) -> Self {
         Self {
             host: host.into(),
             is_directory,
             signature: Default::default(),
             signature_input: Default::default(),
-            signature_agent: signature_agent.and_then(|sig_agent| Some(format!("\"{sig_agent}\""))),
+            // NOTE: shopify may still be checking the legacy format
+            // (dumb, why would they enforce checks on an I-D, active or not)
+            // https://datatracker.ietf.org/doc/html/draft-ietf-webbotauth-httpsig-protocol-01#name-legacy-signature-agent-sf-st
+            signature_agent: signature_agent
+                .and_then(|sig_agent| Some(format!(r#""{sig_agent}""#))),
+            // signature_agent: signature_agent.and_then(|sig_agent| {
+            //     Some(format!(
+            //         r#"{}="{}/.well-known/http-message-signatures-directory""#,
+            //         KEY,
+            //         sig_agent.strip_suffix("/").unwrap_or(&sig_agent)
+            //     ))
+            // }),
         }
     }
 }
@@ -76,6 +86,9 @@ impl UnsignedMessage for HttpSignatureHeaders {
             components.insert(
                 CoveredComponent::HTTP(HTTPField {
                     name: "signature-agent".to_string(),
+                    // parameters: HTTPFieldParametersSet(vec![HTTPFieldParameters::Key(
+                    //     KEY.to_string(),
+                    // )]),
                     parameters: HTTPFieldParametersSet(vec![]),
                 }),
                 signature_agent,
@@ -86,8 +99,8 @@ impl UnsignedMessage for HttpSignatureHeaders {
     }
 
     fn register_header_contents(&mut self, signature_input: String, signature_header: String) {
-        self.signature_input = format!("sig1={signature_input}");
-        self.signature = format!("sig1={signature_header}");
+        self.signature_input = format!("{KEY}={signature_input}");
+        self.signature = format!("{KEY}={signature_header}");
     }
 }
 
@@ -99,8 +112,8 @@ fn get_signing_identity() -> String {
     "https://almostprohibited.ca".into()
 }
 
-// """should""" is doing a lot of heavy lifting in this section here
-// https://datatracker.ietf.org/doc/html/draft-meunier-http-message-signatures-directory-03#name-binding-keys-to-the-directo
+// TODO: implement Content-Digest header
+// https://datatracker.ietf.org/doc/html/draft-ietf-webbotauth-httpsig-protocol-01#name-possession-proof-on-the-dir
 pub fn create_directory_headers(host: &str) -> HttpSignatureHeaders {
     let signer = MessageSigner {
         keyid: JWK_KID.clone(),
@@ -170,7 +183,7 @@ mod test {
 
         assert_eq!(agents.len(), 1);
         assert!(
-            matches!(agents.first().unwrap(), SignatureAgentLink::External(domain) if domain == &get_signing_identity())
+            matches!(agents.first().unwrap(), SignatureAgentLink::LegacyDirectory(domain) if domain.starts_with(&get_signing_identity()))
         );
 
         let base = verifier.get_parsed_label().base.clone();
