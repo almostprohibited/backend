@@ -2,9 +2,7 @@ use std::time::Duration;
 
 use indexmap::IndexMap;
 use web_bot_auth::{
-    components::{
-        CoveredComponent, DerivedComponent, HTTPField, HTTPFieldParameters, HTTPFieldParametersSet,
-    },
+    components::{CoveredComponent, DerivedComponent, HTTPField, HTTPFieldParametersSet},
     keyring::Algorithm,
     message_signatures::{MessageSigner, SignedMessage, UnsignedMessage},
 };
@@ -38,13 +36,15 @@ impl HttpSignatureHeaders {
             // NOTE: shopify may still be checking the legacy format
             // (dumb, why would they enforce checks on an I-D, active or not)
             // https://datatracker.ietf.org/doc/html/draft-ietf-webbotauth-httpsig-protocol-01#name-legacy-signature-agent-sf-st
-            signature_agent: signature_agent.and_then(|sig_agent| {
-                Some(format!(
-                    r#"{}="{}/.well-known/http-message-signatures-directory""#,
-                    KEY,
-                    sig_agent.strip_suffix("/").unwrap_or(&sig_agent)
-                ))
-            }),
+            signature_agent: signature_agent
+                .and_then(|sig_agent| Some(format!(r#""{sig_agent}""#))),
+            // signature_agent: signature_agent.and_then(|sig_agent| {
+            //     Some(format!(
+            //         r#"{}="{}/.well-known/http-message-signatures-directory""#,
+            //         KEY,
+            //         sig_agent.strip_suffix("/").unwrap_or(&sig_agent)
+            //     ))
+            // }),
         }
     }
 }
@@ -86,9 +86,10 @@ impl UnsignedMessage for HttpSignatureHeaders {
             components.insert(
                 CoveredComponent::HTTP(HTTPField {
                     name: "signature-agent".to_string(),
-                    parameters: HTTPFieldParametersSet(vec![HTTPFieldParameters::Key(
-                        KEY.to_string(),
-                    )]),
+                    // parameters: HTTPFieldParametersSet(vec![HTTPFieldParameters::Key(
+                    //     KEY.to_string(),
+                    // )]),
+                    parameters: HTTPFieldParametersSet(vec![]),
                 }),
                 signature_agent,
             );
@@ -182,7 +183,7 @@ mod test {
 
         assert_eq!(agents.len(), 1);
         assert!(
-            matches!(agents.first().unwrap(), SignatureAgentLink::JwksUri(domain) if domain.starts_with(&get_signing_identity()))
+            matches!(agents.first().unwrap(), SignatureAgentLink::LegacyDirectory(domain) if domain.starts_with(&get_signing_identity()))
         );
 
         let base = verifier.get_parsed_label().base.clone();
